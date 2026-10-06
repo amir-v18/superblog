@@ -10,6 +10,7 @@ database:
     type: mariadb
     version: "11.8"
 use_dns_when_possible: true
+composer_root: web/wp-content/plugins/superblog-engine
 composer_version: "2"
 web_environment: []
 nodejs_version: "24"

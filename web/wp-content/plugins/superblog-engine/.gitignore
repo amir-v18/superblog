@@ -1,0 +1,3 @@
+# Installed dependencies are recreated from dependency manifests.
+/vendor/
+/node_modules/

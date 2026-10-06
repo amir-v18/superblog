@@ -1,0 +1,13 @@
+{
+  "name": "superblog/superblog-engine",
+  "description": "RSS and AI publishing functionality for Superblog.",
+  "type": "wordpress-plugin",
+  "require": {
+    "php": "^8.2"
+  },
+  "autoload": {
+    "psr-4": {
+      "SuperblogEngine\\": "src/"
+    }
+  }
+}
