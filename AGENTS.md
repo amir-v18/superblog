@@ -366,3 +366,6 @@ Use the following hierarchy:
 4. Existing Laravel/project conventions
 
 If these appear to conflict, do not silently choose an architectural change. Explain the conflict and ask for clarification.
+
+
+Add concise comments only where they improve understanding of non-obvious code, architectural decisions, business rules, or tricky Laravel behavior. Comments should explain the why / mental model, not restate what the code obviously does.
