@@ -16,6 +16,8 @@ Route::middleware('guest')->group(function () {
 });
 
 Route::middleware('auth')->group(function () {
-    Route::get('/admin', DashboardController::class)->name('admin.dashboard');
+    Route::prefix('admin')->middleware('can:access-admin')->group(function () {
+        Route::get('/', DashboardController::class)->name('admin.dashboard');
+    });
     Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])->name('logout');
 });

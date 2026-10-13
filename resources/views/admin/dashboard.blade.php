@@ -9,5 +9,13 @@
     <section class="mt-8 rounded-xl border border-slate-200 bg-white p-6" aria-labelledby="management-heading">
         <h2 id="management-heading" class="text-lg font-semibold">Superblog management</h2>
         <p class="mt-2 text-sm text-slate-600">Tools to manage your Superblogs will be added here.</p>
+        <ul class="mt-4 space-y-2">
+            @forelse ($superblogs as $superblog)
+                <li>{{ $superblog->name }}</li>
+            @empty
+                <li class="text-sm text-slate-600">No Superblogs are assigned to your account.</li>
+            @endforelse
+        </ul>
+        <div class="mt-4">{{ $superblogs->links() }}</div>
     </section>
 @endsection
