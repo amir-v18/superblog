@@ -1,6 +1,8 @@
 <?php
 
 use App\Http\Controllers\Admin\DashboardController;
+use App\Http\Controllers\Admin\StaffController;
+use App\Http\Controllers\Admin\SuperblogController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use Illuminate\Support\Facades\Route;
 
@@ -18,6 +20,12 @@ Route::middleware('guest')->group(function () {
 Route::middleware('auth')->group(function () {
     Route::prefix('admin')->middleware('can:access-admin')->group(function () {
         Route::get('/', DashboardController::class)->name('admin.dashboard');
+        Route::prefix('staff')->name('admin.staff.')->middleware('can:manage-staff')->group(function () {
+            Route::get('/', [StaffController::class, 'index'])->name('index');
+            Route::post('{user}', [StaffController::class, 'update'])->name('update');
+        });
+        Route::get('superblogs/{superblog}/delete', [SuperblogController::class, 'confirmDeletion'])->name('admin.superblogs.delete');
+        Route::resource('superblogs', SuperblogController::class)->except(['index', 'show'])->names('admin.superblogs');
     });
     Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])->name('logout');
 });
