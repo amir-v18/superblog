@@ -10,6 +10,11 @@ Route::get('/', function () {
     return view('welcome');
 });
 
+// Demo page for previewing the public layout; only registered locally so it is never public or indexed.
+if (app()->environment('local')) {
+    Route::view('/demo/layout', 'demo.layout')->name('demo.layout');
+}
+
 Route::middleware('guest')->group(function () {
     Route::get('/login', [AuthenticatedSessionController::class, 'create'])->name('login');
     Route::post('/login', [AuthenticatedSessionController::class, 'store'])
