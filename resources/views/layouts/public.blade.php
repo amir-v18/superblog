@@ -1,5 +1,11 @@
+@use('App\Support\Theme')
+@php
+    // $theme is optional: a theme name ('bondebladet') or an array of overrides with an optional base 'name'.
+    $themeName = Theme::name($theme ?? null);
+    $themeStyle = Theme::cssVariables($theme ?? null);
+@endphp
 <!DOCTYPE html>
-<html lang="sv">
+<html lang="sv" @if ($themeName) data-theme="{{ $themeName }}" @endif @if ($themeStyle) style="{{ $themeStyle }}" @endif>
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
