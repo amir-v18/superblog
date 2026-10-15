@@ -18,7 +18,12 @@
     @endif
 
     @if ($templates->isEmpty())
-        <p role="status" class="mt-6 rounded-lg border border-amber-200 bg-amber-50 p-4 text-amber-900">No templates are available. A template must be added before you can save a Superblog.</p>
+        <p role="status" class="mt-6 rounded-lg border border-amber-200 bg-amber-50 p-4 text-amber-900">
+            No templates are available. A template must be added before you can save a Superblog.
+            @can('viewAny', App\Models\Template::class)
+                <a href="{{ route('admin.templates.index') }}" class="font-medium underline underline-offset-4">Manage templates</a>
+            @endcan
+        </p>
     @endif
 
     <form method="POST" action="{{ $superblog->exists ? route('admin.superblogs.update', $superblog) : route('admin.superblogs.store') }}" class="mt-6 space-y-5 rounded-xl border border-slate-200 bg-white p-6">

@@ -13,6 +13,9 @@
                 @can('manage-staff')
                     <a href="{{ route('admin.staff.index') }}" class="text-sm font-medium underline underline-offset-4">Staff Management</a>
                 @endcan
+                @can('viewAny', App\Models\Template::class)
+                    <a href="{{ route('admin.templates.index') }}" class="text-sm font-medium underline underline-offset-4">Templates</a>
+                @endcan
                 @can('create', App\Models\Superblog::class)
                     <a href="{{ route('admin.superblogs.create') }}" class="rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-700">Create Superblog</a>
                 @endcan

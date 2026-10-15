@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Admin;
 
 use App\Models\Superblog;
+use App\Models\Template;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
@@ -44,7 +45,16 @@ class SaveSuperblogRequest extends FormRequest
                     $fail('The description must not exceed 65,535 bytes.');
                 }
             }],
-            'template_id' => ['required', 'integer', Rule::exists('templates', 'id')],
+            'template_id' => ['bail', 'required', 'integer', function ($attribute, $value, $fail) use ($superblog) {
+                $template = Template::find($value);
+
+                $isCurrentTemplate = $superblog instanceof Superblog
+                    && (int) $superblog->template_id === (int) $value;
+
+                if (! $template || (! $template->is_active && ! $isCurrentTemplate)) {
+                    $fail('Select an active template.');
+                }
+            }],
         ];
     }
 }

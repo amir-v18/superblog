@@ -9,6 +9,11 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 #[Fillable(['name', 'slug', 'description', 'layout', 'settings', 'is_active'])]
 class Template extends Model
 {
+    public static function availableLayouts(): array
+    {
+        return ['layouts.public' => 'Default public layout'];
+    }
+
     protected function casts(): array
     {
         return [

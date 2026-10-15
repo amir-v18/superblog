@@ -21,7 +21,7 @@ class SuperblogController extends Controller
 
         return view('admin.superblogs.form', [
             'superblog' => new Superblog,
-            'templates' => Template::orderBy('name')->get(),
+            'templates' => $this->availableTemplates(),
         ]);
     }
 
@@ -47,7 +47,7 @@ class SuperblogController extends Controller
 
         return view('admin.superblogs.form', [
             'superblog' => $superblog,
-            'templates' => Template::orderBy('name')->get(),
+            'templates' => $this->availableTemplates($superblog),
         ]);
     }
 
@@ -82,5 +82,19 @@ class SuperblogController extends Controller
     {
         // Unique database constraints also protect against concurrent form submissions.
         throw ValidationException::withMessages(['slug' => 'The slug or domain is already in use. Please choose another.']);
+    }
+
+    private function availableTemplates(?Superblog $superblog = null)
+    {
+        return Template::query()
+            ->where(function ($query) use ($superblog): void {
+                $query->where('is_active', true);
+
+                if ($superblog?->exists) {
+                    $query->orWhereKey($superblog->template_id);
+                }
+            })
+            ->orderBy('name')
+            ->get();
     }
 }
