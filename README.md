@@ -65,15 +65,15 @@ ddev describe
 
 ## Developer accounts and super-admin access
 
-The application has no registration page, account-creation command, or account-creating seeder. The database seeder intentionally creates no users. Ask the project administrator to provision an individual account through an approved process; do not share accounts or passwords.
-
-Once that account exists in the local database, promote it explicitly:
+After migrating a fresh local database, create your own initial account with the interactive, CLI-only command:
 
 ```sh
-ddev artisan superblog:make-super-admin developer@example.com
+ddev artisan superblog:create-super-admin
 ```
 
-The command asks for confirmation, then approves that existing account and grants super-admin access. It cannot create the account. **First-account provisioning is currently a project setup gap:** there is no documented, supported way in this repository to create the initial user. Resolve that gap with the project owner before onboarding developers; this README does not invent a credential or account-creation workaround.
+Enter your own name, email, and password at the prompts. The password prompts do not echo input, require confirmation, and the account is stored with a hashed password. The command approves this first account as a super admin and refuses to create an account if any super admin already exists. Each developer should use a separate local database and their own account; do not share accounts or passwords.
+
+The existing `superblog:make-super-admin {email}` command remains available to approve and promote an already existing account when appropriate. Neither command creates regular staff accounts, and this application still has no public registration or general account-creation workflow.
 
 ## Stop DDEV
 
