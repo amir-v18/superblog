@@ -1,0 +1,9 @@
+name: superblog
+type: laravel
+docroot: public
+php_version: "8.5"
+composer_version: "2"
+nodejs_version: "24"
+database:
+  type: mysql
+  version: "8.4"
