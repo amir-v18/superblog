@@ -1,4 +1,7 @@
 @import 'tailwindcss';
+@import '@fontsource-variable/newsreader';
+@import '@fontsource-variable/dm-sans';
+@import '@fontsource-variable/space-grotesk';
 
 @source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
 @source '../../storage/framework/views/*.php';
@@ -6,4 +9,49 @@
 @theme {
     --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
         'Segoe UI Symbol', 'Noto Color Emoji';
+}
+
+/*
+ * Theme system: a theme is a set of raw values selected by data-theme on <html>.
+ * The @theme inline block below maps them to Tailwind utilities (bg-paper, text-ink, font-display, ...).
+ * "inline" makes utilities reference var(--paper) directly, so the value resolves from the active theme.
+ */
+[data-theme='bondebladet'] {
+    --paper: #f8f7f2;
+    --white: #fffefa;
+    --ink: #1d2923;
+    --muted: #6f7970;
+    --primary: #1b4b37;
+    --deep: #143a2c;
+    --line: #dedfd7;
+    --pale: #ecf0e8;
+    --display: 'Newsreader Variable', ui-serif, Georgia, serif;
+    --body: 'DM Sans Variable', ui-sans-serif, system-ui, sans-serif;
+}
+
+[data-theme='techenspraket'] {
+    --paper: #f4f6fb;
+    --white: #fff;
+    --ink: #0a1020;
+    --muted: #627089;
+    --primary: #2b4bff;
+    --deep: #0a1030;
+    --line: #dbe1ee;
+    --pale: #e8edfa;
+    --display: 'Space Grotesk Variable', ui-sans-serif, system-ui, sans-serif;
+    --body: 'DM Sans Variable', ui-sans-serif, system-ui, sans-serif;
+}
+
+@theme inline {
+    --color-paper: var(--paper);
+    /* Overrides Tailwind's built-in white; the fallback keeps bg-white plain white on unthemed pages (e.g. admin). */
+    --color-white: var(--white, #fff);
+    --color-ink: var(--ink);
+    --color-muted: var(--muted);
+    --color-primary: var(--primary);
+    --color-deep: var(--deep);
+    --color-line: var(--line);
+    --color-pale: var(--pale);
+    --font-display: var(--display);
+    --font-body: var(--body);
 }
