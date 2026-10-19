@@ -16,7 +16,36 @@
 
         // RSS articles always go through AI transformation (RSS → AI → Article); there is no "ai" source type.
         $isAiProcessed = $article['source_type'] === 'rss';
+
+        // No hasPart/cssSelector for locked articles: the locked text is never in the HTML,
+        // so there is no element for Google to point at.
+        $jsonLd = [
+            '@context' => 'https://schema.org',
+            '@type' => 'NewsArticle',
+            'headline' => $article['title'],
+            'description' => $article['excerpt'],
+            'image' => [[
+                '@type' => 'ImageObject',
+                'url' => $article['image']['src'],
+                'width' => $article['image']['width'],
+                'height' => $article['image']['height'],
+            ]],
+            'datePublished' => $article['published_at']->toIso8601String(),
+            'author' => [['@type' => 'Person', 'name' => $article['author']]],
+            'isAccessibleForFree' => ! $isLocked,
+        ];
     @endphp
+
+    @push('head')
+        <meta property="og:image" content="{{ $article['image']['src'] }}">
+        <meta property="og:image:width" content="{{ $article['image']['width'] }}">
+        <meta property="og:image:height" content="{{ $article['image']['height'] }}">
+        <meta property="og:image:alt" content="{{ $article['image']['alt'] }}">
+        <meta property="article:published_time" content="{{ $article['published_at']->toIso8601String() }}">
+        <meta name="twitter:card" content="summary_large_image">
+        {{-- Raw output is required for valid JSON. JSON_HEX_TAG encodes < and > as </>, so no value can close the script tag. --}}
+        <script type="application/ld+json">{!! json_encode($jsonLd, JSON_HEX_TAG | JSON_HEX_AMP | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) !!}</script>
+    @endpush
 
     <div class="rounded-lg bg-paper p-6 font-body text-ink sm:p-10">
         <article>
@@ -67,7 +96,7 @@
             </div>
 
             @if ($isLocked)
-                <div class="mt-6 rounded-md border border-line bg-pale p-6 text-center">
+                <div class="paywall mt-6 rounded-md border border-line bg-pale p-6 text-center">
                     <p class="font-display text-xl font-semibold">Logga in för att läsa resten</p>
                     <a href="{{ route('login') }}" class="mt-4 inline-block rounded-md bg-primary px-5 py-2 text-sm font-medium text-white hover:bg-deep focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">
                         Logga in
