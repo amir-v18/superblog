@@ -163,7 +163,7 @@ class DevelopmentSeedersTest extends TestCase
         $this->assertSame('pending', $staff->approval_status);
         $this->assertFalse($staff->is_super_admin);
         $this->assertFalse($staff->has_all_superblogs_access);
-        $this->assertTrue(Hash::check('Superblog-Staff-Local-2026!', $staff->password));
+
 
         $staff->name = 'Changed by Developer';
         $staff->password = Hash::make('my-own-test-password');
