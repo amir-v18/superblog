@@ -19,6 +19,9 @@
     <meta property="og:description" content="@yield('meta_description', '')">
     <meta property="og:url" content="@yield('canonical', url()->current())">
 
+    {{-- Page-specific head content, e.g. JSON-LD or og:image on article pages. --}}
+    @stack('head')
+
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
 <body class="flex min-h-screen flex-col bg-white font-sans text-slate-900 antialiased">

@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
+use App\Support\DemoArticle;
 use App\Support\Theme;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -21,6 +22,17 @@ if (app()->environment('local')) {
 
         return view('demo.news', ['theme' => $theme]);
     })->name('demo.news');
+
+    Route::get('/demo/news/article', function (Request $request) {
+        $theme = in_array($request->query('theme'), Theme::NAMES, true)
+            ? $request->query('theme')
+            : 'bondebladet';
+
+        return view('templates.news.article', [
+            'article' => DemoArticle::make($request->boolean('locked')),
+            'theme' => $theme,
+        ]);
+    })->name('demo.news.article');
 }
 
 Route::middleware('guest')->group(function () {
