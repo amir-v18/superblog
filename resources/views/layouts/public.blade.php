@@ -1,5 +1,11 @@
+@use('App\Support\Theme')
+@php
+    // $theme is optional: a theme name ('bondebladet') or an array of overrides with an optional base 'name'.
+    $themeName = Theme::name($theme ?? null);
+    $themeStyle = Theme::cssVariables($theme ?? null);
+@endphp
 <!DOCTYPE html>
-<html lang="sv">
+<html lang="sv" @if ($themeName) data-theme="{{ $themeName }}" @endif @if ($themeStyle) style="{{ $themeStyle }}" @endif>
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -12,6 +18,9 @@
     <meta property="og:title" content="@yield('title', 'Superblog')">
     <meta property="og:description" content="@yield('meta_description', '')">
     <meta property="og:url" content="@yield('canonical', url()->current())">
+
+    {{-- Page-specific head content, e.g. JSON-LD or og:image on article pages. --}}
+    @stack('head')
 
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>

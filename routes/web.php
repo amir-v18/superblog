@@ -5,6 +5,9 @@ use App\Http\Controllers\Admin\StaffController;
 use App\Http\Controllers\Admin\SuperblogController;
 use App\Http\Controllers\Admin\TemplateController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
+use App\Support\DemoArticle;
+use App\Support\Theme;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -14,6 +17,25 @@ Route::get('/', function () {
 // Demo page for previewing the public layout; only registered locally so it is never public or indexed.
 if (app()->environment('local')) {
     Route::view('/demo/layout', 'demo.layout')->name('demo.layout');
+
+    Route::get('/demo/news', function (Request $request) {
+        $theme = in_array($request->query('theme'), Theme::NAMES, true)
+            ? $request->query('theme')
+            : 'bondebladet';
+
+        return view('demo.news', ['theme' => $theme]);
+    })->name('demo.news');
+
+    Route::get('/demo/news/article', function (Request $request) {
+        $theme = in_array($request->query('theme'), Theme::NAMES, true)
+            ? $request->query('theme')
+            : 'bondebladet';
+
+        return view('templates.news.article', [
+            'article' => DemoArticle::make($request->boolean('locked')),
+            'theme' => $theme,
+        ]);
+    })->name('demo.news.article');
 }
 
 Route::middleware('guest')->group(function () {
