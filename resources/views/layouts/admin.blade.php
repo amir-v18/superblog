@@ -12,7 +12,7 @@
             <a href="{{ route('admin.dashboard') }}" class="text-lg font-semibold focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-slate-900">Superblog</a>
             @auth
                 <div class="flex items-center gap-6">
-                    <a href="{{ route('admin.dashboard') }}" class="text-sm font-medium underline underline-offset-4" aria-current="page">Dashboard</a>
+                    <a href="{{ route('admin.dashboard') }}" class="text-sm font-medium underline underline-offset-4" @if (request()->routeIs('admin.dashboard')) aria-current="page" @endif>Dashboard</a>
                     <form method="POST" action="{{ route('logout') }}">
                         @csrf
                         <button type="submit" class="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium hover:bg-slate-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900">Log out</button>
@@ -22,6 +22,9 @@
         </nav>
     </header>
     <main class="mx-auto max-w-5xl px-6 py-12">
+        @if (session('status'))
+            <div role="status" class="mb-6 rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-emerald-900">{{ session('status') }}</div>
+        @endif
         @yield('content')
     </main>
 </body>
