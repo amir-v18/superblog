@@ -2,6 +2,8 @@
 
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
+use App\Support\Theme;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -11,6 +13,14 @@ Route::get('/', function () {
 // Demo page for previewing the public layout; only registered locally so it is never public or indexed.
 if (app()->environment('local')) {
     Route::view('/demo/layout', 'demo.layout')->name('demo.layout');
+
+    Route::get('/demo/news', function (Request $request) {
+        $theme = in_array($request->query('theme'), Theme::NAMES, true)
+            ? $request->query('theme')
+            : 'bondebladet';
+
+        return view('demo.news', ['theme' => $theme]);
+    })->name('demo.news');
 }
 
 Route::middleware('guest')->group(function () {
