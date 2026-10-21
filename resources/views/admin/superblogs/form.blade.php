@@ -26,6 +26,10 @@
         </p>
     @endif
 
+    @if ($superblog->exists)
+        <p class="mt-4"><a href="{{ route('admin.superblogs.rss-sources.index', $superblog) }}" class="font-medium underline underline-offset-4">Manage RSS sources</a></p>
+    @endif
+
     <form method="POST" action="{{ $superblog->exists ? route('admin.superblogs.update', $superblog) : route('admin.superblogs.store') }}" class="mt-6 space-y-5 rounded-xl border border-slate-200 bg-white p-6">
         @csrf
         @if ($superblog->exists)

@@ -31,6 +31,9 @@
                     </div>
                     <div class="flex gap-4 text-sm font-medium">
                         @can('update', $superblog)
+                            <a href="{{ route('admin.superblogs.rss-sources.index', $superblog) }}" class="underline underline-offset-4">RSS sources</a>
+                        @endcan
+                        @can('update', $superblog)
                             <a href="{{ route('admin.superblogs.edit', $superblog) }}" class="underline underline-offset-4" aria-label="Edit {{ $superblog->name }}">Edit</a>
                         @endcan
                         @can('delete', $superblog)
