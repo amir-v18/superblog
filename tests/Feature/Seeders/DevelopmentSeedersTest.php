@@ -164,7 +164,6 @@ class DevelopmentSeedersTest extends TestCase
         $this->assertFalse($staff->is_super_admin);
         $this->assertFalse($staff->has_all_superblogs_access);
 
-
         $staff->name = 'Changed by Developer';
         $staff->password = Hash::make('my-own-test-password');
         $staff->approval_status = 'approved';
