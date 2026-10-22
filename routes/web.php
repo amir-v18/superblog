@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Admin\DashboardController;
+use App\Http\Controllers\Admin\RssSourceController;
 use App\Http\Controllers\Admin\StaffController;
 use App\Http\Controllers\Admin\SuperblogController;
 use App\Http\Controllers\Admin\TemplateController;
@@ -54,6 +55,24 @@ Route::middleware('auth')->group(function () {
         });
         Route::get('templates/{template}/delete', [TemplateController::class, 'confirmDeletion'])->name('admin.templates.delete');
         Route::resource('templates', TemplateController::class)->except(['show'])->names('admin.templates');
+        Route::prefix('superblogs/{superblog}/rss-sources')
+            ->name('admin.superblogs.rss-sources.')
+            ->scopeBindings()
+            ->group(function () {
+                Route::get('/', [RssSourceController::class, 'index'])->name('index');
+                Route::get('create', [RssSourceController::class, 'create'])->name('create');
+                Route::post('/', [RssSourceController::class, 'store'])->name('store');
+                Route::get('{rssSource}/edit', [RssSourceController::class, 'edit'])->name('edit');
+                Route::put('{rssSource}', [RssSourceController::class, 'update'])->name('update');
+                Route::get('{rssSource}/delete', [RssSourceController::class, 'confirmDeletion'])->name('delete');
+                Route::delete('{rssSource}', [RssSourceController::class, 'destroy'])->name('destroy');
+                Route::post('{rssSource}/fetch', [RssSourceController::class, 'fetch'])->name('fetch');
+                Route::get('{rssSource}/items', [RssSourceController::class, 'items'])->name('items.index');
+                Route::get('{rssSource}/items/clear', [RssSourceController::class, 'confirmClearItems'])->name('items.clear');
+                Route::delete('{rssSource}/items', [RssSourceController::class, 'clearItems'])->name('items.clear.destroy');
+                Route::get('{rssSource}/items/{rssItem}/delete', [RssSourceController::class, 'confirmItemDeletion'])->name('items.delete');
+                Route::delete('{rssSource}/items/{rssItem}', [RssSourceController::class, 'destroyItem'])->name('items.destroy');
+            });
         Route::get('superblogs/{superblog}/delete', [SuperblogController::class, 'confirmDeletion'])->name('admin.superblogs.delete');
         Route::resource('superblogs', SuperblogController::class)->except(['index', 'show'])->names('admin.superblogs');
     });

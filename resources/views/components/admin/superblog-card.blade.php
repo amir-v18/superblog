@@ -44,7 +44,12 @@
         </div>
     @endif
 
-    @can('delete', $superblog)
-        <a href="{{ route('admin.superblogs.delete', $superblog) }}" class="mt-2 self-start text-sm text-red-700 underline underline-offset-4" aria-label="Ta bort {{ $superblog->name }}">Ta bort</a>
-    @endcan
+    <div class="mt-2 flex gap-4 text-sm">
+        @can('update', $superblog)
+            <a href="{{ route('admin.superblogs.rss-sources.index', $superblog) }}" class="underline underline-offset-4" aria-label="RSS-flöden för {{ $superblog->name }}">RSS-flöden</a>
+        @endcan
+        @can('delete', $superblog)
+            <a href="{{ route('admin.superblogs.delete', $superblog) }}" class="text-red-700 underline underline-offset-4" aria-label="Ta bort {{ $superblog->name }}">Ta bort</a>
+        @endcan
+    </div>
 </div>
