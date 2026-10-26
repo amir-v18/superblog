@@ -47,7 +47,7 @@ class SuperblogController extends Controller
         Gate::authorize('view', $superblog);
         Gate::authorize('update', $superblog);
 
-        return view('admin.superblogs.form', [
+        return view('admin.superblogs.edit', [
             'superblog' => $superblog,
             'templates' => $this->availableTemplates($superblog),
         ]);
@@ -61,7 +61,7 @@ class SuperblogController extends Controller
             $this->duplicateError();
         }
 
-        return to_route('admin.dashboard')->with('status', 'Superblog updated.');
+        return to_route('admin.superblogs.edit', $superblog)->with('status', 'Superblog updated.');
     }
 
     public function confirmDeletion(Superblog $superblog): View

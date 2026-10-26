@@ -130,13 +130,13 @@ class TemplateManagementTest extends TestCase
 
         $this->get(route('admin.superblogs.edit', $existing))
             ->assertOk()
-            ->assertSee('Inactive (inactive)');
+            ->assertSee('Inactive (inaktiv)');
 
         $this->put(route('admin.superblogs.update', $existing), [
             'name' => 'Existing Blog Updated',
             'slug' => 'existing-blog',
             'template_id' => $inactive->id,
-        ])->assertRedirect(route('admin.dashboard'));
+        ])->assertRedirect(route('admin.superblogs.edit', $existing));
 
         $this->assertDatabaseHas('superblogs', [
             'id' => $existing->id,
