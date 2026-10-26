@@ -8,14 +8,7 @@
     <h1 class="mt-4 text-3xl font-semibold tracking-tight">Create Superblog</h1>
 
     @if ($errors->any())
-        <div role="alert" class="mt-6 rounded-lg border border-studio-bad/40 bg-[#43261c] p-4 text-studio-bad">
-            <p class="font-medium">Please correct the following:</p>
-            <ul class="mt-2 list-inside list-disc">
-                @foreach ($errors->all() as $error)
-                    <li>{{ $error }}</li>
-                @endforeach
-            </ul>
-        </div>
+        <x-admin.errors class="mt-6" title="Please correct the following:" />
     @endif
 
     @if ($templates->isEmpty())

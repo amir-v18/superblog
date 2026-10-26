@@ -15,11 +15,7 @@
 
     <div class="mt-4 flex flex-wrap items-center gap-3">
         <h1 class="text-3xl font-semibold tracking-tight">{{ $superblog->name }}</h1>
-        @if ($superblog->status === 'published')
-            <span class="rounded-full bg-studio-live px-2.5 py-0.5 text-xs font-medium text-studio-ok"><span aria-hidden="true">●</span> Live</span>
-        @else
-            <span class="rounded-full bg-studio-pill px-2.5 py-0.5 text-xs font-medium text-studio-muted">Utkast</span>
-        @endif
+        <x-admin.status-pill :live="$superblog->status === 'published'" />
     </div>
 
     <nav aria-label="Byggarens steg" class="mt-8 border-b border-studio-line">
@@ -38,14 +34,7 @@
     </nav>
 
     @if ($errors->any())
-        <div role="alert" class="mt-6 rounded-lg border border-studio-bad/40 bg-[#43261c] p-4 text-studio-bad">
-            <p class="font-medium">Rätta följande:</p>
-            <ul class="mt-2 list-inside list-disc">
-                @foreach ($errors->all() as $error)
-                    <li>{{ $error }}</li>
-                @endforeach
-            </ul>
-        </div>
+        <x-admin.errors class="mt-6" />
     @endif
 
     @if ($tab === 'grund')
@@ -65,16 +54,9 @@
                 @include('admin.superblogs._template-options')
             </fieldset>
 
-            <div>
-                <label for="domain" class="block text-sm font-medium">Webbadress (valfri)</label>
-                {{-- The prefix is only visual: the backend expects a bare hostname. --}}
-                <div class="mt-2 flex rounded-lg border border-studio-line bg-studio-bg focus-within:outline-2 focus-within:outline-studio-brand">
-                    <span aria-hidden="true" class="flex items-center rounded-l-lg bg-studio-pill px-3 text-sm text-studio-muted">https://</span>
-                    <input id="domain" name="domain" value="{{ old('domain', $superblog->domain) }}" maxlength="253" placeholder="dagensbudbarare.se" aria-describedby="domain-help"
-                           class="w-full min-w-0 rounded-r-lg bg-transparent p-3 placeholder:text-[#70727c] focus:outline-none">
-                </div>
-                <p id="domain-help" class="mt-1 text-sm text-studio-muted">Skriv bara domänen, utan https://.</p>
-            </div>
+            <x-admin.domain-input id="domain" :value="old('domain', $superblog->domain)" help="Skriv bara domänen, utan https://.">
+                Webbadress (valfri)
+            </x-admin.domain-input>
 
             <div>
                 <button type="submit" class="rounded-lg bg-studio-brand px-4 py-2 text-sm font-medium text-studio-side hover:bg-[#ff9068] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-studio-brand">Spara</button>

@@ -13,14 +13,7 @@
         <p class="mt-1 text-sm text-studio-muted">Ge magasinet ett namn, välj mall och lägg till en webbadress. Allt kan ändras senare.</p>
 
         @if ($reopen)
-            <div role="alert" class="mt-4 rounded-lg border border-studio-bad/40 bg-[#43261c] p-4 text-sm text-studio-bad">
-                <p class="font-medium">Rätta följande:</p>
-                <ul class="mt-2 list-inside list-disc">
-                    @foreach ($errors->all() as $error)
-                        <li>{{ $error }}</li>
-                    @endforeach
-                </ul>
-            </div>
+            <x-admin.errors class="mt-4 text-sm" />
         @endif
 
         @if ($templates->isEmpty())
@@ -47,16 +40,9 @@
                 @include('admin.superblogs._template-options')
             </fieldset>
 
-            <div>
-                <label for="create-domain" class="block text-sm font-medium"><span class="text-studio-muted">3</span> Webbadress (valfri)</label>
-                {{-- The prefix is only visual: the backend expects a bare hostname. --}}
-                <div class="mt-2 flex rounded-lg border border-studio-line bg-studio-bg focus-within:outline-2 focus-within:outline-studio-brand">
-                    <span aria-hidden="true" class="flex items-center rounded-l-lg bg-studio-pill px-3 text-sm text-studio-muted">https://</span>
-                    <input id="create-domain" name="domain" value="{{ old('domain') }}" maxlength="253" placeholder="dagensbudbarare.se" aria-describedby="create-domain-help" data-domain-target
-                           class="w-full min-w-0 rounded-r-lg bg-transparent p-3 placeholder:text-[#70727c] focus:outline-none">
-                </div>
-                <p id="create-domain-help" class="mt-1 text-sm text-studio-muted">Föreslås utifrån namnet. Skriv bara domänen, utan https://.</p>
-            </div>
+            <x-admin.domain-input id="create-domain" :value="old('domain')" help="Föreslås utifrån namnet. Skriv bara domänen, utan https://." data-domain-target>
+                <span class="text-studio-muted">3</span> Webbadress (valfri)
+            </x-admin.domain-input>
 
             <div class="flex justify-end gap-3">
                 {{-- type="button", not a dialog submit: Enter in a field triggers the first submit button, which must be "Skapa". --}}

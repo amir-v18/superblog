@@ -54,11 +54,7 @@
         <div class="flex flex-col gap-1.5 px-4 pt-3.5 pb-4">
             <div class="flex items-center justify-between gap-3">
                 <h3 class="text-[17px] font-semibold">{{ $superblog->name }}</h3>
-                @if ($isLive)
-                    <span class="shrink-0 rounded-full bg-studio-live px-[9px] py-[3px] text-[11px] font-semibold text-studio-ok"><span aria-hidden="true">●</span> Live</span>
-                @else
-                    <span class="shrink-0 rounded-full bg-studio-pill px-[9px] py-[3px] text-[11px] font-semibold text-studio-muted">Utkast</span>
-                @endif
+                <x-admin.status-pill :live="$isLive" class="shrink-0" />
             </div>
             {{-- Figma: live cards show where they are published, drafts show which template they are built on. --}}
             <p class="break-all text-xs text-studio-muted">{{ $isLive ? ($superblog->domain ?: $superblog->slug) : $superblog->template?->name }}</p>
