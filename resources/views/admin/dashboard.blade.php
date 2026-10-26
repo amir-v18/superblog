@@ -24,7 +24,7 @@
             Publicerade sajter <span class="font-normal text-slate-500">({{ $published->total() }})</span>
         </h2>
         @if ($published->isEmpty())
-            <p class="mt-4 text-sm text-slate-600">Inga magasin är publicerade än.</p>
+            <p class="mt-4 text-sm text-slate-600">Inga publicerade sajter ännu. Publicera ett utkast så hamnar det här.</p>
         @else
             <ul class="mt-4 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
                 @foreach ($published as $superblog)
@@ -42,20 +42,14 @@
             Under uppbyggnad <span class="font-normal text-slate-500">({{ $drafts->total() }})</span>
         </h2>
         @if ($drafts->isEmpty())
-            <p class="mt-4 text-sm text-slate-600">Inga magasin är under uppbyggnad.</p>
+            <p class="mt-4 text-sm text-slate-600">Inga magasin under uppbyggnad. Starta ett med “+ Nytt magasin” i menyn till vänster.</p>
+        @else
+            <ul class="mt-4 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                @foreach ($drafts as $superblog)
+                    <li><x-admin.superblog-card :superblog="$superblog" /></li>
+                @endforeach
+            </ul>
         @endif
-        <ul class="mt-4 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            @foreach ($drafts as $superblog)
-                <li><x-admin.superblog-card :superblog="$superblog" /></li>
-            @endforeach
-            @can('create', App\Models\Superblog::class)
-                <li>
-                    <a href="{{ route('admin.superblogs.create') }}" data-open-dialog="create-superblog" class="flex h-full min-h-40 items-center justify-center rounded-xl border-2 border-dashed border-slate-300 p-5 text-sm font-medium text-slate-600 hover:border-slate-400 hover:text-slate-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900">
-                        + Skapa nytt magasin
-                    </a>
-                </li>
-            @endcan
-        </ul>
         @if ($drafts->hasPages())
             <div class="mt-6">{{ $drafts->links() }}</div>
         @endif
