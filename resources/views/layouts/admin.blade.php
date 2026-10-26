@@ -90,7 +90,7 @@
     {{-- Pages can replace the width and padding via @section('main-class'); the default keeps the old layout. --}}
     <main class="@yield('main-class', 'mx-auto w-full max-w-5xl px-6 py-12') lg:min-w-0">
         @if (session('status'))
-            <div role="status" class="mb-6 rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-emerald-900">{{ session('status') }}</div>
+            <div role="status" class="mb-6 rounded-lg border border-studio-ok/30 bg-studio-live p-4 text-studio-ok">{{ session('status') }}</div>
         @endif
         @yield('content')
     </main>

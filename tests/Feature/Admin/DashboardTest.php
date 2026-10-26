@@ -103,7 +103,7 @@ class DashboardTest extends TestCase
             ->assertOk()
             ->assertSee('data-theme="techenspraket"', false)
             ->assertDontSee('data-theme="hackat"', false)
-            ->assertSee('h-2 bg-slate-200', false);
+            ->assertSee('h-2 bg-studio-line', false);
 
         // Only the valid theme gets a themed strip; the other two fall back to the neutral one.
         // Counted from the card sections only, since the sidebar's theme dots also use data-theme.
