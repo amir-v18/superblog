@@ -6,6 +6,7 @@ use App\Models\Superblog;
 use App\Models\Template;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Str;
 use Tests\TestCase;
 
 class DashboardTest extends TestCase
@@ -105,7 +106,9 @@ class DashboardTest extends TestCase
             ->assertSee('h-2 bg-slate-200', false);
 
         // Only the valid theme gets a themed strip; the other two fall back to the neutral one.
-        $this->assertSame(1, substr_count($response->getContent(), 'data-theme='));
+        // Counted from the card sections only, since the sidebar's theme dots also use data-theme.
+        $cards = Str::after($response->getContent(), 'id="published-heading"');
+        $this->assertSame(1, substr_count($cards, 'data-theme='));
     }
 
     public function test_unapproved_users_cannot_open_the_dashboard(): void
