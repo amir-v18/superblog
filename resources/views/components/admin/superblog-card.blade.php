@@ -76,9 +76,10 @@
     @endif
 
     <div class="mt-2 flex gap-4 text-sm">
-        @can('update', $superblog)
+        {{-- Reuses $canEdit: the same update check, without running the policy query again. --}}
+        @if ($canEdit)
             <a href="{{ route('admin.superblogs.rss-sources.index', $superblog) }}" class="underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-studio-brand" aria-label="RSS-flöden för {{ $superblog->name }}">RSS-flöden</a>
-        @endcan
+        @endif
         @can('delete', $superblog)
             <a href="{{ route('admin.superblogs.delete', $superblog) }}" class="text-studio-bad underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-studio-brand" aria-label="Ta bort {{ $superblog->name }}">Ta bort</a>
         @endcan

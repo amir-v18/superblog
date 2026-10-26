@@ -133,6 +133,28 @@ class DashboardTest extends TestCase
             ->assertSee('Klassisk tidning');
     }
 
+    public function test_admin_pages_are_swedish_and_not_indexed(): void
+    {
+        $admin = $this->makeUser(approved: true, superAdmin: true);
+
+        $this->actingAs($admin)->get(route('admin.dashboard'))
+            ->assertOk()
+            ->assertSee('<html lang="sv">', false)
+            ->assertSee('<meta name="robots" content="noindex, nofollow">', false);
+    }
+
+    public function test_assigned_editor_sees_the_rss_link_on_the_card(): void
+    {
+        $admin = $this->makeUser(approved: true, superAdmin: true);
+        $editor = $this->makeUser(approved: true);
+        $superblog = $this->makeSuperblog($admin, 'Assigned Blog', 'draft');
+        $superblog->staff()->attach($editor);
+
+        $this->actingAs($editor)->get(route('admin.dashboard'))
+            ->assertOk()
+            ->assertSee(route('admin.superblogs.rss-sources.index', $superblog), false);
+    }
+
     public function test_unapproved_users_cannot_open_the_dashboard(): void
     {
         $this->actingAs($this->makeUser())->get(route('admin.dashboard'))->assertForbidden();

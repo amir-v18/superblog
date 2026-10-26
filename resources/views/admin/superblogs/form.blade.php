@@ -1,10 +1,11 @@
 @extends('layouts.admin')
 
-@section('title', $superblog->exists ? 'Edit Superblog' : 'Create Superblog')
+{{-- Create only: existing Superblogs are edited in the builder (edit.blade.php). --}}
+@section('title', 'Create Superblog')
 
 @section('content')
     <a href="{{ route('admin.dashboard') }}" class="text-sm underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-studio-brand">Back to dashboard</a>
-    <h1 class="mt-4 text-3xl font-semibold tracking-tight">{{ $superblog->exists ? 'Edit Superblog' : 'Create Superblog' }}</h1>
+    <h1 class="mt-4 text-3xl font-semibold tracking-tight">Create Superblog</h1>
 
     @if ($errors->any())
         <div role="alert" class="mt-6 rounded-lg border border-studio-bad/40 bg-[#43261c] p-4 text-studio-bad">
@@ -26,15 +27,8 @@
         </p>
     @endif
 
-    @if ($superblog->exists)
-        <p class="mt-4"><a href="{{ route('admin.superblogs.rss-sources.index', $superblog) }}" class="font-medium underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-studio-brand">Manage RSS sources</a></p>
-    @endif
-
-    <form method="POST" action="{{ $superblog->exists ? route('admin.superblogs.update', $superblog) : route('admin.superblogs.store') }}" class="mt-6 space-y-5 rounded-xl border border-studio-line bg-studio-panel p-6">
+    <form method="POST" action="{{ route('admin.superblogs.store') }}" class="mt-6 space-y-5 rounded-xl border border-studio-line bg-studio-panel p-6">
         @csrf
-        @if ($superblog->exists)
-            @method('PUT')
-        @endif
         <div>
             <label for="name" class="block text-sm font-medium">Name</label>
             <input id="name" name="name" value="{{ old('name', $superblog->name) }}" required maxlength="255" class="mt-2 w-full rounded-lg border border-studio-line bg-studio-bg p-3 focus-visible:outline-2 focus-visible:outline-studio-brand">

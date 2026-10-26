@@ -1,8 +1,11 @@
 <!DOCTYPE html>
-<html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
+{{-- Fixed to Swedish: the admin text is Swedish, while APP_LOCALE stays English so validation messages do not change. --}}
+<html lang="sv">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    {{-- Admin and login pages must never show up in search results. --}}
+    <meta name="robots" content="noindex, nofollow">
     <title>@yield('title', 'Admin') · Pressverket</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
@@ -15,6 +18,9 @@
         $navItemClasses = 'flex items-center gap-2.5 rounded-[7px] px-2.5 py-2.25 text-sm text-[#c9c8c2] hover:bg-white/7 aria-[current=page]:bg-white/12 aria-[current=page]:font-semibold aria-[current=page]:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-studio-brand';
         $navLabelClasses = 'px-2.5 pt-4 pb-1.5 text-[10px] tracking-[.14em] text-[#7d7f87]';
     @endphp
+
+    {{-- Hidden until focused, so keyboard users can skip the magazine list in the sidebar. --}}
+    <a href="#main" class="sr-only rounded-lg bg-studio-brand px-4 py-2 text-sm font-semibold text-studio-side focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-50">Hoppa till innehållet</a>
 
     {{-- Stacks above the content on small screens and becomes a fixed-height sidebar from lg, so no JS toggle is needed. --}}
     <aside class="flex flex-col gap-5.5 border-white/6 bg-studio-side px-3.5 py-5.5 text-[#e9e7e1] lg:sticky lg:top-0 lg:h-screen lg:w-60 lg:shrink-0 lg:border-r">
@@ -88,7 +94,7 @@
     </aside>
 
     {{-- Pages can replace the width and padding via @section('main-class'); the default keeps the old layout. --}}
-    <main class="@yield('main-class', 'mx-auto w-full max-w-5xl px-6 py-12') lg:min-w-0">
+    <main id="main" class="@yield('main-class', 'mx-auto w-full max-w-5xl px-6 py-12') lg:min-w-0">
         @if (session('status'))
             <div role="status" class="mb-6 rounded-lg border border-studio-ok/30 bg-studio-live p-4 text-studio-ok">{{ session('status') }}</div>
         @endif
