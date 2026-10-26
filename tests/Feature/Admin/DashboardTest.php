@@ -46,6 +46,49 @@ class DashboardTest extends TestCase
             ->assertDontSee('Other Blog');
     }
 
+    public function test_create_modal_is_shown_only_to_users_who_can_create(): void
+    {
+        $admin = $this->makeUser(approved: true, superAdmin: true);
+        $staff = $this->makeUser(approved: true);
+        $template = Template::create([
+            'name' => 'News',
+            'slug' => 'news',
+            'layout' => 'layouts.public',
+            'is_active' => true,
+        ]);
+
+        // A single active template is preselected.
+        $this->actingAs($admin)->get(route('admin.dashboard'))
+            ->assertOk()
+            ->assertSee('id="create-superblog"', false)
+            ->assertSee('value="'.$template->id.'" required checked', false);
+
+        $this->actingAs($staff)->get(route('admin.dashboard'))
+            ->assertOk()
+            ->assertDontSee('id="create-superblog"', false);
+    }
+
+    public function test_creating_a_superblog_opens_it(): void
+    {
+        $admin = $this->makeUser(approved: true, superAdmin: true);
+        $template = Template::create([
+            'name' => 'News',
+            'slug' => 'news',
+            'layout' => 'layouts.public',
+            'is_active' => true,
+        ]);
+
+        $response = $this->actingAs($admin)->post(route('admin.superblogs.store'), [
+            '_form' => 'create-superblog',
+            'name' => 'Dagens Budbärare',
+            'template_id' => $template->id,
+            'domain' => 'dagensbudbarare.se',
+        ]);
+
+        $superblog = Superblog::where('domain', 'dagensbudbarare.se')->firstOrFail();
+        $response->assertRedirect(route('admin.superblogs.edit', $superblog));
+    }
+
     public function test_unapproved_users_cannot_open_the_dashboard(): void
     {
         $this->actingAs($this->makeUser())->get(route('admin.dashboard'))->assertForbidden();

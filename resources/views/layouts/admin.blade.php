@@ -28,7 +28,8 @@
                     </li>
                     @can('create', App\Models\Superblog::class)
                         <li>
-                            <a href="{{ route('admin.superblogs.create') }}"
+                            {{-- Opens the modal on pages that include it; elsewhere, or without JS, it is a normal link. --}}
+                            <a href="{{ route('admin.superblogs.create') }}" data-open-dialog="create-superblog"
                                @if (request()->routeIs('admin.superblogs.create')) aria-current="page" @endif
                                class="block rounded-md px-3 py-2 text-sm font-medium hover:bg-slate-800 hover:text-white aria-[current=page]:bg-slate-800 aria-[current=page]:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white">
                                 + Nytt magasin

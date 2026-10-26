@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Superblog;
+use App\Models\Template;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\View\View;
@@ -21,6 +22,10 @@ class DashboardController extends Controller
             // Everything that is not published counts as under construction, so an unexpected status never hides a Superblog.
             'drafts' => $this->superblogs($request)->where('status', '!=', 'published')
                 ->paginate(20, pageName: 'utkast')->withQueryString(),
+            // Only needed by the create modal, so users who cannot create Superblogs skip the query.
+            'templates' => Gate::allows('create', Superblog::class)
+                ? Template::where('is_active', true)->orderBy('name')->get()
+                : collect(),
         ]);
     }
 

@@ -50,7 +50,7 @@
             @endforeach
             @can('create', App\Models\Superblog::class)
                 <li>
-                    <a href="{{ route('admin.superblogs.create') }}" class="flex h-full min-h-40 items-center justify-center rounded-xl border-2 border-dashed border-slate-300 p-5 text-sm font-medium text-slate-600 hover:border-slate-400 hover:text-slate-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900">
+                    <a href="{{ route('admin.superblogs.create') }}" data-open-dialog="create-superblog" class="flex h-full min-h-40 items-center justify-center rounded-xl border-2 border-dashed border-slate-300 p-5 text-sm font-medium text-slate-600 hover:border-slate-400 hover:text-slate-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900">
                         + Skapa nytt magasin
                     </a>
                 </li>
@@ -60,4 +60,8 @@
             <div class="mt-6">{{ $drafts->links() }}</div>
         @endif
     </section>
+
+    @can('create', App\Models\Superblog::class)
+        @include('admin.superblogs._create-modal')
+    @endcan
 @endsection
