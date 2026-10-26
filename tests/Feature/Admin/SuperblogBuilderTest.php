@@ -12,7 +12,7 @@ class SuperblogBuilderTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_builder_shows_the_basics_tab_by_default_and_the_appearance_placeholder(): void
+    public function test_builder_shows_the_basics_tab_by_default_and_the_appearance_tab_on_request(): void
     {
         $admin = $this->makeUser(approved: true, superAdmin: true);
         $superblog = $this->makeSuperblog($admin);
@@ -23,11 +23,11 @@ class SuperblogBuilderTest extends TestCase
             ->assertSee('name="template_id"', false)
             ->assertSee('name="domain"', false)
             ->assertSee('type="hidden" name="slug" value="dagens-budbarare"', false)
-            ->assertDontSee('Kommer snart');
+            ->assertDontSee('name="theme"', false);
 
         $this->get(route('admin.superblogs.edit', [$superblog, 'flik' => 'utseende']))
             ->assertOk()
-            ->assertSee('Kommer snart')
+            ->assertSee('name="theme"', false)
             ->assertDontSee('name="domain"', false);
     }
 

@@ -1,4 +1,5 @@
 @extends('layouts.admin')
+@use('App\Support\Theme')
 
 @section('title', $superblog->name)
 
@@ -36,18 +37,18 @@
         </ul>
     </nav>
 
-    @if ($tab === 'grund')
-        @if ($errors->any())
-            <div role="alert" class="mt-6 rounded-lg border border-red-200 bg-red-50 p-4 text-red-900">
-                <p class="font-medium">Rätta följande:</p>
-                <ul class="mt-2 list-inside list-disc">
-                    @foreach ($errors->all() as $error)
-                        <li>{{ $error }}</li>
-                    @endforeach
-                </ul>
-            </div>
-        @endif
+    @if ($errors->any())
+        <div role="alert" class="mt-6 rounded-lg border border-red-200 bg-red-50 p-4 text-red-900">
+            <p class="font-medium">Rätta följande:</p>
+            <ul class="mt-2 list-inside list-disc">
+                @foreach ($errors->all() as $error)
+                    <li>{{ $error }}</li>
+                @endforeach
+            </ul>
+        </div>
+    @endif
 
+    @if ($tab === 'grund')
         <form method="POST" action="{{ route('admin.superblogs.update', $superblog) }}" class="mt-6 space-y-6 rounded-xl border border-slate-200 bg-white p-6">
             @csrf
             @method('PUT')
@@ -80,8 +81,53 @@
             </div>
         </form>
     @else
-        <div class="mt-6 rounded-xl border border-dashed border-slate-300 bg-white p-10 text-center text-slate-600">
-            Kommer snart
-        </div>
+        @php
+            // Theme::name() returns null for a missing or unknown stored name, so nothing is preselected then.
+            $currentTheme = Theme::name($superblog->settings['theme'] ?? null);
+            $selectedTheme = old('theme', $currentTheme);
+            // Full class names on purpose: Tailwind only generates classes it finds as complete strings.
+            $swatches = ['bg-paper', 'bg-ink', 'bg-primary', 'bg-deep', 'bg-pale', 'bg-line'];
+        @endphp
+
+        <form method="POST" action="{{ route('admin.superblogs.theme.update', $superblog) }}" class="mt-6 space-y-6 rounded-xl border border-slate-200 bg-white p-6">
+            @csrf
+            @method('PUT')
+
+            <div>
+                <h2 class="text-lg font-semibold">Utseende</h2>
+                <p class="mt-1 text-sm text-slate-600">Välj ett tema för magasinets publika sida. Fler färger och typsnitt kommer senare.</p>
+                @if ($currentTheme === null)
+                    <p class="mt-2 text-sm text-slate-600">Inget tema är valt än.</p>
+                @endif
+            </div>
+
+            <fieldset>
+                <legend class="sr-only">Tema</legend>
+                <div class="grid gap-4 sm:grid-cols-2">
+                    @foreach (Theme::NAMES as $name)
+                        <label class="flex cursor-pointer flex-col gap-3 rounded-lg border border-slate-300 p-4 has-checked:border-slate-900 has-checked:ring-1 has-checked:ring-slate-900">
+                            <span class="flex items-center gap-3">
+                                <input type="radio" name="theme" value="{{ $name }}" required @checked($selectedTheme === $name)>
+                                <span class="text-sm font-medium">{{ ucfirst($name) }}</span>
+                            </span>
+                            {{-- data-theme scopes the theme's CSS variables to this preview; no values are written into a style attribute. --}}
+                            <span data-theme="{{ $name }}" aria-hidden="true" class="block rounded-md bg-paper p-3 text-ink">
+                                <span class="flex gap-1.5">
+                                    @foreach ($swatches as $swatch)
+                                        <span class="size-6 rounded border border-line {{ $swatch }}"></span>
+                                    @endforeach
+                                </span>
+                                <span class="mt-3 block font-display text-lg font-semibold">Aa Rubrik</span>
+                                <span class="block font-body text-sm text-muted">Brödtext i temats typsnitt</span>
+                            </span>
+                        </label>
+                    @endforeach
+                </div>
+            </fieldset>
+
+            <div>
+                <button type="submit" class="rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-700">Spara</button>
+            </div>
+        </form>
     @endif
 @endsection
