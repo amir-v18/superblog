@@ -3,6 +3,8 @@
 @php
     $isLive = $superblog->status === 'published';
     $canEdit = auth()->user()->can('update', $superblog);
+    // settings is already loaded with the row; Theme::name() returns null for a missing or unknown theme.
+    $themeName = \App\Support\Theme::name($superblog->settings['theme'] ?? null);
     // The same classes on both tags, so a card without edit access looks identical but is not clickable.
     $cardClasses = 'block overflow-hidden rounded-xl border border-slate-200 bg-white';
 @endphp
@@ -13,8 +15,34 @@
     @else
         <div class="{{ $cardClasses }} flex-1">
     @endif
-        {{-- Neutral until themes are stored per Superblog; connect this strip to the saved theme colors then. --}}
-        <div aria-hidden="true" class="h-2 bg-slate-200"></div>
+        {{-- Decorative thumbnail: the name is repeated in the info below, which is what screen readers get. --}}
+        @if ($themeName)
+            {{-- data-theme scopes the theme's CSS variables to the thumbnail; no color values are written into a style attribute. --}}
+            <div data-theme="{{ $themeName }}" aria-hidden="true">
+                <div class="h-2 bg-primary"></div>
+                <div class="flex h-32 flex-col justify-between bg-paper p-4 text-ink">
+                    <p class="truncate font-display text-2xl font-semibold">{{ $superblog->name }}</p>
+                    <div class="grid h-8 grid-cols-[2fr_1fr_1fr] gap-2">
+                        <span class="rounded-md bg-primary/90"></span>
+                        <span class="rounded-md bg-deep/70"></span>
+                        <span class="rounded-md bg-pale"></span>
+                    </div>
+                </div>
+            </div>
+        @else
+            {{-- Neutral thumbnail until a valid theme is chosen; same shape so cards stay the same height. --}}
+            <div aria-hidden="true">
+                <div class="h-2 bg-slate-200"></div>
+                <div class="flex h-32 flex-col justify-between bg-slate-100 p-4 text-slate-700">
+                    <p class="truncate text-2xl font-semibold">{{ $superblog->name }}</p>
+                    <div class="grid h-8 grid-cols-[2fr_1fr_1fr] gap-2">
+                        <span class="rounded-md bg-slate-300"></span>
+                        <span class="rounded-md bg-slate-200"></span>
+                        <span class="rounded-md bg-slate-200"></span>
+                    </div>
+                </div>
+            </div>
+        @endif
 
         <div class="p-5">
             <div class="flex items-start justify-between gap-3">

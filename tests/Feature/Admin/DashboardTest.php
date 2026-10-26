@@ -89,6 +89,25 @@ class DashboardTest extends TestCase
         $response->assertRedirect(route('admin.superblogs.edit', $superblog));
     }
 
+    public function test_card_strip_uses_the_saved_theme(): void
+    {
+        $admin = $this->makeUser(approved: true, superAdmin: true);
+        $this->makeSuperblog($admin, 'Themed Blog', 'draft')
+            ->update(['settings' => ['theme' => ['name' => 'techenspraket']]]);
+        $this->makeSuperblog($admin, 'Plain Blog', 'draft');
+        $this->makeSuperblog($admin, 'Broken Blog', 'draft')
+            ->update(['settings' => ['theme' => ['name' => 'hackat']]]);
+
+        $response = $this->actingAs($admin)->get(route('admin.dashboard'))
+            ->assertOk()
+            ->assertSee('data-theme="techenspraket"', false)
+            ->assertDontSee('data-theme="hackat"', false)
+            ->assertSee('h-2 bg-slate-200', false);
+
+        // Only the valid theme gets a themed strip; the other two fall back to the neutral one.
+        $this->assertSame(1, substr_count($response->getContent(), 'data-theme='));
+    }
+
     public function test_unapproved_users_cannot_open_the_dashboard(): void
     {
         $this->actingAs($this->makeUser())->get(route('admin.dashboard'))->assertForbidden();
