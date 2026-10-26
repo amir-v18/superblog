@@ -31,12 +31,16 @@ class DashboardController extends Controller
 
     private function superblogs(Request $request)
     {
-        // withCount adds the counts as subqueries in the same query, avoiding one query per card.
+        // withCount/withMax add subqueries to the same query and with() loads all templates at once, avoiding one query per card.
         return Superblog::accessibleTo($request->user())
+            ->with('template')
             ->withCount([
-                'rssSources',
+                // Figma counts only feeds that are switched on.
+                'rssSources' => fn ($query) => $query->where('is_active', true),
                 'articles as published_articles_count' => fn ($query) => $query->where('status', 'published'),
             ])
+            // Across all feeds: a fetch that happened is still true after a feed is switched off.
+            ->withMax('rssSources', 'last_fetched_at')
             ->orderBy('name')
             ->orderBy('id');
     }

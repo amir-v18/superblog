@@ -5,6 +5,11 @@
     $canEdit = auth()->user()->can('update', $superblog);
     // settings is already loaded with the row; Theme::name() returns null for a missing or unknown theme.
     $themeName = \App\Support\Theme::name($superblog->settings['theme'] ?? null);
+    // withMax returns a raw string, not a cast date. Swedish only here, since the app locale is English.
+    $lastFetchedAt = $superblog->rss_sources_max_last_fetched_at;
+    $lastFetched = $lastFetchedAt
+        ? ucfirst(\Illuminate\Support\Carbon::parse($lastFetchedAt)->locale('sv')->diffForHumans())
+        : 'Aldrig';
     // The same classes on both tags, so a card without edit access looks identical but is not clickable.
     $cardClasses = 'block overflow-hidden rounded-xl border border-studio-line bg-studio-panel';
 @endphp
@@ -45,27 +50,24 @@
             </div>
         @endif
 
-        <div class="p-5">
-            <div class="flex items-start justify-between gap-3">
-                <h3 class="font-semibold">{{ $superblog->name }}</h3>
+        {{-- Figma's .mag-info: padding 14/16/16, 6px between rows. --}}
+        <div class="flex flex-col gap-1.5 px-4 pt-3.5 pb-4">
+            <div class="flex items-center justify-between gap-3">
+                <h3 class="text-[17px] font-semibold">{{ $superblog->name }}</h3>
                 @if ($isLive)
-                    <span class="shrink-0 rounded-full bg-studio-live px-2.5 py-0.5 text-xs font-medium text-studio-ok"><span aria-hidden="true">●</span> Live</span>
+                    <span class="shrink-0 rounded-full bg-studio-live px-[9px] py-[3px] text-[11px] font-semibold text-studio-ok"><span aria-hidden="true">●</span> Live</span>
                 @else
-                    <span class="shrink-0 rounded-full bg-studio-pill px-2.5 py-0.5 text-xs font-medium text-studio-muted">Utkast</span>
+                    <span class="shrink-0 rounded-full bg-studio-pill px-[9px] py-[3px] text-[11px] font-semibold text-studio-muted">Utkast</span>
                 @endif
             </div>
-            <p class="mt-1 break-all text-sm text-studio-muted">{{ $superblog->domain ?: $superblog->slug }}</p>
+            {{-- Figma: live cards show where they are published, drafts show which template they are built on. --}}
+            <p class="break-all text-xs text-studio-muted">{{ $isLive ? ($superblog->domain ?: $superblog->slug) : $superblog->template?->name }}</p>
 
-            <dl class="mt-4 flex gap-6 text-sm">
-                <div>
-                    <dt class="text-studio-muted">Flöden</dt>
-                    <dd class="font-medium">{{ $superblog->rss_sources_count }}</dd>
-                </div>
-                <div>
-                    <dt class="text-studio-muted">Publicerade</dt>
-                    <dd class="font-medium">{{ $superblog->published_articles_count }}</dd>
-                </div>
-            </dl>
+            <div class="mt-1.5 flex flex-wrap gap-x-3.5 gap-y-1 text-xs text-studio-muted">
+                <span><b class="text-studio-ink">{{ $superblog->rss_sources_count }}</b> flöden</span>
+                <span><b class="text-studio-ink">{{ $superblog->published_articles_count }}</b> publicerade</span>
+                <span>Senast hämtat: {{ $lastFetched }}</span>
+            </div>
         </div>
     @if ($canEdit)
         </a>

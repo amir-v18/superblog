@@ -111,6 +111,28 @@ class DashboardTest extends TestCase
         $this->assertSame(1, substr_count($cards, 'data-theme='));
     }
 
+    public function test_draft_card_shows_the_template_name(): void
+    {
+        $admin = $this->makeUser(approved: true, superAdmin: true);
+        // Inactive, so the create modal does not list it and the name can only come from the card.
+        $template = Template::create([
+            'name' => 'Klassisk tidning',
+            'slug' => 'klassisk',
+            'layout' => 'layouts.public',
+            'is_active' => false,
+        ]);
+        $admin->superblogs()->create([
+            'template_id' => $template->id,
+            'name' => 'Draft Blog',
+            'slug' => 'draft-blog',
+            'status' => 'draft',
+        ]);
+
+        $this->actingAs($admin)->get(route('admin.dashboard'))
+            ->assertOk()
+            ->assertSee('Klassisk tidning');
+    }
+
     public function test_unapproved_users_cannot_open_the_dashboard(): void
     {
         $this->actingAs($this->makeUser())->get(route('admin.dashboard'))->assertForbidden();
