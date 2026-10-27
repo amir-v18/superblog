@@ -9,6 +9,19 @@
 @theme {
     --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
         'Segoe UI Symbol', 'Noto Color Emoji';
+
+    /* Admin studio colors from the Figma design (.studio). Fixed values: they never follow a magazine theme. */
+    --color-studio-bg: #1d1e24;
+    --color-studio-panel: #24262d;
+    --color-studio-line: #363842;
+    --color-studio-ink: #ecebe6;
+    --color-studio-muted: #9fa1aa;
+    --color-studio-brand: #ff7a4d;
+    --color-studio-side: #17181c;
+    --color-studio-ok: #5fd08c;
+    --color-studio-bad: #ff8a6b;
+    --color-studio-pill: #343640;
+    --color-studio-live: #1e3a2b;
 }
 
 /*

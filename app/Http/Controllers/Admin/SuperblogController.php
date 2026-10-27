@@ -28,16 +28,18 @@ class SuperblogController extends Controller
     public function store(SaveSuperblogRequest $request): RedirectResponse
     {
         try {
-            DB::transaction(function () use ($request) {
+            $superblog = DB::transaction(function () use ($request) {
                 $superblog = $request->user()->superblogs()->create($request->validated());
                 // Ownership alone does not grant access: the policy uses staff assignments.
                 $superblog->staff()->attach($request->user()->getKey());
+
+                return $superblog;
             });
         } catch (UniqueConstraintViolationException $exception) {
             $this->duplicateError();
         }
 
-        return to_route('admin.dashboard')->with('status', 'Superblog created.');
+        return to_route('admin.superblogs.edit', $superblog)->with('status', 'Superblog created.');
     }
 
     public function edit(Superblog $superblog): View
@@ -45,7 +47,7 @@ class SuperblogController extends Controller
         Gate::authorize('view', $superblog);
         Gate::authorize('update', $superblog);
 
-        return view('admin.superblogs.form', [
+        return view('admin.superblogs.edit', [
             'superblog' => $superblog,
             'templates' => $this->availableTemplates($superblog),
         ]);
@@ -59,7 +61,7 @@ class SuperblogController extends Controller
             $this->duplicateError();
         }
 
-        return to_route('admin.dashboard')->with('status', 'Superblog updated.');
+        return to_route('admin.superblogs.edit', $superblog)->with('status', 'Superblog updated.');
     }
 
     public function confirmDeletion(Superblog $superblog): View
