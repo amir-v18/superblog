@@ -28,22 +28,13 @@ class Theme
 
     /**
      * The base theme name for data-theme: the string itself, or the array's 'name' key.
+     * Not logged: it runs on every render (sidebar, cards), and saving is already validated against NAMES.
      */
     public static function name(string|array|null $theme): ?string
     {
         $name = is_array($theme) ? ($theme['name'] ?? null) : $theme;
 
-        if ($name === null) {
-            return null;
-        }
-
-        if (! in_array($name, self::NAMES, true)) {
-            Log::warning('Ignored unknown theme name.', ['name' => $name]);
-
-            return null;
-        }
-
-        return $name;
+        return in_array($name, self::NAMES, true) ? $name : null;
     }
 
     /**
