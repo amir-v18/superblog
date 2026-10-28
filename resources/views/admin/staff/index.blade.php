@@ -30,7 +30,7 @@
                             <p class="break-all text-sm text-studio-muted">{{ $member->email }}</p>
                             <p class="mt-1 text-sm font-medium {{ $member->approval_status === 'pending' ? 'text-[#f0b255]' : ($member->approval_status === 'approved' ? 'text-studio-ok' : 'text-studio-bad') }}">{{ ucfirst($member->approval_status) }}</p>
                         </div>
-                        @unless (auth()->user()->is($member))
+                        @unless (auth()->user()->is($member) || $member->is_super_admin)
                             <div class="flex flex-wrap gap-3">
                                 @if ($member->approval_status !== 'approved')
                                     <form method="POST" action="{{ route('admin.staff.update', $member) }}">
