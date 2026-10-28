@@ -7,10 +7,6 @@
     <h1 class="mt-4 text-3xl font-semibold tracking-tight">Staff Management</h1>
     <p class="mt-2 text-studio-muted">Review staff accounts, approval status, and Superblog assignments.</p>
 
-    @if (session('status'))
-        <div role="status" class="mt-6 rounded-lg border border-studio-ok/30 bg-studio-live p-4 text-studio-ok">{{ session('status') }}</div>
-    @endif
-
     @if ($errors->any())
         <div role="alert" class="mt-6 rounded-lg border border-studio-bad/40 bg-[#43261c] p-4 text-studio-bad">
             @foreach ($errors->all() as $error)
@@ -24,27 +20,42 @@
         <ul class="mt-4 divide-y divide-studio-line">
             @forelse ($staff as $member)
                 <li class="py-4">
-                    <div class="flex flex-wrap items-center justify-between gap-4">
+                    <div class="flex flex-col items-start gap-4">
                         <div class="min-w-0">
                             <h3 class="font-medium">{{ $member->name }} @if (auth()->user()->is($member)) <span class="text-sm text-studio-muted">(you)</span> @endif</h3>
                             <p class="break-all text-sm text-studio-muted">{{ $member->email }}</p>
                             <p class="mt-1 text-sm font-medium {{ $member->approval_status === 'pending' ? 'text-[#f0b255]' : ($member->approval_status === 'approved' ? 'text-studio-ok' : 'text-studio-bad') }}">{{ ucfirst($member->approval_status) }}</p>
                         </div>
-                        @unless (auth()->user()->is($member))
-                            <div class="flex flex-wrap gap-3">
+                        @unless (auth()->user()->is($member) || $member->is_super_admin)
+                            <div class="flex w-full flex-wrap items-center justify-start gap-2">
                                 @if ($member->approval_status !== 'approved')
-                                    <form method="POST" action="{{ route('admin.staff.update', $member) }}">
+                                    <form method="POST" action="{{ route('admin.staff.update', $member) }}" class="w-36">
                                         @csrf
                                         <input type="hidden" name="action" value="approve">
-                                        <button type="submit" class="rounded-lg bg-studio-brand px-3 py-2 text-sm font-medium text-studio-side hover:bg-[#ff9068] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-studio-brand">Approve</button>
+                                        <button type="submit" class="inline-flex h-10 w-full items-center justify-center rounded-lg bg-studio-brand px-3 text-sm font-medium text-studio-side hover:bg-[#ff9068] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-studio-brand">Approve</button>
                                     </form>
+                                @else
+                                    <span aria-hidden="true" class="h-10 w-36"></span>
                                 @endif
                                 @if ($member->approval_status !== 'rejected')
-                                    <form method="POST" action="{{ route('admin.staff.update', $member) }}">
+                                    <form method="POST" action="{{ route('admin.staff.update', $member) }}" class="w-36">
                                         @csrf
                                         <input type="hidden" name="action" value="reject">
-                                        <button type="submit" class="rounded-lg border border-studio-bad/40 px-3 py-2 text-sm font-medium text-studio-bad hover:bg-[#43261c] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-studio-brand">Reject</button>
+                                        <button type="submit" class="inline-flex h-10 w-full items-center justify-center rounded-lg border border-studio-bad/40 px-3 text-sm font-medium text-studio-bad hover:bg-[#43261c] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-studio-brand">Reject</button>
                                     </form>
+                                @else
+                                    <span aria-hidden="true" class="h-10 w-36"></span>
+                                @endif
+                                @if ($member->superblogs_count === 0)
+                                    <a href="{{ route('admin.staff.confirm-delete', $member) }}" aria-label="Delete {{ $member->name }}"
+                                        class="inline-flex h-10 w-36 items-center justify-center gap-2 rounded-lg border border-studio-bad/50 px-3 text-sm font-medium text-studio-bad hover:bg-[#43261c] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-studio-brand">
+                                        <svg aria-hidden="true" class="h-5 w-5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                                            <path d="M3 6h18M8 6V4h8v2m3 0-1 14H6L5 6m4 4v6m6-6v6" />
+                                        </svg>
+                                        <span>Delete account</span>
+                                    </a>
+                                @else
+                                    <span title="Owned Superblogs must be transferred before deletion." class="flex h-10 w-36 items-center justify-center px-2 text-center text-xs text-studio-muted">Transfer ownership first</span>
                                 @endif
                             </div>
                         @endunless

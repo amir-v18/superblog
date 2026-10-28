@@ -3,11 +3,13 @@
 namespace App\Console\Commands;
 
 use App\Models\User;
+use App\Support\SuperAdminPromotionLock;
 use Illuminate\Console\Command;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
+use Throwable;
 
 class CreateSuperAdmin extends Command
 {
@@ -43,8 +45,7 @@ class CreateSuperAdmin extends Command
 
         try {
             $created = DB::transaction(function () use ($name, $email, $password): bool {
-                // Serialize bootstrap attempts using a stable row created by the migrations.
-                DB::table('migrations')->orderBy('id')->lockForUpdate()->first();
+                app(SuperAdminPromotionLock::class)->acquire();
 
                 if (User::where('is_super_admin', true)->exists()) {
                     return false;
@@ -62,6 +63,10 @@ class CreateSuperAdmin extends Command
             });
         } catch (UniqueConstraintViolationException) {
             $this->error('An account with that email already exists. No account was created.');
+
+            return self::FAILURE;
+        } catch (Throwable) {
+            $this->error('Could not safely verify the super-admin lock. No account was created.');
 
             return self::FAILURE;
         }

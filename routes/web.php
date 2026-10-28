@@ -7,6 +7,8 @@ use App\Http\Controllers\Admin\SuperblogController;
 use App\Http\Controllers\Admin\SuperblogThemeController;
 use App\Http\Controllers\Admin\TemplateController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
+use App\Http\Controllers\Auth\GoogleAuthenticationController;
+use App\Http\Middleware\AllowPasswordLoginInDevelopment;
 use App\Support\DemoArticle;
 use App\Support\Theme;
 use Illuminate\Http\Request;
@@ -42,8 +44,13 @@ if (app()->environment('local')) {
 
 Route::middleware('guest')->group(function () {
     Route::get('/login', [AuthenticatedSessionController::class, 'create'])->name('login');
+    Route::get('/auth/google/redirect', [GoogleAuthenticationController::class, 'redirect'])->name('auth.google.redirect');
+    Route::get('/auth/google/callback', [GoogleAuthenticationController::class, 'callback'])->name('auth.google.callback');
+    Route::post('/auth/google/create-account', [GoogleAuthenticationController::class, 'createAccount'])
+        ->middleware('throttle:5,1')->name('auth.google.create-account');
+
     Route::post('/login', [AuthenticatedSessionController::class, 'store'])
-        ->middleware('throttle:5,1')
+        ->middleware([AllowPasswordLoginInDevelopment::class, 'throttle:5,1'])
         ->name('login.store');
 });
 
@@ -52,7 +59,9 @@ Route::middleware('auth')->group(function () {
         Route::get('/', DashboardController::class)->name('admin.dashboard');
         Route::prefix('staff')->name('admin.staff.')->middleware('can:manage-staff')->group(function () {
             Route::get('/', [StaffController::class, 'index'])->name('index');
+            Route::get('{user}/delete', [StaffController::class, 'confirmDeletion'])->name('confirm-delete');
             Route::post('{user}', [StaffController::class, 'update'])->name('update');
+            Route::delete('{user}', [StaffController::class, 'destroy'])->name('destroy');
         });
         Route::get('templates/{template}/delete', [TemplateController::class, 'confirmDeletion'])->name('admin.templates.delete');
         Route::resource('templates', TemplateController::class)->except(['show'])->names('admin.templates');

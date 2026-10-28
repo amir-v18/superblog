@@ -103,7 +103,47 @@ ddev artisan superblog:create-super-admin
 
 Enter your own name, email, and password at the prompts. The password prompts do not echo input, require confirmation, and the account is stored with a hashed password. The command approves this first account as a super admin and refuses to create an account if any super admin already exists. Each developer should use a separate local database and their own account; do not share accounts or passwords.
 
-The existing `superblog:make-super-admin {email}` command remains available to approve and promote an already existing account when appropriate. The application has no public registration or general staff account-creation workflow.
+The existing `superblog:make-super-admin {email}` command remains available to approve and promote an already existing account when appropriate. There is no password-based public registration. A first-time verified Google identity may explicitly request a normal pending staff account; it receives no admin access until approved.
+
+## Google sign-in and existing accounts
+
+The login page uses Google sign-in. Configure a Google OAuth **Web application** client and add the exact callback URL for this app, for example `https://<your-ddev-host>/auth/google/callback`. Add these values to the ignored local `.env` or your deployment secret store; never commit real values:
+
+```dotenv
+GOOGLE_CLIENT_ID=your-client-id
+GOOGLE_CLIENT_SECRET=your-client-secret
+GOOGLE_REDIRECT_URI=https://your-ddev-host/auth/google/callback
+```
+
+Google login identifies accounts by the stable Google OpenID Connect subject (`sub`), never by email alone. To map the existing bootstrap super-admin or a seeded staff account, first sign in with the intended Google account. If it is not yet linked, the setup page shows its verified email and subject. Verify that identity with the account owner through a trusted channel. The subject is an identifier, not a password or token. Find the intended existing user's database ID with Tinker, checking the account's role and approval state:
+
+```sh
+ddev artisan tinker
+```
+
+```php
+\App\Models\User::query()->orderBy('id')->get(['id', 'name', 'email', 'approval_status', 'is_super_admin', 'google_subject'])->toArray();
+```
+
+Map the initial super-admin using that exact user ID and the verified subject from the setup page. The command confirms the selected record without displaying the subject, and requires the target to be approved and the only super-admin account:
+
+```sh
+ddev artisan superblog:map-google-identity 42 'replace-with-verified-subject' --initial-super-admin
+```
+
+Replace `42` and the quoted example subject with the actual verified values; the example is not a real account.
+
+For an existing staff account, use its verified database ID and subject without the super-admin option:
+
+```sh
+ddev artisan superblog:map-google-identity 17 'replace-with-verified-subject'
+```
+
+Replace both example values with the intended staff record ID and verified subject.
+
+The command refuses missing users, existing mappings, duplicate subjects, and incorrect super-admin targets. It changes only the Google subject field; it does not alter approval, roles, flags, password hashes, or assignments. If a new Google identity is not linked and does not conflict with an existing email, the user can explicitly create a pending staff account from the setup page. An email conflict requires administrator mapping; matching email never performs an automatic link.
+
+Email/password hashes and the password-login handler are retained. The password-login route is registered consistently so route caching cannot capture the wrong environment; request-time middleware allows it only in `local` and `testing`, and returns 404 in other environments. Production users see Google sign-in only. Google login does not approve accounts: pending users still need super-admin approval, and staff still need Superblog assignments.
 
 ## Test staff approval locally
 
