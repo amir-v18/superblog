@@ -4,9 +4,6 @@
 
 @section('content')
     <a href="{{ route('admin.superblogs.rss-sources.index', $superblog) }}" class="text-sm underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-studio-brand">Back to RSS sources</a>
-    @if (session('status'))
-        <div role="status" class="mt-4 rounded-lg border border-studio-ok/30 bg-studio-live p-4 text-studio-ok">{{ session('status') }}</div>
-    @endif
     <div class="mt-4 flex flex-wrap items-center justify-between gap-4">
         <div>
             <h1 class="text-3xl font-semibold tracking-tight">Downloaded items</h1>

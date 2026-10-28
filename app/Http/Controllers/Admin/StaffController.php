@@ -21,6 +21,7 @@ class StaffController extends Controller
         return view('admin.staff.index', [
             'staff' => User::query()
                 ->with('assignedSuperblogs')
+                ->withCount('superblogs')
                 ->orderByRaw("CASE approval_status WHEN 'pending' THEN 0 WHEN 'approved' THEN 1 ELSE 2 END")
                 ->orderBy('name')
                 ->paginate(25),
@@ -83,6 +84,63 @@ class StaffController extends Controller
             : "{$user->name} has been rejected.";
 
         return to_route('admin.staff.index')->with('status', $message);
+    }
+
+    public function destroy(Request $request, User $user): RedirectResponse
+    {
+        $this->authorizeStaffManagement();
+
+        $name = DB::transaction(function () use ($request, $user): string {
+            $target = User::query()->lockForUpdate()->findOrFail($user->getKey());
+            $this->ensureAccountCanBeDeleted($request, $target);
+
+            $target->assignedSuperblogs()->detach();
+
+            if (config('session.driver') === 'database') {
+                DB::connection(config('session.connection'))
+                    ->table(config('session.table', 'sessions'))
+                    ->where('user_id', $target->getKey())
+                    ->delete();
+            }
+
+            DB::table('password_reset_tokens')->where('email', $target->email)->delete();
+
+            $name = $target->name;
+            $target->delete();
+
+            return $name;
+        });
+
+        return to_route('admin.staff.index')->with('status', "Permanently deleted the account for {$name}.");
+    }
+
+    public function confirmDeletion(Request $request, User $user): View
+    {
+        $this->authorizeStaffManagement();
+        $this->ensureAccountCanBeDeleted($request, $user);
+
+        return view('admin.staff.delete', ['user' => $user]);
+    }
+
+    private function ensureAccountCanBeDeleted(Request $request, User $user): void
+    {
+        if ($request->user()->is($user)) {
+            throw ValidationException::withMessages([
+                'staff' => 'You cannot delete your own account.',
+            ]);
+        }
+
+        if ($user->is_super_admin) {
+            throw ValidationException::withMessages([
+                'staff' => 'Super-admin accounts cannot be deleted from Staff Management.',
+            ]);
+        }
+
+        if ($user->superblogs()->exists()) {
+            throw ValidationException::withMessages([
+                'staff' => 'This account owns one or more Superblogs. Transfer ownership explicitly before deleting it.',
+            ]);
+        }
     }
 
     private function authorizeStaffManagement(): void

@@ -59,7 +59,9 @@ Route::middleware('auth')->group(function () {
         Route::get('/', DashboardController::class)->name('admin.dashboard');
         Route::prefix('staff')->name('admin.staff.')->middleware('can:manage-staff')->group(function () {
             Route::get('/', [StaffController::class, 'index'])->name('index');
+            Route::get('{user}/delete', [StaffController::class, 'confirmDeletion'])->name('confirm-delete');
             Route::post('{user}', [StaffController::class, 'update'])->name('update');
+            Route::delete('{user}', [StaffController::class, 'destroy'])->name('destroy');
         });
         Route::get('templates/{template}/delete', [TemplateController::class, 'confirmDeletion'])->name('admin.templates.delete');
         Route::resource('templates', TemplateController::class)->except(['show'])->names('admin.templates');
