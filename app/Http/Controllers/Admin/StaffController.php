@@ -71,6 +71,10 @@ class StaffController extends Controller
             return back()->withErrors(['staff' => 'You cannot change your own account status.']);
         }
 
+        if ($user->is_super_admin) {
+            return back()->withErrors(['staff' => 'You cannot change the approval status of a super-admin account here.']);
+        }
+
         $user->approval_status = $validated['action'] === 'approve' ? 'approved' : 'rejected';
         $user->save();
 
