@@ -71,7 +71,7 @@ class RssSourceController extends Controller
             $lockedSource->update($validated);
         });
 
-        return to_route('admin.superblogs.rss-sources.index', $superblog)
+        return $this->redirectAfterAction($request, $superblog)
             ->with('status', 'RSS source updated.');
     }
 

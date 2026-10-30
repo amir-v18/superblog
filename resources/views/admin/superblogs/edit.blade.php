@@ -83,8 +83,9 @@
                 {{-- The backend requires is_active, and Figma adds new feeds as active. --}}
                 <input type="hidden" name="is_active" value="1">
                 <h3 class="text-[13px] font-semibold">Lägg till flöde</h3>
-                <input name="name" value="{{ old('name') }}" required maxlength="255" placeholder="Namn, t.ex. Lokalnytt" aria-label="Flödets namn" class="w-full rounded-lg border border-studio-line bg-studio-bg p-3 text-sm focus-visible:outline-2 focus-visible:outline-studio-brand">
-                <input name="url" type="url" value="{{ old('url') }}" required maxlength="65535" placeholder="https://exempel.se/rss.xml" aria-label="Flödets adress" class="w-full rounded-lg border border-studio-line bg-studio-bg p-3 text-sm focus-visible:outline-2 focus-visible:outline-studio-brand">
+                {{-- A failed card save also flashes name and url, so andrar keeps that text out of this form. --}}
+                <input name="name" value="{{ old('andrar') ? '' : old('name') }}" required maxlength="255" placeholder="Namn, t.ex. Lokalnytt" aria-label="Flödets namn" class="w-full rounded-lg border border-studio-line bg-studio-bg p-3 text-sm focus-visible:outline-2 focus-visible:outline-studio-brand">
+                <input name="url" type="url" value="{{ old('andrar') ? '' : old('url') }}" required maxlength="65535" placeholder="https://exempel.se/rss.xml" aria-label="Flödets adress" class="w-full rounded-lg border border-studio-line bg-studio-bg p-3 text-sm focus-visible:outline-2 focus-visible:outline-studio-brand">
                 <button type="submit" class="self-end rounded-lg bg-studio-brand px-4 py-2 text-sm font-medium text-studio-side hover:bg-[#ff9068] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-studio-brand">Lägg till</button>
             </form>
 
@@ -98,9 +99,32 @@
             @else
                 <ul class="flex flex-col gap-2.5">
                     @foreach ($rssSources as $rssSource)
+                        @php
+                            $isEditing = (string) old('andrar') === (string) $rssSource->id;
+                        @endphp
                         <li @class(['flex flex-col gap-2 rounded-[10px] border border-studio-line p-[11px]', 'opacity-60' => ! $rssSource->is_active])>
-                            <p class="text-sm font-semibold">{{ $rssSource->name }}</p>
-                            <p class="break-all text-[13px] text-studio-muted">{{ $rssSource->url }}</p>
+                            <div class="flex items-center gap-2.5">
+                                <input form="feed-{{ $rssSource->id }}" name="name" value="{{ $isEditing ? old('name') : $rssSource->name }}" required maxlength="255" aria-label="Flödets namn" class="w-full min-w-0 rounded-lg border border-studio-line bg-studio-bg p-3 text-sm font-semibold focus-visible:outline-2 focus-visible:outline-studio-brand">
+                                {{-- A separate form sending the saved values: Enter in a text field saves instead of toggling, and unsaved text is never saved by the toggle. --}}
+                                <form method="POST" action="{{ route('admin.superblogs.rss-sources.update', [$superblog, $rssSource]) }}" class="flex shrink-0">
+                                    @csrf
+                                    @method('PUT')
+                                    <input type="hidden" name="fran" value="byggaren">
+                                    <input type="hidden" name="name" value="{{ $rssSource->name }}">
+                                    <input type="hidden" name="url" value="{{ $rssSource->url }}">
+                                    <input type="hidden" name="is_active" value="{{ $rssSource->is_active ? 0 : 1 }}">
+                                    <button type="submit" role="switch" aria-checked="{{ $rssSource->is_active ? 'true' : 'false' }}" aria-label="Aktivt flöde: {{ $rssSource->name }}" @class(['relative h-5 w-[34px] rounded-full transition-colors after:absolute after:top-0.5 after:left-0.5 after:size-4 after:rounded-full after:bg-white after:transition-transform focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-studio-brand', 'bg-studio-brand after:translate-x-3.5' => $rssSource->is_active, 'bg-[#484a55]' => ! $rssSource->is_active])></button>
+                                </form>
+                            </div>
+                            <form id="feed-{{ $rssSource->id }}" method="POST" action="{{ route('admin.superblogs.rss-sources.update', [$superblog, $rssSource]) }}" class="flex flex-col gap-2">
+                                @csrf
+                                @method('PUT')
+                                <input type="hidden" name="fran" value="byggaren">
+                                <input type="hidden" name="andrar" value="{{ $rssSource->id }}">
+                                <input type="hidden" name="is_active" value="{{ $rssSource->is_active ? 1 : 0 }}">
+                                <input name="url" type="url" value="{{ $isEditing ? old('url') : $rssSource->url }}" required maxlength="65535" aria-label="Flödets adress" class="w-full rounded-lg border border-studio-line bg-studio-bg p-3 text-sm focus-visible:outline-2 focus-visible:outline-studio-brand">
+                                <button type="submit" class="self-end rounded-lg border border-studio-line px-3 py-1.5 text-[13px] font-semibold hover:border-[#b9b7af] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-studio-brand">Spara</button>
+                            </form>
                             {{-- The count is stored RSS items, not published articles. --}}
                             <small class="text-[13px] text-studio-muted">{{ $rssSource->is_active ? 'Aktiv · '.$rssSource->rss_items_count.' '.($rssSource->rss_items_count === 1 ? 'artikel' : 'artiklar') : 'Pausad' }}</small>
                         </li>
