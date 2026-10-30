@@ -123,7 +123,10 @@
                                 <input type="hidden" name="andrar" value="{{ $rssSource->id }}">
                                 <input type="hidden" name="is_active" value="{{ $rssSource->is_active ? 1 : 0 }}">
                                 <input name="url" type="url" value="{{ $isEditing ? old('url') : $rssSource->url }}" required maxlength="65535" aria-label="Flödets adress" class="w-full rounded-lg border border-studio-line bg-studio-bg p-3 text-sm focus-visible:outline-2 focus-visible:outline-studio-brand">
-                                <button type="submit" class="self-end rounded-lg border border-studio-line px-3 py-1.5 text-[13px] font-semibold hover:border-[#b9b7af] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-studio-brand">Spara</button>
+                                <div class="flex items-center justify-end gap-3">
+                                    <a href="{{ route('admin.superblogs.rss-sources.delete', [$superblog, $rssSource, 'fran' => 'byggaren']) }}" class="text-[13px] font-semibold text-studio-bad underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-studio-brand">Ta bort</a>
+                                    <button type="submit" class="rounded-lg border border-studio-line px-3 py-1.5 text-[13px] font-semibold hover:border-[#b9b7af] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-studio-brand">Spara</button>
+                                </div>
                             </form>
                             {{-- The count is stored RSS items, not published articles. --}}
                             <small class="text-[13px] text-studio-muted">{{ $rssSource->is_active ? 'Aktiv · '.$rssSource->rss_items_count.' '.($rssSource->rss_items_count === 1 ? 'artikel' : 'artiklar') : 'Pausad' }}</small>

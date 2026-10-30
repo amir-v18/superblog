@@ -83,12 +83,12 @@ class RssSourceController extends Controller
         return view('admin.rss-sources.delete', compact('superblog', 'rssSource'));
     }
 
-    public function destroy(Superblog $superblog, RssSource $rssSource): RedirectResponse
+    public function destroy(Request $request, Superblog $superblog, RssSource $rssSource): RedirectResponse
     {
         Gate::authorize('update', $superblog);
         $this->sourceForSuperblog($superblog, $rssSource)->delete();
 
-        return to_route('admin.superblogs.rss-sources.index', $superblog)
+        return $this->redirectAfterAction($request, $superblog)
             ->with('status', 'RSS source deleted.');
     }
 
