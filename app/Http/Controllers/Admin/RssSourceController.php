@@ -92,7 +92,7 @@ class RssSourceController extends Controller
             ->with('status', 'RSS source deleted.');
     }
 
-    public function fetch(Superblog $superblog, RssSource $rssSource, RssFeedFetcher $fetcher): RedirectResponse
+    public function fetch(Request $request, Superblog $superblog, RssSource $rssSource, RssFeedFetcher $fetcher): RedirectResponse
     {
         Gate::authorize('update', $superblog);
         $rssSource = $this->sourceForSuperblog($superblog, $rssSource);
@@ -100,11 +100,11 @@ class RssSourceController extends Controller
         try {
             $imported = $fetcher->fetch($rssSource);
         } catch (RssFeedFetchException $exception) {
-            return to_route('admin.superblogs.rss-sources.index', $superblog)
+            return $this->redirectAfterAction($request, $superblog)
                 ->with('error', $exception->getMessage());
         }
 
-        return to_route('admin.superblogs.rss-sources.index', $superblog)
+        return $this->redirectAfterAction($request, $superblog)
             ->with('status', "Fetch completed. {$imported} new ".str('item')->plural($imported).' imported.');
     }
 

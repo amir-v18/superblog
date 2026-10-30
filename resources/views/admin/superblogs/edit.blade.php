@@ -116,6 +116,12 @@
                                     <button type="submit" role="switch" aria-checked="{{ $rssSource->is_active ? 'true' : 'false' }}" aria-label="Aktivt flöde: {{ $rssSource->name }}" @class(['relative h-5 w-[34px] rounded-full transition-colors after:absolute after:top-0.5 after:left-0.5 after:size-4 after:rounded-full after:bg-white after:transition-transform focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-studio-brand', 'bg-studio-brand after:translate-x-3.5' => $rssSource->is_active, 'bg-[#484a55]' => ! $rssSource->is_active])></button>
                                 </form>
                             </div>
+                            @if ($rssSource->is_active)
+                                <form id="fetch-{{ $rssSource->id }}" method="POST" action="{{ route('admin.superblogs.rss-sources.fetch', [$superblog, $rssSource]) }}" class="hidden">
+                                    @csrf
+                                    <input type="hidden" name="fran" value="byggaren">
+                                </form>
+                            @endif
                             <form id="feed-{{ $rssSource->id }}" method="POST" action="{{ route('admin.superblogs.rss-sources.update', [$superblog, $rssSource]) }}" class="flex flex-col gap-2">
                                 @csrf
                                 @method('PUT')
@@ -124,6 +130,10 @@
                                 <input type="hidden" name="is_active" value="{{ $rssSource->is_active ? 1 : 0 }}">
                                 <input name="url" type="url" value="{{ $isEditing ? old('url') : $rssSource->url }}" required maxlength="65535" aria-label="Flödets adress" class="w-full rounded-lg border border-studio-line bg-studio-bg p-3 text-sm focus-visible:outline-2 focus-visible:outline-studio-brand">
                                 <div class="flex items-center justify-end gap-3">
+                                    @if ($rssSource->is_active)
+                                        {{-- form= ties this button to its own form, so Enter in a text field still saves. --}}
+                                        <button type="submit" form="fetch-{{ $rssSource->id }}" data-pending-text="Hämtar…" class="mr-auto rounded-lg border border-studio-line px-3 py-1.5 text-[13px] font-semibold hover:border-[#b9b7af] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-studio-brand disabled:opacity-60">↻ Hämta nu</button>
+                                    @endif
                                     <a href="{{ route('admin.superblogs.rss-sources.delete', [$superblog, $rssSource, 'fran' => 'byggaren']) }}" class="text-[13px] font-semibold text-studio-bad underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-studio-brand">Ta bort</a>
                                     <button type="submit" class="rounded-lg border border-studio-line px-3 py-1.5 text-[13px] font-semibold hover:border-[#b9b7af] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-studio-brand">Spara</button>
                                 </div>

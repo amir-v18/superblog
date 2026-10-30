@@ -9,6 +9,16 @@ document.addEventListener('click', (event) => {
     }
 });
 
+// A slow submit (e.g. fetching a feed) shows data-pending-text and blocks a second click until the page reloads.
+document.addEventListener('submit', (event) => {
+    const button = event.submitter;
+
+    if (button?.dataset.pendingText) {
+        button.disabled = true;
+        button.textContent = button.dataset.pendingText;
+    }
+});
+
 document.querySelectorAll('dialog').forEach((dialog) => {
     // The content sits in an inner wrapper, so a click whose target is the dialog itself landed on the backdrop.
     dialog.addEventListener('click', (event) => {
