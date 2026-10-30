@@ -10,6 +10,7 @@ use App\Models\Superblog;
 use App\Services\RssFeedFetcher;
 use App\Support\RssFeedFetchException;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\ValidationException;
@@ -47,7 +48,7 @@ class RssSourceController extends Controller
             $lockedSuperblog->rssSources()->create($validated);
         });
 
-        return to_route('admin.superblogs.rss-sources.index', $superblog)
+        return $this->redirectAfterAction($request, $superblog)
             ->with('status', 'RSS source created.');
     }
 
@@ -154,6 +155,16 @@ class RssSourceController extends Controller
 
         return to_route('admin.superblogs.rss-sources.items.index', [$superblog, $rssSource])
             ->with('status', "Deleted {$deleted} RSS ".str('item')->plural($deleted).'. Related articles remain.');
+    }
+
+    // Compares against a fixed value, so a request can never choose its own redirect target.
+    private function redirectAfterAction(Request $request, Superblog $superblog): RedirectResponse
+    {
+        if ($request->input('fran') === 'byggaren') {
+            return to_route('admin.superblogs.edit', [$superblog, 'flik' => 'floden']);
+        }
+
+        return to_route('admin.superblogs.rss-sources.index', $superblog);
     }
 
     private function sourceForSuperblog(Superblog $superblog, RssSource $rssSource): RssSource

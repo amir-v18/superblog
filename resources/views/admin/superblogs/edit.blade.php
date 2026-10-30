@@ -72,6 +72,22 @@
             <h2 id="feeds-heading" class="text-lg font-semibold">RSS-flöden</h2>
             <p class="mt-1 text-[13px] leading-normal text-studio-muted">Senast hämtat: {{ $lastFetched }}.</p>
 
+            @if (session('error'))
+                <div role="alert" class="mt-4 rounded-lg border border-studio-bad/40 bg-[#43261c] p-4 text-studio-bad">{{ session('error') }}</div>
+            @endif
+
+            <form method="POST" action="{{ route('admin.superblogs.rss-sources.store', $superblog) }}" class="mt-4 flex flex-col gap-2 rounded-[10px] border border-dashed border-[#50525d] p-3">
+                @csrf
+                {{-- fran brings the user back to this tab; without it the controller goes to the RSS list. --}}
+                <input type="hidden" name="fran" value="byggaren">
+                {{-- The backend requires is_active, and Figma adds new feeds as active. --}}
+                <input type="hidden" name="is_active" value="1">
+                <h3 class="text-[13px] font-semibold">Lägg till flöde</h3>
+                <input name="name" value="{{ old('name') }}" required maxlength="255" placeholder="Namn, t.ex. Lokalnytt" aria-label="Flödets namn" class="w-full rounded-lg border border-studio-line bg-studio-bg p-3 text-sm focus-visible:outline-2 focus-visible:outline-studio-brand">
+                <input name="url" type="url" value="{{ old('url') }}" required maxlength="65535" placeholder="https://exempel.se/rss.xml" aria-label="Flödets adress" class="w-full rounded-lg border border-studio-line bg-studio-bg p-3 text-sm focus-visible:outline-2 focus-visible:outline-studio-brand">
+                <button type="submit" class="self-end rounded-lg bg-studio-brand px-4 py-2 text-sm font-medium text-studio-side hover:bg-[#ff9068] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-studio-brand">Lägg till</button>
+            </form>
+
             <h3 class="mt-[22px] mb-2 text-[13px] font-semibold tracking-[.04em]">Tillagda flöden <small class="ml-1 text-studio-muted">{{ $rssSources->count() }}</small></h3>
 
             @if ($rssSources->isEmpty())
