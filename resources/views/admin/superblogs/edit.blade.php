@@ -6,7 +6,7 @@
 @section('content')
     @php
         // Tabs are plain links with ?flik=..., so only the active tab is rendered and no JS is needed.
-        $tab = request()->query('flik') === 'utseende' ? 'utseende' : 'grund';
+        $tab = in_array(request()->query('flik'), ['utseende', 'floden'], true) ? request()->query('flik') : 'grund';
         $tabClasses = 'inline-block border-b-2 border-transparent px-1 pb-3 text-sm font-medium text-studio-muted hover:text-studio-ink aria-[current=page]:border-studio-brand aria-[current=page]:text-studio-brand focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-studio-brand';
         $selectedTemplate = old('template_id', $superblog->template_id);
     @endphp
@@ -27,8 +27,7 @@
                 <a href="{{ route('admin.superblogs.edit', [$superblog, 'flik' => 'utseende']) }}" @if ($tab === 'utseende') aria-current="page" @endif class="{{ $tabClasses }}">2 Utseende</a>
             </li>
             <li>
-                {{-- Leaves the builder for the existing RSS pages until feeds are built into it. --}}
-                <a href="{{ route('admin.superblogs.rss-sources.index', $superblog) }}" class="{{ $tabClasses }}">3 Flöden <span aria-hidden="true">↗</span></a>
+                <a href="{{ route('admin.superblogs.edit', [$superblog, 'flik' => 'floden']) }}" @if ($tab === 'floden') aria-current="page" @endif class="{{ $tabClasses }}">3 Flöden</a>
             </li>
         </ul>
     </nav>
@@ -62,6 +61,37 @@
                 <button type="submit" class="rounded-lg bg-studio-brand px-4 py-2 text-sm font-medium text-studio-side hover:bg-[#ff9068] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-studio-brand">Spara</button>
             </div>
         </form>
+    @elseif ($tab === 'floden')
+        @php
+            // The dashboard card shows the same value. Swedish only here, since the app locale is English.
+            $lastFetchedAt = $rssSources->max('last_fetched_at');
+            $lastFetched = $lastFetchedAt ? ucfirst($lastFetchedAt->locale('sv')->diffForHumans()) : 'Aldrig';
+        @endphp
+
+        <section aria-labelledby="feeds-heading" class="mt-6 rounded-xl border border-studio-line bg-studio-panel p-6">
+            <h2 id="feeds-heading" class="text-lg font-semibold">RSS-flöden</h2>
+            <p class="mt-1 text-[13px] leading-normal text-studio-muted">Senast hämtat: {{ $lastFetched }}.</p>
+
+            <h3 class="mt-[22px] mb-2 text-[13px] font-semibold tracking-[.04em]">Tillagda flöden <small class="ml-1 text-studio-muted">{{ $rssSources->count() }}</small></h3>
+
+            @if ($rssSources->isEmpty())
+                <div class="flex flex-col items-start gap-1.5 rounded-[10px] border border-dashed border-studio-line p-4 text-[13px] leading-[1.45]">
+                    <b>Inga flöden ännu</b>
+                    <span class="text-studio-muted">Lägg till ditt första RSS-flöde ovan.</span>
+                </div>
+            @else
+                <ul class="flex flex-col gap-2.5">
+                    @foreach ($rssSources as $rssSource)
+                        <li @class(['flex flex-col gap-2 rounded-[10px] border border-studio-line p-[11px]', 'opacity-60' => ! $rssSource->is_active])>
+                            <p class="text-sm font-semibold">{{ $rssSource->name }}</p>
+                            <p class="break-all text-[13px] text-studio-muted">{{ $rssSource->url }}</p>
+                            {{-- The count is stored RSS items, not published articles. --}}
+                            <small class="text-[13px] text-studio-muted">{{ $rssSource->is_active ? 'Aktiv · '.$rssSource->rss_items_count.' '.($rssSource->rss_items_count === 1 ? 'artikel' : 'artiklar') : 'Pausad' }}</small>
+                        </li>
+                    @endforeach
+                </ul>
+            @endif
+        </section>
     @else
         @php
             // Theme::name() returns null for a missing or unknown stored name, so nothing is preselected then.

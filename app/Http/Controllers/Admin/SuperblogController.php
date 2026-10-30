@@ -50,6 +50,8 @@ class SuperblogController extends Controller
         return view('admin.superblogs.edit', [
             'superblog' => $superblog,
             'templates' => $this->availableTemplates($superblog),
+            // withCount adds rss_items_count with one query, instead of one count per feed in the view.
+            'rssSources' => $superblog->rssSources()->withCount('rssItems')->orderBy('name')->get(),
         ]);
     }
 
