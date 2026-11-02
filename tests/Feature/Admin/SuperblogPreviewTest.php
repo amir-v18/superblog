@@ -2,15 +2,13 @@
 
 namespace Tests\Feature\Admin;
 
-use App\Models\Superblog;
-use App\Models\Template;
-use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Concerns\CreatesSuperblogs;
 use Tests\TestCase;
 
 class SuperblogPreviewTest extends TestCase
 {
-    use RefreshDatabase;
+    use CreatesSuperblogs, RefreshDatabase;
 
     public function test_users_without_access_cannot_see_the_preview(): void
     {
@@ -65,31 +63,5 @@ class SuperblogPreviewTest extends TestCase
         $this->actingAs($admin)->get(route('admin.superblogs.preview', $superblog))
             ->assertSee('data-theme="techenspraket"', false)
             ->assertDontSee('data-theme="bondebladet"', false);
-    }
-
-    private function makeSuperblog(User $owner): Superblog
-    {
-        $template = Template::create([
-            'name' => 'News',
-            'slug' => 'news',
-            'layout' => 'layouts.public',
-            'is_active' => true,
-        ]);
-
-        return $owner->superblogs()->create([
-            'template_id' => $template->id,
-            'name' => 'Dagens Budbärare',
-            'slug' => 'dagens-budbarare',
-        ]);
-    }
-
-    private function makeUser(bool $approved = false, bool $superAdmin = false): User
-    {
-        $user = User::factory()->create();
-        $user->approval_status = $approved ? 'approved' : 'pending';
-        $user->is_super_admin = $superAdmin;
-        $user->save();
-
-        return $user;
     }
 }

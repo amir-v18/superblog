@@ -2,15 +2,13 @@
 
 namespace Tests\Feature\Admin;
 
-use App\Models\Superblog;
-use App\Models\Template;
-use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Concerns\CreatesSuperblogs;
 use Tests\TestCase;
 
 class SuperblogBuilderTest extends TestCase
 {
-    use RefreshDatabase;
+    use CreatesSuperblogs, RefreshDatabase;
 
     public function test_builder_shows_the_basics_tab_by_default_and_the_appearance_tab_on_request(): void
     {
@@ -97,32 +95,5 @@ class SuperblogBuilderTest extends TestCase
 
         $this->get(route('admin.superblogs.edit', $superblog))
             ->assertDontSee('Tomt magasin.');
-    }
-
-    private function makeSuperblog(User $owner): Superblog
-    {
-        $template = Template::create([
-            'name' => 'News',
-            'slug' => 'news',
-            'layout' => 'layouts.public',
-            'is_active' => true,
-        ]);
-
-        return $owner->superblogs()->create([
-            'template_id' => $template->id,
-            'name' => 'Dagens Budbärare',
-            'slug' => 'dagens-budbarare',
-            'description' => 'Behålls',
-        ]);
-    }
-
-    private function makeUser(bool $approved = false, bool $superAdmin = false): User
-    {
-        $user = User::factory()->create();
-        $user->approval_status = $approved ? 'approved' : 'pending';
-        $user->is_super_admin = $superAdmin;
-        $user->save();
-
-        return $user;
     }
 }
