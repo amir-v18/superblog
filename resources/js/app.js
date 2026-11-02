@@ -109,3 +109,41 @@ if (previewPane && previewDevices) {
     new ResizeObserver(render).observe(previewPane);
     previewDevices.hidden = false;
 }
+
+// Live preview without saving: the typed name and the picked theme are copied into the iframe (same origin).
+// Without JS the iframe simply shows the saved values.
+const previewIframe = document.querySelector('[data-preview-frame] iframe');
+
+if (previewIframe) {
+    const nameInput = document.querySelector('[data-live-name-source]');
+    const themeRadios = document.querySelectorAll('input[type="radio"][name="theme"]');
+
+    const sync = () => {
+        const doc = previewIframe.contentDocument;
+
+        // Before the iframe has loaded this is an empty document; the load listener below runs sync again.
+        if (!doc?.documentElement) {
+            return;
+        }
+
+        if (nameInput) {
+            doc.querySelectorAll('[data-live-name]').forEach((element) => {
+                // The iframe was rendered with the saved name, so the first text seen is kept as the fallback for an empty field.
+                element.dataset.savedName ??= element.textContent;
+                element.textContent = nameInput.value.trim() === '' ? element.dataset.savedName : nameInput.value;
+            });
+        }
+
+        // Only the attribute changes; the colors come from the [data-theme] rules in app.css, which the iframe loads for every theme.
+        const checked = [...themeRadios].find((radio) => radio.checked);
+        if (checked) {
+            doc.documentElement.dataset.theme = checked.value;
+        }
+    };
+
+    // Also covers unsaved values that are already in the form, e.g. old input after a validation error.
+    previewIframe.addEventListener('load', sync);
+    nameInput?.addEventListener('input', sync);
+    themeRadios.forEach((radio) => radio.addEventListener('change', sync));
+    sync();
+}

@@ -29,7 +29,7 @@
             <time datetime="{{ now()->toDateString() }}">{{ now()->locale('sv')->isoFormat('dddd D MMMM YYYY') }}</time>
         </div>
         {{-- The magazine name is the page's single H1 until articles exist. The dot is decoration, so screen readers skip it. --}}
-        <h1 class="pt-[26px] pb-[22px] text-center font-display text-[64px] leading-none font-semibold tracking-[-.045em] max-[760px]:pt-[18px] max-[760px]:pb-[14px] max-[760px]:text-[42px]">{{ $superblog->name }}<span aria-hidden="true" class="text-primary italic">.</span></h1>
+        <h1 class="pt-[26px] pb-[22px] text-center font-display text-[64px] leading-none font-semibold tracking-[-.045em] max-[760px]:pt-[18px] max-[760px]:pb-[14px] max-[760px]:text-[42px]"><span data-live-name>{{ $superblog->name }}</span><span aria-hidden="true" class="text-primary italic">.</span></h1>
     </header>
 
     {{-- Figma's section labels above each card are left out, since there are no sections yet. --}}
@@ -88,8 +88,8 @@
     </main>
 
     <footer class="grid gap-2 border-t border-ink/15 pt-7 pb-[34px] text-[13px] {{ $sidePadding }}">
-        <p class="pb-2.5 font-display text-[34px] leading-none font-semibold tracking-[-.045em]">{{ $superblog->name }}<span aria-hidden="true" class="text-primary italic">.</span></p>
-        <small class="text-ink/60">&copy; {{ now()->year }} {{ $superblog->name }}. Alla rättigheter förbehållna.</small>
+        <p class="pb-2.5 font-display text-[34px] leading-none font-semibold tracking-[-.045em]"><span data-live-name>{{ $superblog->name }}</span><span aria-hidden="true" class="text-primary italic">.</span></p>
+        <small class="text-ink/60">&copy; {{ now()->year }} <span data-live-name>{{ $superblog->name }}</span>. Alla rättigheter förbehållna.</small>
     </footer>
 </body>
 </html>

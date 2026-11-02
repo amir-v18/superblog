@@ -57,7 +57,7 @@
 
                         <div>
                             <label for="name" class="block text-sm font-medium">Namn</label>
-                            <input id="name" name="name" value="{{ old('name', $superblog->name) }}" required maxlength="255" class="mt-2 w-full rounded-lg border border-studio-line bg-studio-bg p-3 focus-visible:outline-2 focus-visible:outline-studio-brand">
+                            <input id="name" name="name" data-live-name-source value="{{ old('name', $superblog->name) }}" required maxlength="255" class="mt-2 w-full rounded-lg border border-studio-line bg-studio-bg p-3 focus-visible:outline-2 focus-visible:outline-studio-brand">
                         </div>
 
                         <fieldset>
