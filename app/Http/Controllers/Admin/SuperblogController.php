@@ -52,6 +52,8 @@ class SuperblogController extends Controller
             'templates' => $this->availableTemplates($superblog),
             // withCount adds rss_items_count with one query, instead of one count per feed in the view.
             'rssSources' => $superblog->rssSources()->withCount('rssItems')->orderBy('name')->get(),
+            // Same rule as the dashboard: only published articles count, drafts do not.
+            'publishedArticlesCount' => $superblog->articles()->where('status', 'published')->count(),
         ]);
     }
 

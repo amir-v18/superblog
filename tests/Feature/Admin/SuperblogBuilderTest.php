@@ -69,6 +69,36 @@ class SuperblogBuilderTest extends TestCase
         $this->assertDatabaseHas('superblogs', ['id' => $superblog->id, 'name' => 'Dagens Budbärare']);
     }
 
+    public function test_empty_magazine_hint_shows_real_counts_until_an_article_is_published(): void
+    {
+        $admin = $this->makeUser(approved: true, superAdmin: true);
+        $superblog = $this->makeSuperblog($admin);
+
+        $this->actingAs($admin)->get(route('admin.superblogs.edit', $superblog))
+            ->assertSee('Tomt magasin.')
+            ->assertSee('Lägg till ett RSS-flöde för att komma igång.')
+            ->assertDontSee('publicerade artiklar');
+
+        $source = $superblog->rssSources()->create(['name' => 'Lokalnytt', 'url' => 'https://exempel.se/rss.xml', 'is_active' => true]);
+        $superblog->rssSources()->create(['name' => 'Sport', 'url' => 'https://exempel.se/sport.xml', 'is_active' => false]);
+        foreach (range(1, 3) as $n) {
+            $source->rssItems()->create(['title' => "Post $n", 'url' => "https://exempel.se/$n"]);
+        }
+        // A draft is not published, so the magazine still counts as empty.
+        $superblog->articles()->create(['title' => 'Utkast', 'slug' => 'utkast', 'content' => 'Text', 'source_type' => 'manual']);
+
+        $this->get(route('admin.superblogs.edit', $superblog))
+            ->assertSee('Tomt magasin.')
+            ->assertSee('2 flöden · 3 hämtade poster · 0 publicerade artiklar.')
+            ->assertSee('Platshållarna fylls när artiklar publiceras.')
+            ->assertSee(route('admin.superblogs.edit', [$superblog, 'flik' => 'floden']), false);
+
+        $superblog->articles()->create(['title' => 'Klar', 'slug' => 'klar', 'content' => 'Text', 'source_type' => 'manual', 'status' => 'published', 'published_at' => now()]);
+
+        $this->get(route('admin.superblogs.edit', $superblog))
+            ->assertDontSee('Tomt magasin.');
+    }
+
     private function makeSuperblog(User $owner): Superblog
     {
         $template = Template::create([

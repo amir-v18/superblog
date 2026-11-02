@@ -218,9 +218,25 @@
                 <code class="min-w-0 flex-1 truncate rounded-md bg-studio-bg px-2.5 py-1 text-studio-ink">{{ $superblog->domain ? 'https://'.$superblog->domain : 'Ingen webbadress än' }}</code>
                 <span data-preview-label>Dator</span>
             </div>
-            <div data-preview-pane class="flex-1 overflow-auto p-5">
+            <div data-preview-pane class="flex flex-1 flex-col overflow-auto p-5">
+                {{-- Figma's empty hint. Here in the builder, not in the iframe, so it can never end up on the public site. --}}
+                @if ($publishedArticlesCount === 0)
+                    @php
+                        $feedCount = $rssSources->count();
+                        $itemCount = $rssSources->sum('rss_items_count');
+                    @endphp
+                    <div class="mx-auto mb-3.5 w-full max-w-[760px] shrink-0 rounded-[10px] border border-studio-line bg-studio-panel px-3.5 py-[11px] text-[13px] leading-[1.45] text-studio-muted">
+                        <b class="text-studio-ink">Tomt magasin.</b>
+                        @if ($feedCount === 0)
+                            Lägg till ett RSS-flöde för att komma igång.
+                        @else
+                            {{ $feedCount }} {{ $feedCount === 1 ? 'flöde' : 'flöden' }} · {{ $itemCount }} {{ $itemCount === 1 ? 'hämtad post' : 'hämtade poster' }} · 0 publicerade artiklar. Platshållarna fylls när artiklar publiceras.
+                        @endif
+                        <a href="{{ route('admin.superblogs.edit', [$superblog, 'flik' => 'floden']) }}" class="ml-1.5 font-bold text-studio-brand focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-studio-brand">Lägg till flöde →</a>
+                    </div>
+                @endif
                 {{-- Without JS the frame fills the pane unscaled. app.js sizes it per device; overflow-hidden clips the space the scaled iframe still takes up. --}}
-                <div data-preview-frame class="mx-auto h-full w-full overflow-hidden bg-white shadow-[0_14px_50px_#17181c30]">
+                <div data-preview-frame class="mx-auto min-h-0 w-full flex-1 overflow-hidden bg-white shadow-[0_14px_50px_#17181c30]">
                     {{-- A real page in an iframe, so the preview uses the public theme CSS without mixing it into the admin. It reloads with the builder on save and tab change. --}}
                     <iframe src="{{ route('admin.superblogs.preview', $superblog) }}" title="Förhandsvisning av {{ $superblog->name }}" class="block h-full w-full origin-top-left"></iframe>
                 </div>
