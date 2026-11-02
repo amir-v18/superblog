@@ -70,7 +70,7 @@
                         </x-admin.domain-input>
 
                         <div>
-                            <button type="submit" class="rounded-lg bg-studio-brand px-4 py-2 text-sm font-medium text-studio-side hover:bg-[#ff9068] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-studio-brand">Spara</button>
+                            <button type="submit" class="rounded-lg bg-studio-brand px-4 py-2 text-sm font-medium text-studio-side hover:bg-studio-brand-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-studio-brand">Spara</button>
                         </div>
                     </form>
                 @elseif ($tab === 'floden')
@@ -85,7 +85,7 @@
                         <p class="mt-1 text-[13px] leading-normal text-studio-muted">Senast hämtat: {{ $lastFetched }}.</p>
 
                         @if (session('error'))
-                            <div role="alert" class="mt-4 rounded-lg border border-studio-bad/40 bg-[#43261c] p-4 text-studio-bad">{{ session('error') }}</div>
+                            <div role="alert" class="mt-4 rounded-lg border border-studio-bad/40 bg-studio-bad-bg p-4 text-studio-bad">{{ session('error') }}</div>
                         @endif
 
                         <form method="POST" action="{{ route('admin.superblogs.rss-sources.store', $superblog) }}" class="mt-4 flex flex-col gap-2 rounded-[10px] border border-dashed border-[#50525d] p-3">
@@ -98,7 +98,7 @@
                             {{-- A failed card save also flashes name and url, so andrar keeps that text out of this form. --}}
                             <input name="name" value="{{ old('andrar') ? '' : old('name') }}" required maxlength="255" placeholder="Namn, t.ex. Lokalnytt" aria-label="Flödets namn" class="w-full rounded-lg border border-studio-line bg-studio-bg p-3 text-sm focus-visible:outline-2 focus-visible:outline-studio-brand">
                             <input name="url" type="url" value="{{ old('andrar') ? '' : old('url') }}" required maxlength="65535" placeholder="https://exempel.se/rss.xml" aria-label="Flödets adress" class="w-full rounded-lg border border-studio-line bg-studio-bg p-3 text-sm focus-visible:outline-2 focus-visible:outline-studio-brand">
-                            <button type="submit" class="self-end rounded-lg bg-studio-brand px-4 py-2 text-sm font-medium text-studio-side hover:bg-[#ff9068] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-studio-brand">Lägg till</button>
+                            <button type="submit" class="self-end rounded-lg bg-studio-brand px-4 py-2 text-sm font-medium text-studio-side hover:bg-studio-brand-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-studio-brand">Lägg till</button>
                         </form>
 
                         <h3 class="mt-[22px] mb-2 text-[13px] font-semibold tracking-[.04em]">Tillagda flöden <small class="ml-1 text-studio-muted">{{ $rssSources->count() }}</small></h3>
@@ -204,7 +204,7 @@
                         </fieldset>
 
                         <div>
-                            <button type="submit" class="rounded-lg bg-studio-brand px-4 py-2 text-sm font-medium text-studio-side hover:bg-[#ff9068] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-studio-brand">Spara</button>
+                            <button type="submit" class="rounded-lg bg-studio-brand px-4 py-2 text-sm font-medium text-studio-side hover:bg-studio-brand-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-studio-brand">Spara</button>
                         </div>
                     </form>
                 @endif
