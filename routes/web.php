@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Admin\ArticleController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\RssSourceController;
 use App\Http\Controllers\Admin\StaffController;
@@ -78,11 +79,20 @@ Route::middleware('auth')->group(function () {
                 Route::delete('{rssSource}', [RssSourceController::class, 'destroy'])->name('destroy');
                 Route::post('{rssSource}/fetch', [RssSourceController::class, 'fetch'])->name('fetch');
                 Route::get('{rssSource}/items', [RssSourceController::class, 'items'])->name('items.index');
+                Route::post('{rssSource}/items/{rssItem}/article', [ArticleController::class, 'createFromRssItem'])->name('items.article.store');
                 Route::get('{rssSource}/items/clear', [RssSourceController::class, 'confirmClearItems'])->name('items.clear');
                 Route::delete('{rssSource}/items', [RssSourceController::class, 'clearItems'])->name('items.clear.destroy');
                 Route::get('{rssSource}/items/{rssItem}/delete', [RssSourceController::class, 'confirmItemDeletion'])->name('items.delete');
                 Route::delete('{rssSource}/items/{rssItem}', [RssSourceController::class, 'destroyItem'])->name('items.destroy');
             });
+        Route::prefix('superblogs/{superblog}/articles')
+            ->name('admin.superblogs.articles.')
+            ->scopeBindings()
+            ->group(function () {
+                Route::get('{article}/edit', [ArticleController::class, 'edit'])->name('edit');
+                Route::put('{article}', [ArticleController::class, 'update'])->name('update');
+            });
+        Route::get('articles', [ArticleController::class, 'index'])->name('admin.articles.index');
         Route::put('superblogs/{superblog}/theme', SuperblogThemeController::class)->name('admin.superblogs.theme.update');
         Route::get('superblogs/{superblog}/delete', [SuperblogController::class, 'confirmDeletion'])->name('admin.superblogs.delete');
         Route::resource('superblogs', SuperblogController::class)->except(['index', 'show'])->names('admin.superblogs');

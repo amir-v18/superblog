@@ -115,7 +115,7 @@ class RssSourceController extends Controller
         return view('admin.rss-sources.items.index', [
             'superblog' => $superblog,
             'rssSource' => $rssSource,
-            'rssItems' => $rssSource->rssItems()->latest('published_at')->latest('id')->paginate(20),
+            'rssItems' => $rssSource->rssItems()->with('article')->latest('published_at')->latest('id')->paginate(20),
         ]);
     }
 
@@ -135,7 +135,7 @@ class RssSourceController extends Controller
         $this->itemForSource($rssSource, $rssItem)->delete();
 
         return to_route('admin.superblogs.rss-sources.items.index', [$superblog, $rssSource])
-            ->with('status', 'RSS item deleted. Any related article remains, with its source reference cleared.');
+            ->with('status', 'RSS item and its associated article deleted.');
     }
 
     public function confirmClearItems(Superblog $superblog, RssSource $rssSource): View
@@ -153,7 +153,7 @@ class RssSourceController extends Controller
         $deleted = $rssSource->rssItems()->delete();
 
         return to_route('admin.superblogs.rss-sources.items.index', [$superblog, $rssSource])
-            ->with('status', "Deleted {$deleted} RSS ".str('item')->plural($deleted).'. Related articles remain.');
+            ->with('status', "Deleted {$deleted} RSS ".str('item')->plural($deleted).' and their associated articles.');
     }
 
     private function sourceForSuperblog(Superblog $superblog, RssSource $rssSource): RssSource

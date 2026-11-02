@@ -138,7 +138,7 @@ class RssFetchingAndItemsTest extends TestCase
         $this->assertDatabaseHas('rss_items', ['id' => $item->getKey()]);
     }
 
-    public function test_item_page_displays_safe_links_and_item_deletion_preserves_related_article(): void
+    public function test_item_page_displays_safe_links_and_item_deletion_cascades_to_related_article(): void
     {
         $staff = $this->makeUser();
         $superblog = $this->makeSuperblog($staff, 'items-blog');
@@ -169,7 +169,7 @@ class RssFetchingAndItemsTest extends TestCase
             ->assertRedirect(route('admin.superblogs.rss-sources.items.index', [$superblog, $source]));
 
         $this->assertDatabaseMissing('rss_items', ['id' => $item->getKey()]);
-        $this->assertDatabaseHas('articles', ['id' => $article->getKey(), 'rss_item_id' => null]);
+        $this->assertDatabaseMissing('articles', ['id' => $article->getKey()]);
         $this->assertDatabaseHas('rss_sources', ['id' => $source->getKey()]);
     }
 
@@ -201,7 +201,7 @@ class RssFetchingAndItemsTest extends TestCase
         $this->assertDatabaseMissing('rss_items', ['id' => $item->getKey()]);
         $this->assertDatabaseHas('rss_items', ['id' => $otherItem->getKey()]);
         $this->assertDatabaseHas('rss_sources', ['id' => $source->getKey()]);
-        $this->assertDatabaseHas('articles', ['id' => $article->getKey(), 'rss_item_id' => null]);
+        $this->assertDatabaseMissing('articles', ['id' => $article->getKey()]);
     }
 
     private function allowPublicFeedHost(): void

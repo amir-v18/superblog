@@ -35,6 +35,7 @@
         @auth
             <nav aria-label="Huvudmeny" class="flex flex-col gap-0.5 overflow-auto lg:flex-1">
                 <a href="{{ route('admin.dashboard') }}" @if (request()->routeIs('admin.dashboard')) aria-current="page" @endif class="{{ $navItemClasses }}">Översikt</a>
+                <a href="{{ route('admin.articles.index') }}" @if (request()->routeIs('admin.articles.*')) aria-current="page" @endif class="{{ $navItemClasses }}">Artiklar</a>
 
                 {{-- accessibleTo() follows the same rule as the update policy, so every listed magazine may be opened. --}}
                 @foreach (['PUBLICERADE' => $sidebarPublished, 'UNDER UPPBYGGNAD' => $sidebarDrafts] as $label => $superblogs)
