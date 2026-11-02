@@ -64,3 +64,48 @@ document.querySelectorAll('form').forEach((form) => {
         target.value = slug ? `${slug}.se` : '';
     });
 });
+
+// Dator/Mobil in the builder preview, as in Figma: mobile is 390 px, desktop is drawn 1240 px wide and scaled to fit (never under 30 %).
+const previewPane = document.querySelector('[data-preview-pane]');
+const previewDevices = document.querySelector('[data-preview-devices]');
+
+if (previewPane && previewDevices) {
+    const frame = previewPane.querySelector('[data-preview-frame]');
+    const iframe = frame.querySelector('iframe');
+    const label = document.querySelector('[data-preview-label]');
+    const buttons = previewDevices.querySelectorAll('[data-preview-device]');
+
+    // sessionStorage keeps the choice across the reload on save and tab change; it can throw (e.g. blocked storage), so desktop is the fallback.
+    let device = 'desktop';
+    try {
+        device = sessionStorage.getItem('preview-device') === 'mobile' ? 'mobile' : 'desktop';
+    } catch {}
+
+    const render = () => {
+        const base = device === 'mobile' ? 390 : 1240;
+        // clientWidth includes the pane's 2 × 20 px padding, the same 40 px Figma subtracts.
+        const scale = device === 'mobile' ? 1 : Math.min(1, Math.max(0.3, (previewPane.clientWidth - 40) / base));
+
+        // transform shrinks only the look, so the iframe keeps a 1240 px viewport; the frame gets the scaled size and clips the rest.
+        frame.style.width = `${base * scale}px`;
+        iframe.style.width = `${base}px`;
+        iframe.style.height = `${frame.clientHeight / scale}px`;
+        iframe.style.transform = `scale(${scale})`;
+
+        label.textContent = device === 'mobile' ? '390 px' : 'Dator';
+        buttons.forEach((button) => button.setAttribute('aria-pressed', String(button.dataset.previewDevice === device)));
+    };
+
+    buttons.forEach((button) => {
+        button.addEventListener('click', () => {
+            device = button.dataset.previewDevice;
+            try {
+                sessionStorage.setItem('preview-device', device);
+            } catch {}
+            render();
+        });
+    });
+
+    new ResizeObserver(render).observe(previewPane);
+    previewDevices.hidden = false;
+}

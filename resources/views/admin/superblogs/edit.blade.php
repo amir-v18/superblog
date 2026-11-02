@@ -22,6 +22,11 @@
             <h1 class="truncate text-lg font-semibold">{{ $superblog->name }}</h1>
             <x-admin.status-pill :live="$superblog->status === 'published'" />
         </div>
+        {{-- hidden until app.js runs, since the buttons do nothing without JS. Only from lg, like the preview itself. --}}
+        <div role="group" aria-label="Förhandsvisning" hidden data-preview-devices class="hidden rounded-lg bg-studio-panel p-[3px] lg:inline-flex">
+            <button type="button" data-preview-device="desktop" aria-pressed="true" class="rounded-md px-3.5 py-1.5 text-xs font-semibold text-studio-muted hover:text-studio-ink aria-pressed:bg-studio-brand aria-pressed:text-studio-side focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-studio-brand">Dator</button>
+            <button type="button" data-preview-device="mobile" aria-pressed="false" class="rounded-md px-3.5 py-1.5 text-xs font-semibold text-studio-muted hover:text-studio-ink aria-pressed:bg-studio-brand aria-pressed:text-studio-side focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-studio-brand">Mobil</button>
+        </div>
     </header>
 
     <div class="lg:grid lg:min-h-0 lg:flex-1 lg:grid-cols-[390px_minmax(0,1fr)]">
@@ -211,11 +216,14 @@
             <div class="flex items-center gap-3 border-b border-studio-line bg-studio-side px-4 py-[9px] text-xs text-studio-muted">
                 <span aria-hidden="true" class="tracking-[2px] text-[#b5b3ab]">●●●</span>
                 <code class="min-w-0 flex-1 truncate rounded-md bg-studio-bg px-2.5 py-1 text-studio-ink">{{ $superblog->domain ? 'https://'.$superblog->domain : 'Ingen webbadress än' }}</code>
-                <span>Dator</span>
+                <span data-preview-label>Dator</span>
             </div>
-            <div class="flex-1 overflow-auto p-5">
-                {{-- A real page in an iframe, so the preview uses the public theme CSS without mixing it into the admin. It reloads with the builder on save and tab change. --}}
-                <iframe src="{{ route('admin.superblogs.preview', $superblog) }}" title="Förhandsvisning av {{ $superblog->name }}" class="mx-auto block h-full w-full bg-white shadow-[0_14px_50px_#17181c30]"></iframe>
+            <div data-preview-pane class="flex-1 overflow-auto p-5">
+                {{-- Without JS the frame fills the pane unscaled. app.js sizes it per device; overflow-hidden clips the space the scaled iframe still takes up. --}}
+                <div data-preview-frame class="mx-auto h-full w-full overflow-hidden bg-white shadow-[0_14px_50px_#17181c30]">
+                    {{-- A real page in an iframe, so the preview uses the public theme CSS without mixing it into the admin. It reloads with the builder on save and tab change. --}}
+                    <iframe src="{{ route('admin.superblogs.preview', $superblog) }}" title="Förhandsvisning av {{ $superblog->name }}" class="block h-full w-full origin-top-left"></iframe>
+                </div>
             </div>
         </section>
     </div>
