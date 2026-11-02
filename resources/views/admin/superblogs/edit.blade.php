@@ -206,14 +206,17 @@
             </div>
         </section>
 
-        {{-- Hidden below lg, so the form gets the full width on small screens. The iframe is added in step 2. --}}
+        {{-- Hidden below lg, so the form gets the full width on small screens. --}}
         <section aria-label="Förhandsvisning" class="hidden min-w-0 flex-col bg-[#121317] lg:flex lg:min-h-0">
             <div class="flex items-center gap-3 border-b border-studio-line bg-studio-side px-4 py-[9px] text-xs text-studio-muted">
                 <span aria-hidden="true" class="tracking-[2px] text-[#b5b3ab]">●●●</span>
                 <code class="min-w-0 flex-1 truncate rounded-md bg-studio-bg px-2.5 py-1 text-studio-ink">{{ $superblog->domain ? 'https://'.$superblog->domain : 'Ingen webbadress än' }}</code>
                 <span>Dator</span>
             </div>
-            <div class="flex-1 overflow-auto p-5"></div>
+            <div class="flex-1 overflow-auto p-5">
+                {{-- A real page in an iframe, so the preview uses the public theme CSS without mixing it into the admin. It reloads with the builder on save and tab change. --}}
+                <iframe src="{{ route('admin.superblogs.preview', $superblog) }}" title="Förhandsvisning av {{ $superblog->name }}" class="mx-auto block h-full w-full bg-white shadow-[0_14px_50px_#17181c30]"></iframe>
+            </div>
         </section>
     </div>
 @endsection
