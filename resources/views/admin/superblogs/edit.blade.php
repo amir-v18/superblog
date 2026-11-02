@@ -159,8 +159,8 @@
                     </section>
                 @else
                     @php
-                        // Theme::name() returns null for a missing or unknown stored name, so nothing is preselected then.
-                        $currentTheme = Theme::name($superblog->settings['theme'] ?? null);
+                        // Theme::nameFor() returns null for a missing or unknown stored name, so nothing is preselected then.
+                        $currentTheme = Theme::nameFor($superblog);
                         $selectedTheme = old('theme', $currentTheme);
                         // Full class names on purpose: Tailwind only generates classes it finds as complete strings.
                         $swatches = ['bg-paper', 'bg-ink', 'bg-primary', 'bg-deep', 'bg-pale', 'bg-line'];

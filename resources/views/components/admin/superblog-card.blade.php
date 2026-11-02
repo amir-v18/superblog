@@ -3,8 +3,8 @@
 @php
     $isLive = $superblog->status === 'published';
     $canEdit = auth()->user()->can('update', $superblog);
-    // settings is already loaded with the row; Theme::name() returns null for a missing or unknown theme.
-    $themeName = \App\Support\Theme::name($superblog->settings['theme'] ?? null);
+    // settings is already loaded with the row; Theme::nameFor() returns null for a missing or unknown theme.
+    $themeName = \App\Support\Theme::nameFor($superblog);
     // withMax returns a raw string, not a cast date. Swedish only here, since the app locale is English.
     $lastFetchedAt = $superblog->rss_sources_max_last_fetched_at;
     $lastFetched = $lastFetchedAt

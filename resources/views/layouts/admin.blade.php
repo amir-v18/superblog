@@ -44,7 +44,7 @@
                     @endif
                     @foreach ($superblogs as $superblog)
                         @php
-                            $themeName = App\Support\Theme::name($superblog->settings['theme'] ?? null);
+                            $themeName = App\Support\Theme::nameFor($superblog);
                         @endphp
                         <a href="{{ route('admin.superblogs.edit', $superblog) }}" @if ($superblog->getKey() == $currentSuperblogId) aria-current="page" @endif class="{{ $navItemClasses }}">
                             {{-- data-theme scopes the theme's CSS variables to the dot, so bg-primary is the magazine's own color. --}}
