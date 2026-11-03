@@ -46,8 +46,8 @@
 
             <div class="flex justify-end gap-3">
                 {{-- type="button", not a dialog submit: Enter in a field triggers the first submit button, which must be "Skapa". --}}
-                <button type="button" data-close-dialog class="rounded-lg border border-studio-line bg-studio-panel px-4 py-2 text-sm font-medium hover:border-[#5a5d69] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-studio-brand">Avbryt</button>
-                <button type="submit" @disabled($templates->isEmpty()) class="rounded-lg bg-studio-brand px-4 py-2 text-sm font-medium text-studio-side hover:bg-studio-brand-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-studio-brand disabled:cursor-not-allowed disabled:opacity-50">Skapa och öppna</button>
+                <button type="button" data-close-dialog class="rounded-lg border border-studio-line bg-studio-panel px-4 py-2 text-sm font-medium hover:border-[#5a5d69] studio-focus-ring">Avbryt</button>
+                <button type="submit" @disabled($templates->isEmpty()) class="rounded-lg bg-studio-brand px-4 py-2 text-sm font-medium text-studio-side hover:bg-studio-brand-hover studio-focus-ring disabled:cursor-not-allowed disabled:opacity-50">Skapa och öppna</button>
             </div>
         </form>
     </div>

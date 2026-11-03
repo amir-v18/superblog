@@ -26,6 +26,11 @@
     --color-studio-live: #1e3a2b;
 }
 
+/* Admin focus ring: shown on keyboard focus only (:focus-visible), never on a mouse click. Public pages use outline-primary instead. */
+@utility studio-focus-ring {
+    @apply focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-studio-brand;
+}
+
 /*
  * Theme system: a theme is a set of raw values selected by data-theme on <html>.
  * The @theme inline block below maps them to Tailwind utilities (bg-paper, text-ink, font-display, ...).

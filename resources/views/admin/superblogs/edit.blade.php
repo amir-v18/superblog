@@ -17,15 +17,15 @@
     @endphp
 
     <header class="flex flex-wrap items-center gap-4 border-b border-studio-line bg-studio-side px-5 py-3">
-        <a href="{{ route('admin.dashboard') }}" class="rounded-lg px-3.5 py-2 text-[13px] font-semibold text-studio-muted hover:text-studio-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-studio-brand"><span aria-hidden="true">←</span> Alla magasin</a>
+        <a href="{{ route('admin.dashboard') }}" class="rounded-lg px-3.5 py-2 text-[13px] font-semibold text-studio-muted hover:text-studio-ink studio-focus-ring"><span aria-hidden="true">←</span> Alla magasin</a>
         <div class="flex min-w-0 flex-1 items-center gap-2.5">
             <h1 class="truncate text-lg font-semibold">{{ $superblog->name }}</h1>
             <x-admin.status-pill :live="$superblog->status === 'published'" />
         </div>
         {{-- hidden until app.js runs, since the buttons do nothing without JS. Only from lg, like the preview itself. --}}
         <div role="group" aria-label="Förhandsvisning" hidden data-preview-devices class="hidden rounded-lg bg-studio-panel p-[3px] lg:inline-flex">
-            <button type="button" data-preview-device="desktop" aria-pressed="true" class="rounded-md px-3.5 py-1.5 text-xs font-semibold text-studio-muted hover:text-studio-ink aria-pressed:bg-studio-brand aria-pressed:text-studio-side focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-studio-brand">Dator</button>
-            <button type="button" data-preview-device="mobile" aria-pressed="false" class="rounded-md px-3.5 py-1.5 text-xs font-semibold text-studio-muted hover:text-studio-ink aria-pressed:bg-studio-brand aria-pressed:text-studio-side focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-studio-brand">Mobil</button>
+            <button type="button" data-preview-device="desktop" aria-pressed="true" class="rounded-md px-3.5 py-1.5 text-xs font-semibold text-studio-muted hover:text-studio-ink aria-pressed:bg-studio-brand aria-pressed:text-studio-side studio-focus-ring">Dator</button>
+            <button type="button" data-preview-device="mobile" aria-pressed="false" class="rounded-md px-3.5 py-1.5 text-xs font-semibold text-studio-muted hover:text-studio-ink aria-pressed:bg-studio-brand aria-pressed:text-studio-side studio-focus-ring">Mobil</button>
         </div>
     </header>
 
@@ -70,7 +70,7 @@
                         </x-admin.domain-input>
 
                         <div>
-                            <button type="submit" class="rounded-lg bg-studio-brand px-4 py-2 text-sm font-medium text-studio-side hover:bg-studio-brand-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-studio-brand">Spara</button>
+                            <button type="submit" class="rounded-lg bg-studio-brand px-4 py-2 text-sm font-medium text-studio-side hover:bg-studio-brand-hover studio-focus-ring">Spara</button>
                         </div>
                     </form>
                 @elseif ($tab === 'floden')
@@ -98,7 +98,7 @@
                             {{-- A failed card save also flashes name and url, so andrar keeps that text out of this form. --}}
                             <input name="name" value="{{ old('andrar') ? '' : old('name') }}" required maxlength="255" placeholder="Namn, t.ex. Lokalnytt" aria-label="Flödets namn" class="w-full rounded-lg border border-studio-line bg-studio-bg p-3 text-sm focus-visible:outline-2 focus-visible:outline-studio-brand">
                             <input name="url" type="url" value="{{ old('andrar') ? '' : old('url') }}" required maxlength="65535" placeholder="https://exempel.se/rss.xml" aria-label="Flödets adress" class="w-full rounded-lg border border-studio-line bg-studio-bg p-3 text-sm focus-visible:outline-2 focus-visible:outline-studio-brand">
-                            <button type="submit" class="self-end rounded-lg bg-studio-brand px-4 py-2 text-sm font-medium text-studio-side hover:bg-studio-brand-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-studio-brand">Lägg till</button>
+                            <button type="submit" class="self-end rounded-lg bg-studio-brand px-4 py-2 text-sm font-medium text-studio-side hover:bg-studio-brand-hover studio-focus-ring">Lägg till</button>
                         </form>
 
                         <h3 class="mt-[22px] mb-2 text-[13px] font-semibold tracking-[.04em]">Tillagda flöden <small class="ml-1 text-studio-muted">{{ $rssSources->count() }}</small></h3>
@@ -125,7 +125,7 @@
                                                 <input type="hidden" name="name" value="{{ $rssSource->name }}">
                                                 <input type="hidden" name="url" value="{{ $rssSource->url }}">
                                                 <input type="hidden" name="is_active" value="{{ $rssSource->is_active ? 0 : 1 }}">
-                                                <button type="submit" role="switch" aria-checked="{{ $rssSource->is_active ? 'true' : 'false' }}" aria-label="Aktivt flöde: {{ $rssSource->name }}" @class(['relative h-5 w-[34px] rounded-full transition-colors after:absolute after:top-0.5 after:left-0.5 after:size-4 after:rounded-full after:bg-white after:transition-transform focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-studio-brand', 'bg-studio-brand after:translate-x-3.5' => $rssSource->is_active, 'bg-[#484a55]' => ! $rssSource->is_active])></button>
+                                                <button type="submit" role="switch" aria-checked="{{ $rssSource->is_active ? 'true' : 'false' }}" aria-label="Aktivt flöde: {{ $rssSource->name }}" @class(['relative h-5 w-[34px] rounded-full transition-colors after:absolute after:top-0.5 after:left-0.5 after:size-4 after:rounded-full after:bg-white after:transition-transform studio-focus-ring', 'bg-studio-brand after:translate-x-3.5' => $rssSource->is_active, 'bg-[#484a55]' => ! $rssSource->is_active])></button>
                                             </form>
                                         </div>
                                         @if ($rssSource->is_active)
@@ -144,10 +144,10 @@
                                             <div class="flex items-center justify-end gap-3">
                                                 @if ($rssSource->is_active)
                                                     {{-- form= ties this button to its own form, so Enter in a text field still saves. --}}
-                                                    <button type="submit" form="fetch-{{ $rssSource->id }}" data-pending-text="Hämtar…" class="mr-auto rounded-lg border border-studio-line px-3 py-1.5 text-[13px] font-semibold hover:border-[#b9b7af] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-studio-brand disabled:opacity-60">↻ Hämta nu</button>
+                                                    <button type="submit" form="fetch-{{ $rssSource->id }}" data-pending-text="Hämtar…" class="mr-auto rounded-lg border border-studio-line px-3 py-1.5 text-[13px] font-semibold hover:border-[#b9b7af] studio-focus-ring disabled:opacity-60">↻ Hämta nu</button>
                                                 @endif
-                                                <a href="{{ route('admin.superblogs.rss-sources.delete', [$superblog, $rssSource, 'fran' => 'byggaren']) }}" class="text-[13px] font-semibold text-studio-bad underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-studio-brand">Ta bort</a>
-                                                <button type="submit" class="rounded-lg border border-studio-line px-3 py-1.5 text-[13px] font-semibold hover:border-[#b9b7af] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-studio-brand">Spara</button>
+                                                <a href="{{ route('admin.superblogs.rss-sources.delete', [$superblog, $rssSource, 'fran' => 'byggaren']) }}" class="text-[13px] font-semibold text-studio-bad underline underline-offset-4 studio-focus-ring">Ta bort</a>
+                                                <button type="submit" class="rounded-lg border border-studio-line px-3 py-1.5 text-[13px] font-semibold hover:border-[#b9b7af] studio-focus-ring">Spara</button>
                                             </div>
                                         </form>
                                         {{-- The count is stored RSS items, not published articles. --}}
@@ -204,7 +204,7 @@
                         </fieldset>
 
                         <div>
-                            <button type="submit" class="rounded-lg bg-studio-brand px-4 py-2 text-sm font-medium text-studio-side hover:bg-studio-brand-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-studio-brand">Spara</button>
+                            <button type="submit" class="rounded-lg bg-studio-brand px-4 py-2 text-sm font-medium text-studio-side hover:bg-studio-brand-hover studio-focus-ring">Spara</button>
                         </div>
                     </form>
                 @endif
@@ -232,7 +232,7 @@
                         @else
                             {{ $feedCount }} {{ $feedCount === 1 ? 'flöde' : 'flöden' }} · {{ $itemCount }} {{ $itemCount === 1 ? 'hämtad post' : 'hämtade poster' }} · 0 publicerade artiklar. Platshållarna fylls när artiklar publiceras.
                         @endif
-                        <a href="{{ route('admin.superblogs.edit', [$superblog, 'flik' => 'floden']) }}" class="ml-1.5 font-bold text-studio-brand focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-studio-brand">Lägg till flöde →</a>
+                        <a href="{{ route('admin.superblogs.edit', [$superblog, 'flik' => 'floden']) }}" class="ml-1.5 font-bold text-studio-brand studio-focus-ring">Lägg till flöde →</a>
                     </div>
                 @endif
                 {{-- Without JS the frame fills the pane unscaled. app.js sizes it per device; overflow-hidden clips the space the scaled iframe still takes up. --}}

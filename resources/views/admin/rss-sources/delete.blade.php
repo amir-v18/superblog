@@ -11,7 +11,7 @@
             : route('admin.superblogs.rss-sources.index', $superblog);
     @endphp
 
-    <a href="{{ $backUrl }}" class="text-sm underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-studio-brand">Back to RSS sources</a>
+    <a href="{{ $backUrl }}" class="text-sm underline underline-offset-4 studio-focus-ring">Back to RSS sources</a>
     <h1 class="mt-4 text-3xl font-semibold tracking-tight">Delete {{ $rssSource->name }}?</h1>
     <p class="mt-2 text-studio-muted">{{ $superblog->name }}</p>
     <div class="mt-6 rounded-xl border border-studio-bad/40 bg-studio-panel p-6">
@@ -22,8 +22,8 @@
             @if ($fromBuilder)
                 <input type="hidden" name="fran" value="byggaren">
             @endif
-            <button type="submit" class="rounded-lg bg-studio-bad px-4 py-2 font-medium text-studio-side hover:bg-studio-bad/85 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-studio-brand">Yes, delete RSS source</button>
-            <a href="{{ $backUrl }}" class="text-sm underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-studio-brand">Cancel</a>
+            <button type="submit" class="rounded-lg bg-studio-bad px-4 py-2 font-medium text-studio-side hover:bg-studio-bad/85 studio-focus-ring">Yes, delete RSS source</button>
+            <a href="{{ $backUrl }}" class="text-sm underline underline-offset-4 studio-focus-ring">Cancel</a>
         </form>
     </div>
 @endsection
