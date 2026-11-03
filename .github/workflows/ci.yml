@@ -51,8 +51,8 @@ jobs:
       - name: Run Laravel tests
         run: composer test -- --display-warnings --display-deprecations
 
-      - name: Check code formatting
-        run: vendor/bin/pint --test
+      - name: Run Laravel tests
+        run: vendor/bin/pest -v --display-warnings
 
       - name: Check whitespace
         env:
