@@ -57,7 +57,7 @@
 
                         <div>
                             <label for="name" class="block text-sm font-medium">Namn</label>
-                            <input id="name" name="name" data-live-name-source value="{{ old('name', $superblog->name) }}" required maxlength="255" class="mt-2 w-full rounded-lg border border-studio-line bg-studio-bg p-3 focus-visible:outline-2 focus-visible:outline-studio-brand">
+                            <x-admin.input id="name" name="name" data-live-name-source value="{{ old('name', $superblog->name) }}" required maxlength="255" class="mt-2" />
                         </div>
 
                         <fieldset>
@@ -96,8 +96,8 @@
                             <input type="hidden" name="is_active" value="1">
                             <h3 class="text-[13px] font-semibold">Lägg till flöde</h3>
                             {{-- A failed card save also flashes name and url, so andrar keeps that text out of this form. --}}
-                            <input name="name" value="{{ old('andrar') ? '' : old('name') }}" required maxlength="255" placeholder="Namn, t.ex. Lokalnytt" aria-label="Flödets namn" class="w-full rounded-lg border border-studio-line bg-studio-bg p-3 text-sm focus-visible:outline-2 focus-visible:outline-studio-brand">
-                            <input name="url" type="url" value="{{ old('andrar') ? '' : old('url') }}" required maxlength="65535" placeholder="https://exempel.se/rss.xml" aria-label="Flödets adress" class="w-full rounded-lg border border-studio-line bg-studio-bg p-3 text-sm focus-visible:outline-2 focus-visible:outline-studio-brand">
+                            <x-admin.input name="name" value="{{ old('andrar') ? '' : old('name') }}" required maxlength="255" placeholder="Namn, t.ex. Lokalnytt" aria-label="Flödets namn" class="text-sm" />
+                            <x-admin.input name="url" type="url" value="{{ old('andrar') ? '' : old('url') }}" required maxlength="65535" placeholder="https://exempel.se/rss.xml" aria-label="Flödets adress" class="text-sm" />
                             <x-admin.button class="self-end">Lägg till</x-admin.button>
                         </form>
 
@@ -116,7 +116,7 @@
                                     @endphp
                                     <li @class(['flex flex-col gap-2 rounded-[10px] border border-studio-line p-[11px]', 'opacity-60' => ! $rssSource->is_active])>
                                         <div class="flex items-center gap-2.5">
-                                            <input form="feed-{{ $rssSource->id }}" name="name" value="{{ $isEditing ? old('name') : $rssSource->name }}" required maxlength="255" aria-label="Flödets namn" class="w-full min-w-0 rounded-lg border border-studio-line bg-studio-bg p-3 text-sm font-semibold focus-visible:outline-2 focus-visible:outline-studio-brand">
+                                            <x-admin.input form="feed-{{ $rssSource->id }}" name="name" value="{{ $isEditing ? old('name') : $rssSource->name }}" required maxlength="255" aria-label="Flödets namn" class="min-w-0 text-sm font-semibold" />
                                             {{-- A separate form sending the saved values: Enter in a text field saves instead of toggling, and unsaved text is never saved by the toggle. --}}
                                             <form method="POST" action="{{ route('admin.superblogs.rss-sources.update', [$superblog, $rssSource]) }}" class="flex shrink-0">
                                                 @csrf
@@ -140,7 +140,7 @@
                                             <input type="hidden" name="fran" value="byggaren">
                                             <input type="hidden" name="andrar" value="{{ $rssSource->id }}">
                                             <input type="hidden" name="is_active" value="{{ $rssSource->is_active ? 1 : 0 }}">
-                                            <input name="url" type="url" value="{{ $isEditing ? old('url') : $rssSource->url }}" required maxlength="65535" aria-label="Flödets adress" class="w-full rounded-lg border border-studio-line bg-studio-bg p-3 text-sm focus-visible:outline-2 focus-visible:outline-studio-brand">
+                                            <x-admin.input name="url" type="url" value="{{ $isEditing ? old('url') : $rssSource->url }}" required maxlength="65535" aria-label="Flödets adress" class="text-sm" />
                                             <div class="flex items-center justify-end gap-3">
                                                 @if ($rssSource->is_active)
                                                     {{-- form= ties this button to its own form, so Enter in a text field still saves. --}}

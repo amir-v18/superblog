@@ -31,8 +31,7 @@
 
             <div>
                 <label for="create-name" class="block text-sm font-medium"><span class="text-studio-muted">1</span> Namn</label>
-                <input id="create-name" name="name" value="{{ old('name') }}" required maxlength="255" autofocus data-domain-source
-                       class="mt-2 w-full rounded-lg border border-studio-line bg-studio-bg p-3 focus-visible:outline-2 focus-visible:outline-studio-brand">
+                <x-admin.input id="create-name" name="name" value="{{ old('name') }}" required maxlength="255" autofocus data-domain-source class="mt-2" />
             </div>
 
             <fieldset>
