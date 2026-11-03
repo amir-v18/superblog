@@ -245,6 +245,108 @@ class RssArticleWorkflowTest extends TestCase
         $this->assertSame('Original feed content', $item->fresh()->content);
     }
 
+    public function test_assigned_staff_can_publish_a_draft_directly_and_sets_published_at(): void
+    {
+        [$staff, $superblog, $source, $item] = $this->makeAssignedSourceAndItem();
+        $article = $this->createDraft($staff, $superblog, $source, $item);
+
+        $this->actingAs($staff)
+            ->post(route('admin.superblogs.articles.publish', [$superblog, $article]))
+            ->assertRedirect(route('admin.superblogs.articles.edit', [$superblog, $article]))
+            ->assertSessionHas('status', 'Article published.');
+
+        $article->refresh();
+        $this->assertSame('published', $article->status);
+        $this->assertNotNull($article->published_at);
+        $this->assertSame('Original feed content', $item->fresh()->content);
+    }
+
+    public function test_super_admin_can_publish_an_article(): void
+    {
+        $superAdmin = $this->makeUser(superAdmin: true);
+        $owner = $this->makeUser();
+        $superblog = $this->makeSuperblog($owner, 'admin-publish-blog');
+        $article = $superblog->articles()->create([
+            'title' => 'Admin draft',
+            'slug' => 'admin-draft',
+            'content' => 'Article body',
+            'source_type' => 'manual',
+        ]);
+
+        $this->actingAs($superAdmin)
+            ->post(route('admin.superblogs.articles.publish', [$superblog, $article]))
+            ->assertRedirect();
+
+        $this->assertSame('published', $article->fresh()->status);
+        $publishedAt = $article->fresh()->published_at;
+        $this->put(route('admin.superblogs.articles.update', [$superblog, $article]), [
+            'title' => 'Updated by super admin',
+            'slug' => 'updated-by-super-admin',
+            'content' => 'Updated article body',
+        ])->assertRedirect();
+
+        $this->assertSame('Updated by super admin', $article->fresh()->title);
+        $this->assertSame('published', $article->fresh()->status);
+        $this->assertTrue($publishedAt->equalTo($article->fresh()->published_at));
+    }
+
+    public function test_staff_cannot_publish_an_article_for_an_unassigned_superblog(): void
+    {
+        $owner = $this->makeUser();
+        $staff = $this->makeUser();
+        $superblog = $this->makeSuperblog($owner, 'unassigned-publish-blog');
+        $article = $superblog->articles()->create([
+            'title' => 'Private draft',
+            'slug' => 'private-draft',
+            'content' => 'Article body',
+            'source_type' => 'manual',
+        ]);
+
+        $this->actingAs($staff)
+            ->post(route('admin.superblogs.articles.publish', [$superblog, $article]))
+            ->assertForbidden();
+
+        $this->assertSame('draft', $article->fresh()->status);
+        $this->assertNull($article->fresh()->published_at);
+    }
+
+    public function test_published_article_remains_editable_without_changing_status_or_publication_time(): void
+    {
+        [$staff, $superblog, $source, $item] = $this->makeAssignedSourceAndItem();
+        $article = $this->createDraft($staff, $superblog, $source, $item);
+
+        $this->actingAs($staff)
+            ->post(route('admin.superblogs.articles.publish', [$superblog, $article]))
+            ->assertRedirect(route('admin.superblogs.articles.edit', [$superblog, $article]));
+        $publishedAt = $article->fresh()->published_at;
+
+        $this->get(route('admin.superblogs.articles.edit', [$superblog, $article]))
+            ->assertOk()
+            ->assertSee('Edit article')
+            ->assertSee('Save changes')
+            ->assertDontSee('Publish now');
+
+        $this->put(route('admin.superblogs.articles.update', [$superblog, $article]), [
+            'title' => 'Updated published title',
+            'slug' => 'updated-published-title',
+            'content' => 'Updated published body',
+            'excerpt' => 'Updated published excerpt',
+            'status' => 'draft',
+            'published_at' => null,
+        ])->assertRedirect(route('admin.superblogs.articles.edit', [$superblog, $article]));
+
+        $article->refresh();
+        $this->assertSame('Updated published title', $article->title);
+        $this->assertSame('Updated published body', $article->content);
+        $this->assertSame('published', $article->status);
+        $this->assertTrue($publishedAt->equalTo($article->published_at));
+
+        $this->post(route('admin.superblogs.articles.publish', [$superblog, $article]))
+            ->assertSessionHasErrors('status');
+        $this->assertSame('published', $article->fresh()->status);
+        $this->assertTrue($publishedAt->equalTo($article->fresh()->published_at));
+    }
+
     public function test_article_validation_rejects_missing_fields_and_duplicate_blog_slugs(): void
     {
         [$staff, $superblog, $source, $item] = $this->makeAssignedSourceAndItem();

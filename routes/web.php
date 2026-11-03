@@ -91,6 +91,7 @@ Route::middleware('auth')->group(function () {
             ->group(function () {
                 Route::get('{article}/edit', [ArticleController::class, 'edit'])->name('edit');
                 Route::put('{article}', [ArticleController::class, 'update'])->name('update');
+                Route::post('{article}/publish', [ArticleController::class, 'publish'])->name('publish');
             });
         Route::get('articles', [ArticleController::class, 'index'])->name('admin.articles.index');
         Route::put('superblogs/{superblog}/theme', SuperblogThemeController::class)->name('admin.superblogs.theme.update');

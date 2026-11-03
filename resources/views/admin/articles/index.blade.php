@@ -6,7 +6,7 @@
     <div class="flex flex-wrap items-end justify-between gap-4">
         <div>
             <h1 class="text-3xl font-semibold tracking-tight">Articles</h1>
-            <p class="mt-2 text-studio-muted">Draft articles from the Superblogs you can access.</p>
+            <p class="mt-2 text-studio-muted">Articles from the Superblogs you can access.</p>
         </div>
     </div>
 

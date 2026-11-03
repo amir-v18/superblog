@@ -88,23 +88,54 @@ class ArticleController extends Controller
         return view('admin.articles.edit', compact('superblog', 'article'));
     }
 
-    public function update(SaveArticleRequest $request, Superblog $superblog, Article $article): RedirectResponse
+    public function publish(Superblog $superblog, Article $article): RedirectResponse
     {
-        $article = $this->articleForSuperblog($superblog, $article);
+        Gate::authorize('update', $superblog);
 
-        try {
-            $article->update($request->validated());
-        } catch (UniqueConstraintViolationException) {
-            throw ValidationException::withMessages(['slug' => 'This slug is already used by another article in this Superblog.']);
-        }
+        DB::transaction(function () use ($superblog, $article): void {
+            $article = $this->articleForSuperblog($superblog, $article, lock: true);
 
-        return to_route('admin.superblogs.articles.edit', [$superblog, $article])->with('status', 'Draft article saved.');
+            if ($article->status !== 'draft') {
+                throw ValidationException::withMessages(['status' => 'Only draft articles can be published.']);
+            }
+
+            $article->update([
+                'status' => 'published',
+                'published_at' => now(),
+            ]);
+        });
+
+        return to_route('admin.superblogs.articles.edit', [$superblog, $article])
+            ->with('status', 'Article published.');
     }
 
-    private function articleForSuperblog(Superblog $superblog, Article $article): Article
+    public function update(SaveArticleRequest $request, Superblog $superblog, Article $article): RedirectResponse
     {
-        $article = $superblog->articles()->with('rssItem.rssSource')->whereKey($article->getKey())->firstOrFail();
-        abort_unless($article->status === 'draft', 404);
+        $article = DB::transaction(function () use ($request, $superblog, $article): Article {
+            $article = $this->articleForSuperblog($superblog, $article, lock: true);
+            abort_unless(in_array($article->status, ['draft', 'published'], true), 404);
+
+            try {
+                $article->update($request->validated());
+            } catch (UniqueConstraintViolationException) {
+                throw ValidationException::withMessages(['slug' => 'This slug is already used by another article in this Superblog.']);
+            }
+
+            return $article;
+        });
+
+        return to_route('admin.superblogs.articles.edit', [$superblog, $article])->with('status', 'Article saved.');
+    }
+
+    private function articleForSuperblog(Superblog $superblog, Article $article, bool $lock = false): Article
+    {
+        $query = $superblog->articles()->with('rssItem.rssSource')->whereKey($article->getKey());
+
+        if ($lock) {
+            $query->lockForUpdate();
+        }
+
+        $article = $query->firstOrFail();
 
         if ($article->rss_item_id !== null) {
             abort_unless((int) $article->rssItem?->rssSource?->superblog_id === (int) $superblog->getKey(), 404);

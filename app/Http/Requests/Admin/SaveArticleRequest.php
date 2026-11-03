@@ -18,7 +18,7 @@ class SaveArticleRequest extends FormRequest
         return $superblog instanceof Superblog
             && $article instanceof Article
             && (int) $article->superblog_id === (int) $superblog->getKey()
-            && $article->status === 'draft'
+            && in_array($article->status, ['draft', 'published'], true)
             && $this->user()->can('update', $superblog);
     }
 
