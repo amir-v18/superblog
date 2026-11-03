@@ -70,7 +70,7 @@
                         </x-admin.domain-input>
 
                         <div>
-                            <button type="submit" class="rounded-lg bg-studio-brand px-4 py-2 text-sm font-medium text-studio-side hover:bg-studio-brand-hover studio-focus-ring">Spara</button>
+                            <x-admin.button>Spara</x-admin.button>
                         </div>
                     </form>
                 @elseif ($tab === 'floden')
@@ -98,7 +98,7 @@
                             {{-- A failed card save also flashes name and url, so andrar keeps that text out of this form. --}}
                             <input name="name" value="{{ old('andrar') ? '' : old('name') }}" required maxlength="255" placeholder="Namn, t.ex. Lokalnytt" aria-label="Flödets namn" class="w-full rounded-lg border border-studio-line bg-studio-bg p-3 text-sm focus-visible:outline-2 focus-visible:outline-studio-brand">
                             <input name="url" type="url" value="{{ old('andrar') ? '' : old('url') }}" required maxlength="65535" placeholder="https://exempel.se/rss.xml" aria-label="Flödets adress" class="w-full rounded-lg border border-studio-line bg-studio-bg p-3 text-sm focus-visible:outline-2 focus-visible:outline-studio-brand">
-                            <button type="submit" class="self-end rounded-lg bg-studio-brand px-4 py-2 text-sm font-medium text-studio-side hover:bg-studio-brand-hover studio-focus-ring">Lägg till</button>
+                            <x-admin.button class="self-end">Lägg till</x-admin.button>
                         </form>
 
                         <h3 class="mt-[22px] mb-2 text-[13px] font-semibold tracking-[.04em]">Tillagda flöden <small class="ml-1 text-studio-muted">{{ $rssSources->count() }}</small></h3>
@@ -204,7 +204,7 @@
                         </fieldset>
 
                         <div>
-                            <button type="submit" class="rounded-lg bg-studio-brand px-4 py-2 text-sm font-medium text-studio-side hover:bg-studio-brand-hover studio-focus-ring">Spara</button>
+                            <x-admin.button>Spara</x-admin.button>
                         </div>
                     </form>
                 @endif
