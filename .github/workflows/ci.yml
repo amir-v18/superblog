@@ -49,7 +49,7 @@ jobs:
         run: npm run build
 
       - name: Run Laravel tests
-        run: vendor/bin/pest --display-warnings
+        run: composer test -- --display-warnings --display-deprecations
 
       - name: Check code formatting
         run: vendor/bin/pint --test
