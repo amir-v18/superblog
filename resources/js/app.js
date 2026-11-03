@@ -68,10 +68,16 @@ document.querySelectorAll('form').forEach((form) => {
 // Dator/Mobil in the builder preview, as in Figma: mobile is 390 px, desktop is drawn 1240 px wide and scaled to fit (never under 30 %).
 const previewPane = document.querySelector('[data-preview-pane]');
 const previewDevices = document.querySelector('[data-preview-devices]');
+const previewFrame = document.querySelector('[data-preview-frame]');
+const previewIframe = previewFrame?.querySelector('iframe');
+
+// fit: desktop is scaled down to the pane; mobile is always shown at full size.
+const DEVICES = {
+    desktop: { width: 1240, label: 'Dator', fit: true },
+    mobile: { width: 390, label: '390 px', fit: false },
+};
 
 if (previewPane && previewDevices) {
-    const frame = previewPane.querySelector('[data-preview-frame]');
-    const iframe = frame.querySelector('iframe');
     const label = document.querySelector('[data-preview-label]');
     const buttons = previewDevices.querySelectorAll('[data-preview-device]');
 
@@ -82,17 +88,17 @@ if (previewPane && previewDevices) {
     } catch {}
 
     const render = () => {
-        const base = device === 'mobile' ? 390 : 1240;
+        const current = DEVICES[device];
         // clientWidth includes the pane's 2 × 20 px padding, the same 40 px Figma subtracts.
-        const scale = device === 'mobile' ? 1 : Math.min(1, Math.max(0.3, (previewPane.clientWidth - 40) / base));
+        const scale = current.fit ? Math.min(1, Math.max(0.3, (previewPane.clientWidth - 40) / current.width)) : 1;
 
         // transform shrinks only the look, so the iframe keeps a 1240 px viewport; the frame gets the scaled size and clips the rest.
-        frame.style.width = `${base * scale}px`;
-        iframe.style.width = `${base}px`;
-        iframe.style.height = `${frame.clientHeight / scale}px`;
-        iframe.style.transform = `scale(${scale})`;
+        previewFrame.style.width = `${current.width * scale}px`;
+        previewIframe.style.width = `${current.width}px`;
+        previewIframe.style.height = `${previewFrame.clientHeight / scale}px`;
+        previewIframe.style.transform = `scale(${scale})`;
 
-        label.textContent = device === 'mobile' ? '390 px' : 'Dator';
+        label.textContent = current.label;
         buttons.forEach((button) => button.setAttribute('aria-pressed', String(button.dataset.previewDevice === device)));
     };
 
@@ -112,8 +118,6 @@ if (previewPane && previewDevices) {
 
 // Live preview without saving: the typed name and the picked theme are copied into the iframe (same origin).
 // Without JS the iframe simply shows the saved values.
-const previewIframe = document.querySelector('[data-preview-frame] iframe');
-
 if (previewIframe) {
     const nameInput = document.querySelector('[data-live-name-source]');
     const themeRadios = document.querySelectorAll('input[type="radio"][name="theme"]');
