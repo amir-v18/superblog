@@ -2,6 +2,7 @@
 
 namespace App\Support;
 
+use App\Models\Superblog;
 use Illuminate\Support\Facades\Log;
 
 /**
@@ -35,6 +36,15 @@ class Theme
         $name = is_array($theme) ? ($theme['name'] ?? null) : $theme;
 
         return in_array($name, self::NAMES, true) ? $name : null;
+    }
+
+    /**
+     * The magazine's saved theme name. Null means "no theme chosen": the admin shows that state
+     * (grey dot, no thumbnail, nothing preselected), so there is deliberately no fallback here.
+     */
+    public static function nameFor(Superblog $superblog): ?string
+    {
+        return self::name($superblog->settings['theme'] ?? null);
     }
 
     /**

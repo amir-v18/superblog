@@ -4,8 +4,8 @@
     $isLive = $superblog->status === 'published';
     $openRoute = $isLive ? 'admin.superblogs.show' : 'admin.superblogs.edit';
     $canEdit = auth()->user()->can('update', $superblog);
-    // settings is already loaded with the row; Theme::name() returns null for a missing or unknown theme.
-    $themeName = \App\Support\Theme::name($superblog->settings['theme'] ?? null);
+    // settings is already loaded with the row; Theme::nameFor() returns null for a missing or unknown theme.
+    $themeName = \App\Support\Theme::nameFor($superblog);
     // withMax returns a raw string, not a cast date. Swedish only here, since the app locale is English.
     $lastFetchedAt = $superblog->rss_sources_max_last_fetched_at;
     $lastFetched = $lastFetchedAt
@@ -18,7 +18,7 @@
 <div class="flex h-full flex-col">
     @if ($canEdit)
         {{-- Figma's .mag-card:hover: lifts 2px with a dark shadow. --}}
-        <a href="{{ route($openRoute, $superblog) }}" class="{{ $cardClasses }} flex-1 transition hover:-translate-y-0.5 hover:shadow-[0_10px_28px_#0006] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-studio-brand">
+        <a href="{{ route($openRoute, $superblog) }}" class="{{ $cardClasses }} flex-1 transition hover:-translate-y-0.5 hover:shadow-[0_10px_28px_#0006] studio-focus-ring">
     @else
         <div class="{{ $cardClasses }} flex-1">
     @endif
@@ -75,10 +75,10 @@
     <div class="mt-2 flex gap-4 text-sm">
         {{-- Reuses $canEdit: the same update check, without running the policy query again. --}}
         @if ($canEdit)
-            <a href="{{ route('admin.superblogs.rss-sources.index', $superblog) }}" class="underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-studio-brand" aria-label="RSS-flöden för {{ $superblog->name }}">RSS-flöden</a>
+            <a href="{{ route('admin.superblogs.rss-sources.index', $superblog) }}" class="underline underline-offset-4 studio-focus-ring" aria-label="RSS-flöden för {{ $superblog->name }}">RSS-flöden</a>
         @endif
         @can('delete', $superblog)
-            <a href="{{ route('admin.superblogs.delete', $superblog) }}" class="text-studio-bad underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-studio-brand" aria-label="Ta bort {{ $superblog->name }}">Ta bort</a>
+            <a href="{{ route('admin.superblogs.delete', $superblog) }}" class="text-studio-bad underline underline-offset-4 studio-focus-ring" aria-label="Ta bort {{ $superblog->name }}">Ta bort</a>
         @endcan
     </div>
 </div>

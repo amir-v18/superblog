@@ -5,6 +5,7 @@ use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\RssSourceController;
 use App\Http\Controllers\Admin\StaffController;
 use App\Http\Controllers\Admin\SuperblogController;
+use App\Http\Controllers\Admin\SuperblogPreviewController;
 use App\Http\Controllers\Admin\SuperblogThemeController;
 use App\Http\Controllers\Admin\TemplateController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
@@ -102,6 +103,7 @@ Route::middleware('auth')->group(function () {
         Route::get('articles', [ArticleController::class, 'index'])->name('admin.articles.index');
         Route::get('publicerade', [DashboardController::class, 'published'])->name('admin.superblogs.published');
         Route::put('superblogs/{superblog}/theme', SuperblogThemeController::class)->name('admin.superblogs.theme.update');
+        Route::get('superblogs/{superblog}/preview', SuperblogPreviewController::class)->name('admin.superblogs.preview');
         Route::get('superblogs/{superblog}/delete', [SuperblogController::class, 'confirmDeletion'])->name('admin.superblogs.delete');
         Route::resource('superblogs', SuperblogController::class)->except(['index', 'show'])->names('admin.superblogs');
         // Register after resource routes so /superblogs/create keeps resolving to the create form.

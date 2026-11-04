@@ -15,7 +15,7 @@
         // A route with {superblog} (builder, RSS pages) marks that magazine as active in the menu.
         $currentSuperblog = request()->route('superblog');
         $currentSuperblogId = $currentSuperblog instanceof App\Models\Superblog ? $currentSuperblog->getKey() : $currentSuperblog;
-        $navItemClasses = 'flex items-center gap-2.5 rounded-[7px] px-2.5 py-2.25 text-sm text-[#c9c8c2] hover:bg-white/7 aria-[current=page]:bg-white/12 aria-[current=page]:font-semibold aria-[current=page]:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-studio-brand';
+        $navItemClasses = 'flex items-center gap-2.5 rounded-[7px] px-2.5 py-2.25 text-sm text-[#c9c8c2] hover:bg-white/7 aria-[current=page]:bg-white/12 aria-[current=page]:font-semibold aria-[current=page]:text-white studio-focus-ring';
         $navLabelClasses = 'px-2.5 pt-4 pb-1.5 text-[10px] tracking-[.14em] text-[#7d7f87]';
     @endphp
 
@@ -42,7 +42,7 @@
                     <a href="{{ route('admin.superblogs.published') }}" @if (request()->routeIs('admin.superblogs.published')) aria-current="page" @endif class="{{ $navItemClasses }}">Publicerade</a>
                     @foreach ($sidebarPublished as $superblog)
                         @php
-                            $themeName = App\Support\Theme::name($superblog->settings['theme'] ?? null);
+                            $themeName = App\Support\Theme::nameFor($superblog);
                         @endphp
                         <a href="{{ route('admin.superblogs.show', $superblog) }}" @if ($superblog->getKey() == $currentSuperblogId) aria-current="page" @endif class="{{ $navItemClasses }} pl-6">
                             {{-- data-theme scopes the theme's CSS variables to the dot, so bg-primary is the magazine's own color. --}}
@@ -98,7 +98,7 @@
                 </div>
                 <form method="POST" action="{{ route('logout') }}">
                     @csrf
-                    <button type="submit" class="flex w-full items-center justify-center gap-2 rounded-lg border border-white/18 px-3 py-2.25 text-[13px] font-semibold text-studio-ink transition hover:border-studio-brand hover:bg-studio-brand/13 hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-studio-brand">
+                    <button type="submit" class="flex w-full items-center justify-center gap-2 rounded-lg border border-white/18 px-3 py-2.25 text-[13px] font-semibold text-studio-ink transition hover:border-studio-brand hover:bg-studio-brand/13 hover:text-white studio-focus-ring">
                         <span aria-hidden="true">⎋</span> Logga ut
                     </button>
                 </form>

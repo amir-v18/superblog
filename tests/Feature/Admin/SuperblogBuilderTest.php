@@ -2,15 +2,13 @@
 
 namespace Tests\Feature\Admin;
 
-use App\Models\Superblog;
-use App\Models\Template;
-use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Concerns\CreatesSuperblogs;
 use Tests\TestCase;
 
 class SuperblogBuilderTest extends TestCase
 {
-    use RefreshDatabase;
+    use CreatesSuperblogs, RefreshDatabase;
 
     public function test_builder_shows_the_basics_tab_by_default_and_the_appearance_tab_on_request(): void
     {
@@ -69,30 +67,33 @@ class SuperblogBuilderTest extends TestCase
         $this->assertDatabaseHas('superblogs', ['id' => $superblog->id, 'name' => 'Dagens Budbärare']);
     }
 
-    private function makeSuperblog(User $owner): Superblog
+    public function test_empty_magazine_hint_shows_real_counts_until_an_article_is_published(): void
     {
-        $template = Template::create([
-            'name' => 'News',
-            'slug' => 'news',
-            'layout' => 'layouts.public',
-            'is_active' => true,
-        ]);
+        $admin = $this->makeUser(approved: true, superAdmin: true);
+        $superblog = $this->makeSuperblog($admin);
 
-        return $owner->superblogs()->create([
-            'template_id' => $template->id,
-            'name' => 'Dagens Budbärare',
-            'slug' => 'dagens-budbarare',
-            'description' => 'Behålls',
-        ]);
-    }
+        $this->actingAs($admin)->get(route('admin.superblogs.edit', $superblog))
+            ->assertSee('Tomt magasin.')
+            ->assertSee('Lägg till ett RSS-flöde för att komma igång.')
+            ->assertDontSee('publicerade artiklar');
 
-    private function makeUser(bool $approved = false, bool $superAdmin = false): User
-    {
-        $user = User::factory()->create();
-        $user->approval_status = $approved ? 'approved' : 'pending';
-        $user->is_super_admin = $superAdmin;
-        $user->save();
+        $source = $superblog->rssSources()->create(['name' => 'Lokalnytt', 'url' => 'https://exempel.se/rss.xml', 'is_active' => true]);
+        $superblog->rssSources()->create(['name' => 'Sport', 'url' => 'https://exempel.se/sport.xml', 'is_active' => false]);
+        foreach (range(1, 3) as $n) {
+            $source->rssItems()->create(['title' => "Post $n", 'url' => "https://exempel.se/$n"]);
+        }
+        // A draft is not published, so the magazine still counts as empty.
+        $superblog->articles()->create(['title' => 'Utkast', 'slug' => 'utkast', 'content' => 'Text', 'source_type' => 'manual']);
 
-        return $user;
+        $this->get(route('admin.superblogs.edit', $superblog))
+            ->assertSee('Tomt magasin.')
+            ->assertSee('2 flöden · 3 hämtade poster · 0 publicerade artiklar.')
+            ->assertSee('Platshållarna fylls när artiklar publiceras.')
+            ->assertSee(route('admin.superblogs.edit', [$superblog, 'flik' => 'floden']), false);
+
+        $superblog->articles()->create(['title' => 'Klar', 'slug' => 'klar', 'content' => 'Text', 'source_type' => 'manual', 'status' => 'published', 'published_at' => now()]);
+
+        $this->get(route('admin.superblogs.edit', $superblog))
+            ->assertDontSee('Tomt magasin.');
     }
 }
