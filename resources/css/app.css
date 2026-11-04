@@ -20,8 +20,15 @@
     --color-studio-side: #17181c;
     --color-studio-ok: #5fd08c;
     --color-studio-bad: #ff8a6b;
+    --color-studio-brand-hover: #ff9068;
+    --color-studio-bad-bg: #43261c;
     --color-studio-pill: #343640;
     --color-studio-live: #1e3a2b;
+}
+
+/* Admin focus ring: shown on keyboard focus only (:focus-visible), never on a mouse click. Public pages use outline-primary instead. */
+@utility studio-focus-ring {
+    @apply focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-studio-brand;
 }
 
 /*

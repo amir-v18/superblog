@@ -4,6 +4,7 @@ use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\RssSourceController;
 use App\Http\Controllers\Admin\StaffController;
 use App\Http\Controllers\Admin\SuperblogController;
+use App\Http\Controllers\Admin\SuperblogPreviewController;
 use App\Http\Controllers\Admin\SuperblogThemeController;
 use App\Http\Controllers\Admin\TemplateController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
@@ -84,6 +85,7 @@ Route::middleware('auth')->group(function () {
                 Route::delete('{rssSource}/items/{rssItem}', [RssSourceController::class, 'destroyItem'])->name('items.destroy');
             });
         Route::put('superblogs/{superblog}/theme', SuperblogThemeController::class)->name('admin.superblogs.theme.update');
+        Route::get('superblogs/{superblog}/preview', SuperblogPreviewController::class)->name('admin.superblogs.preview');
         Route::get('superblogs/{superblog}/delete', [SuperblogController::class, 'confirmDeletion'])->name('admin.superblogs.delete');
         Route::resource('superblogs', SuperblogController::class)->except(['index', 'show'])->names('admin.superblogs');
     });
