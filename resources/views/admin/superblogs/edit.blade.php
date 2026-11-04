@@ -9,8 +9,8 @@
 @section('content')
     @php
         // Tabs are plain links with ?flik=..., so only the active tab is rendered and no JS is needed.
-        // A new tab (e.g. 4 Innehåll) only needs a line here and a branch below.
-        $tabs = ['grund' => '1 Grund', 'utseende' => '2 Utseende', 'floden' => '3 Flöden', 'innehall' => '4 Innehåll'];
+        // Each implemented step is a query-string tab with its own content branch below.
+        $tabs = ['grund' => '1 Grund', 'utseende' => '2 Utseende', 'floden' => '3 Flöden', 'innehall' => '4 Innehåll', 'skriv-artikel' => '5 Skriv artikel'];
         $tab = in_array(request()->query('flik'), array_keys($tabs), true) ? request()->query('flik') : 'grund';
         $tabClasses = 'block whitespace-nowrap border-b-2 border-transparent px-2 py-[13px] text-center text-xs font-semibold text-studio-muted hover:text-studio-ink aria-[current=page]:border-studio-brand aria-[current=page]:text-studio-brand focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-studio-brand';
         $selectedTemplate = old('template_id', $superblog->template_id);
@@ -31,12 +31,15 @@
     <div class="lg:grid lg:min-h-0 lg:flex-1 lg:grid-cols-[390px_minmax(0,1fr)]">
         <section aria-label="Inställningar" class="flex flex-col border-studio-line bg-studio-side lg:min-h-0 lg:border-r">
             <nav aria-label="Byggarens steg" class="border-b border-studio-line">
-                <ul class="flex overflow-x-auto [scrollbar-width:none]">
+                <ul class="flex overflow-x-auto scrollbar-none">
                     @foreach ($tabs as $key => $label)
                         <li class="flex-1">
                             <a href="{{ route('admin.superblogs.edit', [$superblog, 'flik' => $key]) }}" @if ($tab === $key) aria-current="page" @endif class="{{ $tabClasses }}">{{ $label }}</a>
                         </li>
                     @endforeach
+                    <li class="flex-1" title="Publicera implementeras i ett senare steg">
+                        <span aria-disabled="true" class="block cursor-not-allowed whitespace-nowrap px-2 py-3.25 text-center text-xs font-semibold text-studio-muted/50">6 Publicera</span>
+                    </li>
                 </ul>
             </nav>
 
@@ -100,7 +103,7 @@
                             <x-admin.button class="self-end">Lägg till</x-admin.button>
                         </form>
 
-                        <h3 class="mt-[22px] mb-2 text-[13px] font-semibold tracking-[.04em]">Tillagda flöden <small class="ml-1 text-studio-muted">{{ $rssSources->count() }}</small></h3>
+                        <h3 class="mt-5.5 mb-2 text-[13px] font-semibold tracking-[.04em]">Tillagda flöden <small class="ml-1 text-studio-muted">{{ $rssSources->count() }}</small></h3>
 
                         @if ($rssSources->isEmpty())
                             <div class="flex flex-col items-start gap-1.5 rounded-[10px] border border-dashed border-studio-line p-4 text-[13px] leading-[1.45]">
@@ -175,7 +178,7 @@
                                             <label class="flex items-start gap-3">
                                                 <input type="checkbox" name="selected_article_ids[]" value="{{ $article->id }}" @checked($article->is_selected_for_publication) class="mt-1 size-4 shrink-0 accent-studio-brand">
                                                 <span class="min-w-0">
-                                                    <a href="{{ route('admin.superblogs.articles.edit', [$superblog, $article]) }}" class="break-words font-medium underline decoration-studio-line underline-offset-4 hover:decoration-current">{{ $article->title }}</a>
+                                                    <a href="{{ route('admin.superblogs.articles.edit', [$superblog, $article]) }}" class="wrap-break-word font-medium underline decoration-studio-line underline-offset-4 hover:decoration-current">{{ $article->title }}</a>
                                                     <span class="mt-1 flex flex-wrap gap-x-2 text-xs text-studio-muted">
                                                         <span>{{ ucfirst($article->status) }}</span>
                                                         <span aria-hidden="true">·</span>
@@ -193,6 +196,13 @@
                                 @endif
                             </form>
                         @endif
+                    </section>
+                @elseif ($tab === 'skriv-artikel')
+                    <section aria-labelledby="write-article-heading">
+                        <h2 id="write-article-heading" class="text-lg font-semibold">Skriv artikel</h2>
+                        <p class="mt-1 text-sm text-studio-muted">Skapa en manuell artikel som sparas som utkast. Den publiceras inte automatiskt.</p>
+                        <a href="{{ route('admin.superblogs.articles.create', $superblog) }}" class="mt-4 inline-flex rounded-lg bg-studio-brand px-4 py-2 text-sm font-medium text-studio-side hover:bg-studio-brand-hover studio-focus-ring">Skapa artikel</a>
+                        <p class="mt-5 text-sm text-studio-muted">Redigera befintliga artiklar under <a href="{{ route('admin.superblogs.edit', [$superblog, 'flik' => 'innehall']) }}" class="font-medium text-studio-ink underline underline-offset-4 studio-focus-ring">Innehåll</a>. Där visas manuella artiklar tillsammans med RSS-artiklar.</p>
                     </section>
                 @else
                     @php
@@ -250,12 +260,12 @@
 
         {{-- Stacks below the builder on small screens and shares the remaining grid width on desktop. --}}
         <section aria-label="Förhandsvisning" class="flex h-[70vh] min-w-0 flex-col bg-[#121317] lg:h-auto lg:min-h-0">
-            <div class="flex flex-wrap items-center gap-3 border-b border-studio-line bg-studio-side px-4 py-[9px] text-xs text-studio-muted">
+            <div class="flex flex-wrap items-center gap-3 border-b border-studio-line bg-studio-side px-4 py-2.25 text-xs text-studio-muted">
                 <span aria-hidden="true" class="tracking-[2px] text-[#b5b3ab]">●●●</span>
                 <code class="min-w-0 flex-1 truncate rounded-md bg-studio-bg px-2.5 py-1 text-studio-ink">{{ $superblog->domain ? 'https://'.$superblog->domain : 'Ingen webbadress än' }}</code>
                 <span data-preview-label>Dator</span>
                 {{-- Hidden until app.js runs, so the controls only appear when switching the preview works. --}}
-                <div role="group" aria-label="Förhandsvisning" hidden data-preview-devices class="inline-flex shrink-0 rounded-lg bg-studio-panel p-[3px]">
+                <div role="group" aria-label="Förhandsvisning" hidden data-preview-devices class="inline-flex shrink-0 rounded-lg bg-studio-panel p-0.75">
                     <button type="button" data-preview-device="desktop" aria-pressed="true" class="rounded-md px-3.5 py-1.5 text-xs font-semibold text-studio-muted hover:text-studio-ink aria-pressed:bg-studio-brand aria-pressed:text-studio-side studio-focus-ring">Dator</button>
                     <button type="button" data-preview-device="mobile" aria-pressed="false" class="rounded-md px-3.5 py-1.5 text-xs font-semibold text-studio-muted hover:text-studio-ink aria-pressed:bg-studio-brand aria-pressed:text-studio-side studio-focus-ring">Mobil</button>
                 </div>
@@ -267,7 +277,7 @@
                         $feedCount = $rssSources->count();
                         $itemCount = $rssSources->sum('rss_items_count');
                     @endphp
-                    <div class="mx-auto mb-3.5 w-full max-w-[760px] shrink-0 rounded-[10px] border border-studio-line bg-studio-panel px-3.5 py-[11px] text-[13px] leading-[1.45] text-studio-muted">
+                    <div class="mx-auto mb-3.5 w-full max-w-190 shrink-0 rounded-[10px] border border-studio-line bg-studio-panel px-3.5 py-2.75 text-[13px] leading-[1.45] text-studio-muted">
                         <b class="text-studio-ink">Tomt magasin.</b>
                         @if ($feedCount === 0)
                             Lägg till ett RSS-flöde för att komma igång.

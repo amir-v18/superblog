@@ -15,11 +15,17 @@ class SaveArticleRequest extends FormRequest
         $superblog = $this->route('superblog');
         $article = $this->route('article');
 
-        return $superblog instanceof Superblog
-            && $article instanceof Article
+        if (! ($superblog instanceof Superblog) || ! $this->user()->can('update', $superblog)) {
+            return false;
+        }
+
+        if ($article === null) {
+            return $this->routeIs('admin.superblogs.articles.store');
+        }
+
+        return $article instanceof Article
             && (int) $article->superblog_id === (int) $superblog->getKey()
-            && in_array($article->status, ['draft', 'published'], true)
-            && $this->user()->can('update', $superblog);
+            && in_array($article->status, ['draft', 'published'], true);
     }
 
     protected function prepareForValidation(): void
@@ -35,6 +41,11 @@ class SaveArticleRequest extends FormRequest
     {
         $superblog = $this->route('superblog');
         $article = $this->route('article');
+        $uniqueSlug = Rule::unique('articles', 'slug')->where('superblog_id', $superblog->getKey());
+
+        if ($article instanceof Article) {
+            $uniqueSlug->ignore($article);
+        }
 
         return [
             'title' => ['required', 'string', 'max:255'],
@@ -43,7 +54,7 @@ class SaveArticleRequest extends FormRequest
                 'string',
                 'max:255',
                 'regex:/^[a-z0-9]+(?:-[a-z0-9]+)*$/',
-                Rule::unique('articles', 'slug')->where('superblog_id', $superblog->getKey())->ignore($article),
+                $uniqueSlug,
             ],
             'content' => ['required', 'string'],
             'excerpt' => ['nullable', 'string', function ($attribute, $value, $fail): void {

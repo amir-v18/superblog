@@ -1,14 +1,16 @@
 @extends('layouts.admin')
 
-@section('title', ($article->status === 'draft' ? 'Edit draft' : 'Edit article').' · '.$article->title)
+@section('title', ($isCreating ? 'New article' : ($article->status === 'draft' ? 'Edit draft' : 'Edit article')).($article->title ? ' · '.$article->title : ''))
 
 @section('content')
     @if ($article->rssItem)
         <a href="{{ route('admin.superblogs.rss-sources.items.index', [$superblog, $article->rssItem->rssSource]) }}" class="text-sm underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-studio-brand">Back to downloaded items</a>
+    @elseif ($isCreating)
+        <a href="{{ route('admin.superblogs.edit', [$superblog, 'flik' => 'skriv-artikel']) }}" class="text-sm underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-studio-brand">Back to Skriv artikel</a>
     @else
-        <a href="{{ route('admin.dashboard') }}" class="text-sm underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-studio-brand">Back to dashboard</a>
+        <a href="{{ route('admin.superblogs.edit', [$superblog, 'flik' => 'innehall']) }}" class="text-sm underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-studio-brand">Back to Innehåll</a>
     @endif
-    <h1 class="mt-4 text-3xl font-semibold tracking-tight">{{ $article->status === 'draft' ? 'Edit draft article' : 'Edit article' }}</h1>
+    <h1 class="mt-4 text-3xl font-semibold tracking-tight">{{ $isCreating ? 'New manual article' : ($article->status === 'draft' ? 'Edit draft article' : 'Edit article') }}</h1>
     <p class="mt-2 text-studio-muted">{{ $superblog->name }}</p>
 
     @if ($errors->any())
@@ -20,7 +22,7 @@
         @if ($article->status === 'published' && $article->published_at)
             <p class="mt-1 text-sm text-studio-muted">Published {{ $article->published_at->format('M j, Y H:i') }}</p>
         @endif
-        @if ($article->status === 'draft')
+        @if ($article->status === 'draft' && $article->exists)
             <div class="mt-4 flex flex-wrap items-center gap-3">
                 <form method="POST" action="{{ route('admin.superblogs.articles.publish', [$superblog, $article]) }}">
                     @csrf
@@ -42,9 +44,11 @@
     @endif
 
     @if (in_array($article->status, ['draft', 'published'], true))
-        <form method="POST" action="{{ route('admin.superblogs.articles.update', [$superblog, $article]) }}" class="mt-6 space-y-5 rounded-xl border border-studio-line bg-studio-panel p-6">
+        <form method="POST" action="{{ $isCreating ? route('admin.superblogs.articles.store', $superblog) : route('admin.superblogs.articles.update', [$superblog, $article]) }}" class="mt-6 space-y-5 rounded-xl border border-studio-line bg-studio-panel p-6">
             @csrf
-            @method('PUT')
+            @unless ($isCreating)
+                @method('PUT')
+            @endunless
             <div>
                 <label for="title" class="block text-sm font-medium">Title</label>
                 <input id="title" name="title" value="{{ old('title', $article->title) }}" required maxlength="255" class="mt-2 w-full rounded-lg border border-studio-line bg-studio-bg p-3 focus-visible:outline-2 focus-visible:outline-studio-brand">

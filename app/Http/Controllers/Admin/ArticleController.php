@@ -47,6 +47,46 @@ class ArticleController extends Controller
         return view('admin.articles.index', compact('articles', 'superblog'));
     }
 
+    public function create(Superblog $superblog): View
+    {
+        Gate::authorize('update', $superblog);
+
+        $article = new Article([
+            'status' => 'draft',
+            'source_type' => 'manual',
+            'is_selected_for_publication' => false,
+        ]);
+
+        return view('admin.articles.edit', [
+            'superblog' => $superblog,
+            'article' => $article,
+            'isCreating' => true,
+        ]);
+    }
+
+    public function store(SaveArticleRequest $request, Superblog $superblog): RedirectResponse
+    {
+        try {
+            $article = DB::transaction(function () use ($request, $superblog): Article {
+                $lockedSuperblog = Superblog::query()->lockForUpdate()->findOrFail($superblog->getKey());
+
+                return $lockedSuperblog->articles()->create([
+                    ...$request->validated(),
+                    'rss_item_id' => null,
+                    'source_type' => 'manual',
+                    'status' => 'draft',
+                    'is_selected_for_publication' => false,
+                    'published_at' => null,
+                ]);
+            });
+        } catch (UniqueConstraintViolationException) {
+            throw ValidationException::withMessages(['slug' => 'This slug is already used by another article in this Superblog.']);
+        }
+
+        return to_route('admin.superblogs.articles.edit', [$superblog, $article])
+            ->with('status', 'Draft article created.');
+    }
+
     public function updateSelection(SaveArticleSelectionRequest $request, Superblog $superblog): RedirectResponse
     {
         $visibleIds = array_map('intval', $request->validated('visible_article_ids'));
@@ -133,7 +173,11 @@ class ArticleController extends Controller
         Gate::authorize('update', $superblog);
         $article = $this->articleForSuperblog($superblog, $article);
 
-        return view('admin.articles.edit', compact('superblog', 'article'));
+        return view('admin.articles.edit', [
+            'superblog' => $superblog,
+            'article' => $article,
+            'isCreating' => false,
+        ]);
     }
 
     public function publish(Superblog $superblog, Article $article): RedirectResponse

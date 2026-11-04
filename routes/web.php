@@ -96,6 +96,8 @@ Route::middleware('auth')->group(function () {
             ->scopeBindings()
             ->group(function () {
                 Route::get('/', [ArticleController::class, 'superblogIndex'])->name('index');
+                Route::get('create', [ArticleController::class, 'create'])->name('create');
+                Route::post('/', [ArticleController::class, 'store'])->name('store');
                 Route::put('selection', [ArticleController::class, 'updateSelection'])->name('selection.update');
                 Route::get('{article}/edit', [ArticleController::class, 'edit'])->name('edit');
                 Route::put('{article}', [ArticleController::class, 'update'])->name('update');
