@@ -59,7 +59,7 @@
                 @endforeach
 
                 @can('create', App\Models\Superblog::class)
-                    {{-- Opens the modal on pages that include it; elsewhere, or without JS, it is a normal link. --}}
+                    {{-- Opens the modal at the end of this layout; without JS it is a normal link to the fallback page. --}}
                     <a href="{{ route('admin.superblogs.create') }}" data-open-dialog="create-superblog"
                        @if (request()->routeIs('admin.superblogs.create')) aria-current="page" @endif
                        class="{{ $navItemClasses }} mt-2 justify-center border border-dashed border-[#5b5d66] text-[#e9e7e1]">
@@ -100,5 +100,10 @@
         @endif
         @yield('content')
     </main>
+
+    {{-- On every admin page, so the sidebar link opens the same modal everywhere instead of the fallback page. --}}
+    @can('create', App\Models\Superblog::class)
+        <x-admin.create-superblog-modal />
+    @endcan
 </body>
 </html>

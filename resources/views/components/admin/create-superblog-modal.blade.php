@@ -1,8 +1,10 @@
 @php
-    // The hidden _form field tells this modal apart from other forms, so only its own errors reopen it.
+    // The hidden _form field tells this modal apart from the page's own forms. Old input is shared by every
+    // form on the page, so errors and typed values are only used here when this modal was the one submitted.
     $reopen = $errors->any() && old('_form') === 'create-superblog';
     // With a single active template there is nothing to choose, so it starts selected.
-    $selectedTemplate = old('template_id', $templates->count() === 1 ? $templates->first()->id : null);
+    $defaultTemplate = $templates->count() === 1 ? $templates->first()->id : null;
+    $selectedTemplate = $reopen ? old('template_id', $defaultTemplate) : $defaultTemplate;
 @endphp
 
 <dialog id="create-superblog" aria-labelledby="create-superblog-heading" @if ($reopen) data-open-on-load @endif
@@ -31,7 +33,7 @@
 
             <div>
                 <label for="create-name" class="block text-sm font-medium"><span class="text-studio-muted">1</span> Namn</label>
-                <x-admin.input id="create-name" name="name" value="{{ old('name') }}" required maxlength="255" autofocus data-domain-source class="mt-2" />
+                <x-admin.input id="create-name" name="name" value="{{ $reopen ? old('name') : '' }}" required maxlength="255" autofocus data-domain-source class="mt-2" />
             </div>
 
             <fieldset>
@@ -39,7 +41,7 @@
                 @include('admin.superblogs._template-options')
             </fieldset>
 
-            <x-admin.domain-input id="create-domain" :value="old('domain')" help="Föreslås utifrån namnet. Skriv bara domänen, utan https://." data-domain-target>
+            <x-admin.domain-input id="create-domain" :value="$reopen ? old('domain') : null" help="Föreslås utifrån namnet. Skriv bara domänen, utan https://." data-domain-target>
                 <span class="text-studio-muted">3</span> Webbadress (valfri)
             </x-admin.domain-input>
 

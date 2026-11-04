@@ -62,8 +62,4 @@
             <div class="mt-6">{{ $drafts->links() }}</div>
         @endif
     </section>
-
-    @can('create', App\Models\Superblog::class)
-        @include('admin.superblogs._create-modal')
-    @endcan
 @endsection

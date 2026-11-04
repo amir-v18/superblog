@@ -106,8 +106,9 @@ class DashboardTest extends TestCase
             ->assertSee('h-2 bg-studio-line', false);
 
         // Only the valid theme gets a themed strip; the other two fall back to the neutral one.
-        // Counted from the card sections only, since the sidebar's theme dots also use data-theme.
-        $cards = Str::after($response->getContent(), 'id="published-heading"');
+        // Counted from the card sections only: the sidebar's theme dots (before) and the layout's
+        // create modal (after </main>) are left out.
+        $cards = Str::between($response->getContent(), 'id="published-heading"', '</main>');
         $this->assertSame(1, substr_count($cards, 'data-theme='));
     }
 

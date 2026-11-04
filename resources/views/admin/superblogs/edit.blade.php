@@ -13,7 +13,11 @@
         $tabs = ['grund' => '1 Grund', 'utseende' => '2 Utseende', 'floden' => '3 Flöden'];
         $tab = in_array(request()->query('flik'), array_keys($tabs), true) ? request()->query('flik') : 'grund';
         $tabClasses = 'block whitespace-nowrap border-b-2 border-transparent px-2 py-[13px] text-center text-xs font-semibold text-studio-muted hover:text-studio-ink aria-[current=page]:border-studio-brand aria-[current=page]:text-studio-brand focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-studio-brand';
-        $selectedTemplate = old('template_id', $superblog->template_id);
+        // The layout's "Nytt magasin" modal posts name, domain and template_id too, and old input is shared by
+        // every form on the page. After a failed modal submit, its errors and values belong to the modal only.
+        $fromCreateModal = old('_form') === 'create-superblog';
+        $old = fn (string $key, mixed $default = null): mixed => $fromCreateModal ? $default : old($key, $default);
+        $selectedTemplate = $old('template_id', $superblog->template_id);
     @endphp
 
     <header class="flex flex-wrap items-center gap-4 border-b border-studio-line bg-studio-side px-5 py-3">
@@ -42,7 +46,7 @@
             </nav>
 
             <div class="flex flex-col gap-3.5 p-5 lg:flex-1 lg:overflow-y-auto">
-                @if ($errors->any())
+                @if ($errors->any() && ! $fromCreateModal)
                     <x-admin.errors />
                 @endif
 
@@ -51,13 +55,13 @@
                         @csrf
                         @method('PUT')
                         {{-- Without a slug, SaveSuperblogRequest regenerates it from the name, so renaming would change it. --}}
-                        <input type="hidden" name="slug" value="{{ old('slug', $superblog->slug) }}">
+                        <input type="hidden" name="slug" value="{{ $old('slug', $superblog->slug) }}">
 
                         <h2 class="text-lg font-semibold">Grunduppgifter</h2>
 
                         <div>
                             <label for="name" class="block text-sm font-medium">Namn</label>
-                            <x-admin.input id="name" name="name" data-live-name-source value="{{ old('name', $superblog->name) }}" required maxlength="255" class="mt-2" />
+                            <x-admin.input id="name" name="name" data-live-name-source value="{{ $old('name', $superblog->name) }}" required maxlength="255" class="mt-2" />
                         </div>
 
                         <fieldset>
@@ -65,7 +69,7 @@
                             @include('admin.superblogs._template-options')
                         </fieldset>
 
-                        <x-admin.domain-input id="domain" :value="old('domain', $superblog->domain)" help="Skriv bara domänen, utan https://.">
+                        <x-admin.domain-input id="domain" :value="$old('domain', $superblog->domain)" help="Skriv bara domänen, utan https://.">
                             Webbadress (valfri)
                         </x-admin.domain-input>
 
@@ -96,8 +100,8 @@
                             <input type="hidden" name="is_active" value="1">
                             <h3 class="text-[13px] font-semibold">Lägg till flöde</h3>
                             {{-- A failed card save also flashes name and url, so andrar keeps that text out of this form. --}}
-                            <x-admin.input name="name" value="{{ old('andrar') ? '' : old('name') }}" required maxlength="255" placeholder="Namn, t.ex. Lokalnytt" aria-label="Flödets namn" class="text-sm" />
-                            <x-admin.input name="url" type="url" value="{{ old('andrar') ? '' : old('url') }}" required maxlength="65535" placeholder="https://exempel.se/rss.xml" aria-label="Flödets adress" class="text-sm" />
+                            <x-admin.input name="name" value="{{ old('andrar') ? '' : $old('name') }}" required maxlength="255" placeholder="Namn, t.ex. Lokalnytt" aria-label="Flödets namn" class="text-sm" />
+                            <x-admin.input name="url" type="url" value="{{ old('andrar') ? '' : $old('url') }}" required maxlength="65535" placeholder="https://exempel.se/rss.xml" aria-label="Flödets adress" class="text-sm" />
                             <x-admin.button class="self-end">Lägg till</x-admin.button>
                         </form>
 
