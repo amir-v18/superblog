@@ -53,6 +53,18 @@ class SuperblogController extends Controller
         ]);
     }
 
+    public function show(Superblog $superblog): View
+    {
+        Gate::authorize('view', $superblog);
+
+        $superblog->loadCount([
+            'articles',
+            'articles as published_articles_count' => fn ($query) => $query->where('status', 'published'),
+        ]);
+
+        return view('admin.superblogs.show', compact('superblog'));
+    }
+
     public function update(SaveSuperblogRequest $request, Superblog $superblog): RedirectResponse
     {
         try {

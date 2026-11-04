@@ -18,7 +18,12 @@
         <x-admin.status-pill :live="$superblog->status === 'published'" />
     </div>
 
-    <nav aria-label="Byggarens steg" class="mt-8 border-b border-studio-line">
+    @if ($superblog->status === 'published')
+        @include('admin.superblogs._section-tabs', ['activeTab' => 'settings'])
+        <h2 class="mt-6 text-sm font-semibold uppercase tracking-wide text-studio-muted">Inställningar</h2>
+    @endif
+
+    <nav aria-label="{{ $superblog->status === 'published' ? 'Inställningar' : 'Byggarens steg' }}" class="{{ $superblog->status === 'published' ? 'mt-3' : 'mt-8' }} border-b border-studio-line">
         <ul class="flex flex-wrap gap-6">
             <li>
                 <a href="{{ route('admin.superblogs.edit', [$superblog, 'flik' => 'grund']) }}" @if ($tab === 'grund') aria-current="page" @endif class="{{ $tabClasses }}">1 Grund</a>

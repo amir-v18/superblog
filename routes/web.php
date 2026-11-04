@@ -9,6 +9,7 @@ use App\Http\Controllers\Admin\SuperblogThemeController;
 use App\Http\Controllers\Admin\TemplateController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Auth\GoogleAuthenticationController;
+use App\Http\Controllers\PublicArticleController;
 use App\Http\Middleware\AllowPasswordLoginInDevelopment;
 use App\Support\DemoArticle;
 use App\Support\Theme;
@@ -18,6 +19,10 @@ use Illuminate\Support\Facades\Route;
 Route::get('/', function () {
     return view('welcome');
 });
+
+Route::get('/superblogs/{superblog:slug}/articles/{article:slug}', [PublicArticleController::class, 'show'])
+    ->scopeBindings()
+    ->name('public.superblogs.articles.show');
 
 // Demo page for previewing the public layout; only registered locally so it is never public or indexed.
 if (app()->environment('local')) {
@@ -89,14 +94,18 @@ Route::middleware('auth')->group(function () {
             ->name('admin.superblogs.articles.')
             ->scopeBindings()
             ->group(function () {
+                Route::get('/', [ArticleController::class, 'superblogIndex'])->name('index');
                 Route::get('{article}/edit', [ArticleController::class, 'edit'])->name('edit');
                 Route::put('{article}', [ArticleController::class, 'update'])->name('update');
                 Route::post('{article}/publish', [ArticleController::class, 'publish'])->name('publish');
             });
         Route::get('articles', [ArticleController::class, 'index'])->name('admin.articles.index');
+        Route::get('publicerade', [DashboardController::class, 'published'])->name('admin.superblogs.published');
         Route::put('superblogs/{superblog}/theme', SuperblogThemeController::class)->name('admin.superblogs.theme.update');
         Route::get('superblogs/{superblog}/delete', [SuperblogController::class, 'confirmDeletion'])->name('admin.superblogs.delete');
         Route::resource('superblogs', SuperblogController::class)->except(['index', 'show'])->names('admin.superblogs');
+        // Register after resource routes so /superblogs/create keeps resolving to the create form.
+        Route::get('superblogs/{superblog}', [SuperblogController::class, 'show'])->name('admin.superblogs.show');
     });
     Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])->name('logout');
 });

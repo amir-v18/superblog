@@ -33,6 +33,19 @@ class ArticleController extends Controller
         return view('admin.articles.index', compact('articles'));
     }
 
+    public function superblogIndex(Superblog $superblog): View
+    {
+        Gate::authorize('view', $superblog);
+
+        $articles = $superblog->articles()
+            ->with('superblog')
+            ->orderByDesc('updated_at')
+            ->orderByDesc('id')
+            ->paginate(20);
+
+        return view('admin.articles.index', compact('articles', 'superblog'));
+    }
+
     public function createFromRssItem(Superblog $superblog, RssSource $rssSource, RssItem $rssItem): RedirectResponse
     {
         Gate::authorize('update', $superblog);

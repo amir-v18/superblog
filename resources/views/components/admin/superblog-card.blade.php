@@ -2,6 +2,7 @@
 
 @php
     $isLive = $superblog->status === 'published';
+    $openRoute = $isLive ? 'admin.superblogs.show' : 'admin.superblogs.edit';
     $canEdit = auth()->user()->can('update', $superblog);
     // settings is already loaded with the row; Theme::name() returns null for a missing or unknown theme.
     $themeName = \App\Support\Theme::name($superblog->settings['theme'] ?? null);
@@ -17,7 +18,7 @@
 <div class="flex h-full flex-col">
     @if ($canEdit)
         {{-- Figma's .mag-card:hover: lifts 2px with a dark shadow. --}}
-        <a href="{{ route('admin.superblogs.edit', $superblog) }}" class="{{ $cardClasses }} flex-1 transition hover:-translate-y-0.5 hover:shadow-[0_10px_28px_#0006] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-studio-brand">
+        <a href="{{ route($openRoute, $superblog) }}" class="{{ $cardClasses }} flex-1 transition hover:-translate-y-0.5 hover:shadow-[0_10px_28px_#0006] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-studio-brand">
     @else
         <div class="{{ $cardClasses }} flex-1">
     @endif

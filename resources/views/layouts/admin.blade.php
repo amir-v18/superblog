@@ -37,17 +37,14 @@
                 <a href="{{ route('admin.dashboard') }}" @if (request()->routeIs('admin.dashboard')) aria-current="page" @endif class="{{ $navItemClasses }}">Översikt</a>
                 <a href="{{ route('admin.articles.index') }}" @if (request()->routeIs('admin.articles.*')) aria-current="page" @endif class="{{ $navItemClasses }}">Artiklar</a>
 
-                {{-- accessibleTo() follows the same rule as the update policy, so every listed magazine may be opened. --}}
-                @foreach (['PUBLICERADE' => $sidebarPublished, 'UNDER UPPBYGGNAD' => $sidebarDrafts] as $label => $superblogs)
-                    <p class="{{ $navLabelClasses }}">{{ $label }}</p>
-                    @if ($label === 'PUBLICERADE' && $superblogs->isEmpty())
-                        <small class="px-2.5 text-sm text-[#999]">Inga ännu</small>
-                    @endif
-                    @foreach ($superblogs as $superblog)
+                {{-- The section only appears when this user has live Superblogs to open. --}}
+                @if ($sidebarPublished->isNotEmpty())
+                    <a href="{{ route('admin.superblogs.published') }}" @if (request()->routeIs('admin.superblogs.published')) aria-current="page" @endif class="{{ $navItemClasses }}">Publicerade</a>
+                    @foreach ($sidebarPublished as $superblog)
                         @php
                             $themeName = App\Support\Theme::name($superblog->settings['theme'] ?? null);
                         @endphp
-                        <a href="{{ route('admin.superblogs.edit', $superblog) }}" @if ($superblog->getKey() == $currentSuperblogId) aria-current="page" @endif class="{{ $navItemClasses }}">
+                        <a href="{{ route('admin.superblogs.show', $superblog) }}" @if ($superblog->getKey() == $currentSuperblogId) aria-current="page" @endif class="{{ $navItemClasses }} pl-6">
                             {{-- data-theme scopes the theme's CSS variables to the dot, so bg-primary is the magazine's own color. --}}
                             @if ($themeName)
                                 <i data-theme="{{ $themeName }}" aria-hidden="true" class="size-2.5 shrink-0 rounded-[3px] bg-primary"></i>
@@ -57,6 +54,21 @@
                             <span class="truncate">{{ $superblog->name }}</span>
                         </a>
                     @endforeach
+                @endif
+
+                <p class="{{ $navLabelClasses }}">UNDER UPPBYGGNAD</p>
+                @foreach ($sidebarDrafts as $superblog)
+                    @php
+                        $themeName = App\Support\Theme::name($superblog->settings['theme'] ?? null);
+                    @endphp
+                    <a href="{{ route('admin.superblogs.edit', $superblog) }}" @if ($superblog->getKey() == $currentSuperblogId) aria-current="page" @endif class="{{ $navItemClasses }}">
+                        @if ($themeName)
+                            <i data-theme="{{ $themeName }}" aria-hidden="true" class="size-2.5 shrink-0 rounded-[3px] bg-primary"></i>
+                        @else
+                            <i aria-hidden="true" class="size-2.5 shrink-0 rounded-[3px] bg-[#5b5d66]"></i>
+                        @endif
+                        <span class="truncate">{{ $superblog->name }}</span>
+                    </a>
                 @endforeach
 
                 @can('create', App\Models\Superblog::class)
