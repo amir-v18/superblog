@@ -10,7 +10,7 @@
     --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
         'Segoe UI Symbol', 'Noto Color Emoji';
 
-    /* Admin studio colors from the Figma design (.studio). Fixed values: they never follow a magazine theme. */
+    /* Admin studio colors. Fixed values: they never follow a magazine theme. */
     --color-studio-bg: #1d1e24;
     --color-studio-panel: #24262d;
     --color-studio-line: #363842;
@@ -45,7 +45,7 @@
     --deep: #143a2c;
     --line: #dedfd7;
     --pale: #ecf0e8;
-    /* Figma's palette Skog (template Modern). */
+    /* Accent, so far only used by the Modern template's thumbnail in the create modal. */
     --accent: #589168;
     --display: 'Newsreader Variable', ui-serif, Georgia, serif;
     --body: 'DM Sans Variable', ui-sans-serif, system-ui, sans-serif;
@@ -60,7 +60,7 @@
     --deep: #0a1030;
     --line: #dbe1ee;
     --pale: #e8edfa;
-    /* Figma's palette Teknik (template Tech). */
+    /* Accent, so far only used by the Tech template's thumbnail in the create modal. */
     --accent: #19c3ff;
     --display: 'Space Grotesk Variable', ui-sans-serif, system-ui, sans-serif;
     --body: 'DM Sans Variable', ui-sans-serif, system-ui, sans-serif;

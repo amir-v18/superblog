@@ -5,8 +5,8 @@
     $themeName = \App\Support\Theme::name($theme);
 
     // Complete class strings per variant, since Tailwind only generates classes it finds written out in full.
-    // card: the magazine card on the dashboard. template: Figma's template card in the create modal
-    // (96 px in total: the 8 px strip plus an 88 px area, so the strip sits on top of Figma's 18 px top padding).
+    // card: the magazine card on the dashboard. template: the smaller card in the create modal, 96 px in total:
+    // the 8 px strip plus an 88 px area, so the strip takes the first 8 px of an 18 px top padding.
     $classes = match (true) {
         $variant === 'template' && $themeName !== null => [
             'strip' => 'h-2 bg-primary',

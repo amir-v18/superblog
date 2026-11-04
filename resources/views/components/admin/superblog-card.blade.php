@@ -16,7 +16,6 @@
 
 <div class="flex h-full flex-col">
     @if ($canEdit)
-        {{-- Figma's .mag-card:hover: lifts 2px with a dark shadow. --}}
         <a href="{{ route('admin.superblogs.edit', $superblog) }}" class="{{ $cardClasses }} flex-1 transition hover:-translate-y-0.5 hover:shadow-[0_10px_28px_#0006] studio-focus-ring">
     @else
         <div class="{{ $cardClasses }} flex-1">
@@ -24,13 +23,12 @@
         {{-- Decorative thumbnail in the saved theme, or the grey one until a valid theme is chosen. --}}
         <x-admin.theme-thumb :theme="$themeName" :name="$superblog->name" />
 
-        {{-- Figma's .mag-info: padding 14/16/16, 6px between rows. --}}
         <div class="flex flex-col gap-1.5 px-4 pt-3.5 pb-4">
             <div class="flex items-center justify-between gap-3">
                 <h3 class="text-[17px] font-semibold">{{ $superblog->name }}</h3>
                 <x-admin.status-pill :live="$isLive" class="shrink-0" />
             </div>
-            {{-- Figma: live cards show where they are published, drafts show which template they are built on. --}}
+            {{-- Live cards show where they are published, drafts show which template they are built on. --}}
             <p class="break-all text-xs text-studio-muted">{{ $isLive ? ($superblog->domain ?: $superblog->slug) : $superblog->template?->name }}</p>
 
             <div class="mt-1.5 flex flex-wrap gap-x-3.5 gap-y-1 text-xs text-studio-muted">

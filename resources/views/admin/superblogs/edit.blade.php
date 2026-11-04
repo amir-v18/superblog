@@ -3,7 +3,7 @@
 
 @section('title', $superblog->name)
 
-{{-- Full width and, from lg, exactly the window height, so the panel and the preview scroll separately as in Figma. --}}
+{{-- Full width and, from lg, exactly the window height, so the panel and the preview scroll separately. --}}
 @section('main-class', 'flex w-full flex-col lg:h-screen')
 
 @section('content')
@@ -96,7 +96,7 @@
                             @csrf
                             {{-- fran brings the user back to this tab; without it the controller goes to the RSS list. --}}
                             <input type="hidden" name="fran" value="byggaren">
-                            {{-- The backend requires is_active, and Figma adds new feeds as active. --}}
+                            {{-- The backend requires is_active, so new feeds are added as active. --}}
                             <input type="hidden" name="is_active" value="1">
                             <h3 class="text-[13px] font-semibold">Lägg till flöde</h3>
                             {{-- A failed card save also flashes name and url, so andrar keeps that text out of this form. --}}
@@ -223,7 +223,7 @@
                 <span data-preview-label>Dator</span>
             </div>
             <div data-preview-pane class="flex flex-1 flex-col overflow-auto p-5">
-                {{-- Figma's empty hint. Here in the builder, not in the iframe, so it can never end up on the public site. --}}
+                {{-- The empty hint lives in the builder, not in the iframe, so it can never end up on the public site. --}}
                 @if ($publishedArticlesCount === 0)
                     @php
                         $feedCount = $rssSources->count();

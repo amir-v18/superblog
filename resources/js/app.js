@@ -65,7 +65,7 @@ document.querySelectorAll('form').forEach((form) => {
     });
 });
 
-// Dator/Mobil in the builder preview, as in Figma: mobile is 390 px, desktop is drawn 1240 px wide and scaled to fit (never under 30 %).
+// Dator/Mobil in the builder preview: mobile is 390 px, desktop is drawn 1240 px wide and scaled to fit (never under 30 %).
 const previewPane = document.querySelector('[data-preview-pane]');
 const previewDevices = document.querySelector('[data-preview-devices]');
 const previewFrame = document.querySelector('[data-preview-frame]');
@@ -89,7 +89,7 @@ if (previewPane && previewDevices) {
 
     const render = () => {
         const current = DEVICES[device];
-        // clientWidth includes the pane's 2 × 20 px padding, the same 40 px Figma subtracts.
+        // clientWidth includes the pane's 2 × 20 px padding, so 40 px is subtracted.
         const scale = current.fit ? Math.min(1, Math.max(0.3, (previewPane.clientWidth - 40) / current.width)) : 1;
 
         // transform shrinks only the look, so the iframe keeps a 1240 px viewport; the frame gets the scaled size and clips the rest.

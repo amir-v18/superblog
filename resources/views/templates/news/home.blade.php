@@ -4,13 +4,13 @@
     $themeName = Theme::name($theme);
     $themeStyle = Theme::cssVariables($theme);
     $sidePadding = 'px-10 max-[760px]:px-[18px]';
-    // Figma's placeholder image (ph-img), used by the hero and passed to x-placeholder-card. It stands in for articles that do not exist yet; no titles or texts are made up.
+    // Striped placeholder image, used by the hero and passed to x-placeholder-card. It stands in for articles that do not exist yet; no titles or texts are made up.
     $stripes = 'grid place-items-center bg-ink/10 [background-image:repeating-linear-gradient(45deg,transparent_0_9px,color-mix(in_srgb,var(--ink)_6%,transparent)_9px_18px)]';
     $stripeLabel = 'text-[11px] font-semibold tracking-[.12em] text-ink/50 uppercase';
     $eyebrow = 'text-[10px] font-bold tracking-[.16em] text-primary uppercase';
 @endphp
 <!DOCTYPE html>
-{{-- Front page after Figma's SiteModern. Its own document, because layouts.public has a generic header that is not in Figma. --}}
+{{-- Front page of the magazine. Its own document, because layouts.public has a generic header that does not belong here. --}}
 <html lang="sv" @if ($themeName) data-theme="{{ $themeName }}" @endif @if ($themeStyle) style="{{ $themeStyle }}" @endif>
 <head>
     <meta charset="utf-8">
@@ -21,9 +21,9 @@
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
 <body class="flex min-h-screen flex-col bg-paper font-body leading-[1.4] text-ink antialiased">
-    {{-- Hidden by decision: section menu, "Logga in"/"Prenumerera", tagline, ads and newsletter. --}}
+    {{-- Left out for now: section menu, "Logga in"/"Prenumerera", tagline, ads and newsletter. --}}
     <header>
-        {{-- Figma hides the date below 760 px, and the login links are not shown, so the whole bar goes away there. --}}
+        {{-- The bar only holds the date, which is left out below 760 px, so the whole bar goes away there. --}}
         <div class="flex justify-between border-b border-ink/14 py-2.5 text-[11px] tracking-[.1em] uppercase max-[760px]:hidden {{ $sidePadding }}">
             <time datetime="{{ now()->toDateString() }}">{{ now()->locale('sv')->isoFormat('dddd D MMMM YYYY') }}</time>
         </div>
@@ -31,7 +31,7 @@
         <h1 class="pt-[26px] pb-[22px] text-center font-display text-[64px] leading-none font-semibold tracking-[-.045em] max-[760px]:pt-[18px] max-[760px]:pb-[14px] max-[760px]:text-[42px]"><span data-live-name>{{ $superblog->name }}</span><span aria-hidden="true" class="text-primary italic">.</span></h1>
     </header>
 
-    {{-- Figma's section labels above each card are left out, since there are no sections yet. --}}
+    {{-- Section labels above the cards are left out, since there are no sections yet. --}}
     <main class="flex-1 pb-6">
         <section aria-label="Förstasidan" class="pt-[26px] pb-2.5 {{ $sidePadding }}">
             <div class="grid grid-cols-[2fr_1fr_.9fr] gap-6 max-[760px]:grid-cols-1">

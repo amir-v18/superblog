@@ -2,7 +2,7 @@
     // The hidden _form field tells this modal apart from the page's own forms. Old input is shared by every
     // form on the page, so errors and typed values are only used here when this modal was the one submitted.
     $reopen = $errors->any() && old('_form') === 'create-superblog';
-    // Figma starts on Modern; without it the first active template, so a choice is always made.
+    // Modern is preselected; without it the first active template, so a choice is always made.
     $defaultTemplate = ($templates->firstWhere('slug', 'modern') ?? $templates->first())?->id;
     $selectedTemplate = $reopen ? old('template_id', $defaultTemplate) : $defaultTemplate;
     // One message per field, under the field. The slug is built from the name (also for the duplicate
@@ -12,7 +12,6 @@
     $domainError = $reopen ? $errors->first('domain') : null;
 @endphp
 
-{{-- Figma's .modal: 760 px wide, 26 px padding, 14 px corners, at most 92vh tall and scrollable. --}}
 <dialog id="create-superblog" aria-labelledby="create-superblog-heading" @if ($reopen) data-open-on-load @endif
         class="m-auto max-h-[92vh] w-full max-w-[760px] overflow-y-auto rounded-[14px] bg-studio-panel p-0 text-studio-ink shadow-xl backdrop:bg-black/60">
     {{-- Clicks on this inner wrapper never reach the dialog itself, which is how app.js detects clicks outside. --}}
@@ -33,8 +32,8 @@
             @csrf
             <input type="hidden" name="_form" value="create-superblog">
 
-            {{-- Step headings follow Figma's .nm-sec: number, bold title and an optional muted hint. The number is
-                 decorative, so screen readers hear only the title. --}}
+            {{-- Step headings: number, bold title and an optional muted hint. The number is decorative, so screen
+                 readers hear only the title. --}}
             <div class="mt-1.5 flex flex-col gap-4">
                 <label for="create-name" class="flex items-center gap-2.5">
                     <span aria-hidden="true" class="grid size-6 shrink-0 place-items-center rounded-full bg-studio-brand text-xs font-bold text-white">1</span>

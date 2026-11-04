@@ -30,7 +30,7 @@ class DashboardController extends Controller
         return Superblog::accessibleTo($request->user())
             ->with('template')
             ->withCount([
-                // Figma counts only feeds that are switched on.
+                // Only feeds that are switched on are counted.
                 'rssSources' => fn ($query) => $query->where('is_active', true),
                 'articles as published_articles_count' => fn ($query) => $query->where('status', 'published'),
             ])

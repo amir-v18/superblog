@@ -2,12 +2,11 @@
 
 @section('title', 'Översikt')
 
-{{-- Figma's .dash: left-aligned, max 1180px, padding 40px clamp(20px, 4vw, 56px). --}}
+{{-- Left-aligned, unlike the layout's centered default. --}}
 @section('main-class', 'w-full max-w-[1180px] px-[clamp(20px,4vw,56px)] py-10')
 
 @section('content')
     @php
-        // Figma's .dash-grid: as many 300px+ columns as fit, 18px apart.
         $gridClasses = 'mt-4 grid grid-cols-[repeat(auto-fill,minmax(300px,1fr))] gap-4.5';
     @endphp
 
