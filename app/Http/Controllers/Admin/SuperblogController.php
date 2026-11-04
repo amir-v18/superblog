@@ -47,6 +47,14 @@ class SuperblogController extends Controller
         Gate::authorize('view', $superblog);
         Gate::authorize('update', $superblog);
 
+        $articles = request()->query('flik') === 'innehall'
+            ? $superblog->articles()
+                ->orderByDesc('updated_at')
+                ->orderByDesc('id')
+                ->paginate(20)
+                ->withQueryString()
+            : null;
+
         return view('admin.superblogs.edit', [
             'superblog' => $superblog,
             'templates' => $this->availableTemplates($superblog),
@@ -54,6 +62,7 @@ class SuperblogController extends Controller
             'rssSources' => $superblog->rssSources()->withCount('rssItems')->orderBy('name')->get(),
             // Same rule as the dashboard: only published articles count, drafts do not.
             'publishedArticlesCount' => $superblog->articles()->where('status', 'published')->count(),
+            'articles' => $articles,
         ]);
     }
 

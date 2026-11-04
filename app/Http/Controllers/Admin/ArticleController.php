@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\SaveArticleRequest;
+use App\Http\Requests\Admin\SaveArticleSelectionRequest;
 use App\Models\Article;
 use App\Models\RssItem;
 use App\Models\RssSource;
@@ -44,6 +45,40 @@ class ArticleController extends Controller
             ->paginate(20);
 
         return view('admin.articles.index', compact('articles', 'superblog'));
+    }
+
+    public function updateSelection(SaveArticleSelectionRequest $request, Superblog $superblog): RedirectResponse
+    {
+        $visibleIds = array_map('intval', $request->validated('visible_article_ids'));
+        $selectedIds = array_map('intval', $request->validated('selected_article_ids', []));
+
+        DB::transaction(function () use ($superblog, $visibleIds, $selectedIds): void {
+            $lockedSuperblog = Superblog::query()->lockForUpdate()->findOrFail($superblog->getKey());
+            $visibleArticles = DB::table('articles')
+                ->where('superblog_id', $lockedSuperblog->getKey())
+                ->whereIn('id', $visibleIds);
+
+            if ($selectedIds === []) {
+                $visibleArticles->update(['is_selected_for_publication' => false]);
+
+                return;
+            }
+
+            $visibleArticles->whereNotIn('id', $selectedIds)
+                ->update(['is_selected_for_publication' => false]);
+
+            DB::table('articles')
+                ->where('superblog_id', $lockedSuperblog->getKey())
+                ->whereIn('id', $visibleIds)
+                ->whereIn('id', $selectedIds)
+                ->update(['is_selected_for_publication' => true]);
+        });
+
+        return to_route('admin.superblogs.edit', [
+            $superblog,
+            'flik' => 'innehall',
+            'page' => $request->query('page', 1),
+        ])->with('status', 'Article selections saved. Publication status was not changed.');
     }
 
     public function createFromRssItem(Superblog $superblog, RssSource $rssSource, RssItem $rssItem): RedirectResponse

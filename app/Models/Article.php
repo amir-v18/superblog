@@ -7,13 +7,14 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-#[Fillable(['superblog_id', 'rss_item_id', 'title', 'slug', 'content', 'excerpt', 'source_type', 'status', 'is_locked', 'published_at'])]
+#[Fillable(['superblog_id', 'rss_item_id', 'title', 'slug', 'content', 'excerpt', 'source_type', 'status', 'is_locked', 'is_selected_for_publication', 'published_at'])]
 class Article extends Model
 {
     protected function casts(): array
     {
         return [
             'is_locked' => 'boolean',
+            'is_selected_for_publication' => 'boolean',
             'published_at' => 'datetime',
         ];
     }

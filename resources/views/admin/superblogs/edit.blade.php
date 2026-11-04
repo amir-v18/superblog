@@ -10,7 +10,7 @@
     @php
         // Tabs are plain links with ?flik=..., so only the active tab is rendered and no JS is needed.
         // A new tab (e.g. 4 Innehåll) only needs a line here and a branch below.
-        $tabs = ['grund' => '1 Grund', 'utseende' => '2 Utseende', 'floden' => '3 Flöden'];
+        $tabs = ['grund' => '1 Grund', 'utseende' => '2 Utseende', 'floden' => '3 Flöden', 'innehall' => '4 Innehåll'];
         $tab = in_array(request()->query('flik'), array_keys($tabs), true) ? request()->query('flik') : 'grund';
         $tabClasses = 'block whitespace-nowrap border-b-2 border-transparent px-2 py-[13px] text-center text-xs font-semibold text-studio-muted hover:text-studio-ink aria-[current=page]:border-studio-brand aria-[current=page]:text-studio-brand focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-studio-brand';
         $selectedTemplate = old('template_id', $superblog->template_id);
@@ -154,6 +154,44 @@
                                     </li>
                                 @endforeach
                             </ul>
+                        @endif
+                    </section>
+                @elseif ($tab === 'innehall')
+                    <section aria-labelledby="articles-heading">
+                        <h2 id="articles-heading" class="text-lg font-semibold">Innehåll</h2>
+                        <p class="mt-1 text-sm text-studio-muted">Välj vilka artiklar som ska ingå i nästa publicering. Att spara urvalet publicerar eller avpublicerar inget.</p>
+
+                        @if ($articles->isEmpty())
+                            <p class="mt-5 rounded-lg border border-dashed border-studio-line p-4 text-sm text-studio-muted">Det finns inga artiklar i det här Superblocket ännu. RSS-artiklar visas här när de har skapats från ett hämtat flöde.</p>
+                        @else
+                            <form method="POST" action="{{ route('admin.superblogs.articles.selection.update', [$superblog, 'flik' => 'innehall', 'page' => $articles->currentPage()]) }}" class="mt-4">
+                                @csrf
+                                @method('PUT')
+
+                                <ul class="flex flex-col gap-2.5">
+                                    @foreach ($articles as $article)
+                                        <li class="rounded-lg border border-studio-line bg-studio-panel p-3">
+                                            <input type="hidden" name="visible_article_ids[]" value="{{ $article->id }}">
+                                            <label class="flex items-start gap-3">
+                                                <input type="checkbox" name="selected_article_ids[]" value="{{ $article->id }}" @checked($article->is_selected_for_publication) class="mt-1 size-4 shrink-0 accent-studio-brand">
+                                                <span class="min-w-0">
+                                                    <a href="{{ route('admin.superblogs.articles.edit', [$superblog, $article]) }}" class="break-words font-medium underline decoration-studio-line underline-offset-4 hover:decoration-current">{{ $article->title }}</a>
+                                                    <span class="mt-1 flex flex-wrap gap-x-2 text-xs text-studio-muted">
+                                                        <span>{{ ucfirst($article->status) }}</span>
+                                                        <span aria-hidden="true">·</span>
+                                                        <span>{{ $article->source_type === 'rss' ? 'RSS' : 'Manuell' }}</span>
+                                                    </span>
+                                                </span>
+                                            </label>
+                                        </li>
+                                    @endforeach
+                                </ul>
+
+                                <x-admin.button class="mt-4">Spara urval</x-admin.button>
+                                @if ($articles->hasPages())
+                                    <div class="mt-4">{{ $articles->links() }}</div>
+                                @endif
+                            </form>
                         @endif
                     </section>
                 @else
