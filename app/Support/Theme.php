@@ -3,6 +3,7 @@
 namespace App\Support;
 
 use App\Models\Superblog;
+use App\Models\Template;
 use Illuminate\Support\Facades\Log;
 
 /**
@@ -15,6 +16,12 @@ class Theme
 {
     /** Themes defined in resources/css/app.css as [data-theme='...'] blocks. */
     public const NAMES = ['bondebladet', 'techenspraket'];
+
+    /**
+     * Which theme draws a template's thumbnail in the create modal, keyed on the template's slug.
+     * A slug missing here (or a renamed one) gets the grey fallback thumbnail instead of breaking.
+     */
+    public const TEMPLATE_THEMES = ['modern' => 'bondebladet', 'tech' => 'techenspraket'];
 
     public const COLOR_KEYS = ['paper', 'white', 'ink', 'muted', 'primary', 'deep', 'line', 'pale'];
 
@@ -45,6 +52,15 @@ class Theme
     public static function nameFor(Superblog $superblog): ?string
     {
         return self::name($superblog->settings['theme'] ?? null);
+    }
+
+    /**
+     * The thumbnail theme for a template, or null for the grey fallback. Goes through name(), so a mapped
+     * theme that is later removed from NAMES also falls back instead of reaching data-theme.
+     */
+    public static function forTemplate(Template $template): ?string
+    {
+        return self::name(self::TEMPLATE_THEMES[$template->slug] ?? null);
     }
 
     /**

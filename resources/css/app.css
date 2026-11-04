@@ -45,6 +45,8 @@
     --deep: #143a2c;
     --line: #dedfd7;
     --pale: #ecf0e8;
+    /* Figma's palette Skog (template Modern). */
+    --accent: #589168;
     --display: 'Newsreader Variable', ui-serif, Georgia, serif;
     --body: 'DM Sans Variable', ui-sans-serif, system-ui, sans-serif;
 }
@@ -58,6 +60,8 @@
     --deep: #0a1030;
     --line: #dbe1ee;
     --pale: #e8edfa;
+    /* Figma's palette Teknik (template Tech). */
+    --accent: #19c3ff;
     --display: 'Space Grotesk Variable', ui-sans-serif, system-ui, sans-serif;
     --body: 'DM Sans Variable', ui-sans-serif, system-ui, sans-serif;
 }
@@ -72,6 +76,7 @@
     --color-deep: var(--deep);
     --color-line: var(--line);
     --color-pale: var(--pale);
+    --color-accent: var(--accent);
     --font-display: var(--display);
     --font-body: var(--body);
 }
