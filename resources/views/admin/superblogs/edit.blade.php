@@ -144,10 +144,10 @@
                                             <div class="flex items-center justify-end gap-3">
                                                 @if ($rssSource->is_active)
                                                     {{-- form= ties this button to its own form, so Enter in a text field still saves. --}}
-                                                    <button type="submit" form="fetch-{{ $rssSource->id }}" data-pending-text="Hämtar…" class="mr-auto rounded-lg border border-studio-line px-3 py-1.5 text-[13px] font-semibold hover:border-[#b9b7af] studio-focus-ring disabled:opacity-60">↻ Hämta nu</button>
+                                                    <button type="submit" form="fetch-{{ $rssSource->id }}" data-pending-text="Hämtar…" class="mr-auto rounded-lg border border-studio-line px-3 py-1.5 text-[13px] font-semibold hover:border-[#5a5d69] studio-focus-ring disabled:opacity-60">↻ Hämta nu</button>
                                                 @endif
                                                 <a href="{{ route('admin.superblogs.rss-sources.delete', [$superblog, $rssSource, 'fran' => 'byggaren']) }}" class="text-[13px] font-semibold text-studio-bad underline underline-offset-4 studio-focus-ring">Ta bort</a>
-                                                <button type="submit" class="rounded-lg border border-studio-line px-3 py-1.5 text-[13px] font-semibold hover:border-[#b9b7af] studio-focus-ring">Spara</button>
+                                                <button type="submit" class="rounded-lg border border-studio-line px-3 py-1.5 text-[13px] font-semibold hover:border-[#5a5d69] studio-focus-ring">Spara</button>
                                             </div>
                                         </form>
                                         {{-- The count is stored RSS items, not published articles. --}}
