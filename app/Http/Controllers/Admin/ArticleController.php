@@ -34,17 +34,11 @@ class ArticleController extends Controller
         return view('admin.articles.index', compact('articles'));
     }
 
-    public function superblogIndex(Superblog $superblog): View
+    public function superblogIndex(Superblog $superblog): RedirectResponse
     {
         Gate::authorize('view', $superblog);
 
-        $articles = $superblog->articles()
-            ->with('superblog')
-            ->orderByDesc('updated_at')
-            ->orderByDesc('id')
-            ->paginate(20);
-
-        return view('admin.articles.index', compact('articles', 'superblog'));
+        return to_route('admin.superblogs.edit', [$superblog, 'flik' => 'innehall']);
     }
 
     public function create(Superblog $superblog): View
@@ -54,7 +48,7 @@ class ArticleController extends Controller
         $article = new Article([
             'status' => 'draft',
             'source_type' => 'manual',
-            'is_selected_for_publication' => false,
+            'is_selected_for_publication' => true,
         ]);
 
         return view('admin.articles.edit', [
@@ -75,7 +69,7 @@ class ArticleController extends Controller
                     'rss_item_id' => null,
                     'source_type' => 'manual',
                     'status' => 'draft',
-                    'is_selected_for_publication' => false,
+                    'is_selected_for_publication' => true,
                     'published_at' => null,
                 ]);
             });
@@ -92,33 +86,106 @@ class ArticleController extends Controller
         $visibleIds = array_map('intval', $request->validated('visible_article_ids'));
         $selectedIds = array_map('intval', $request->validated('selected_article_ids', []));
 
-        DB::transaction(function () use ($superblog, $visibleIds, $selectedIds): void {
+        $isPublished = DB::transaction(function () use ($superblog, $visibleIds, $selectedIds): bool {
             $lockedSuperblog = Superblog::query()->lockForUpdate()->findOrFail($superblog->getKey());
-            $visibleArticles = DB::table('articles')
-                ->where('superblog_id', $lockedSuperblog->getKey())
-                ->whereIn('id', $visibleIds);
-
-            if ($selectedIds === []) {
-                $visibleArticles->update(['is_selected_for_publication' => false]);
-
-                return;
-            }
+            $visibleArticles = $lockedSuperblog->articles()->whereIn('id', $visibleIds);
 
             $visibleArticles->whereNotIn('id', $selectedIds)
                 ->update(['is_selected_for_publication' => false]);
 
-            DB::table('articles')
-                ->where('superblog_id', $lockedSuperblog->getKey())
+            if ($selectedIds !== []) {
+                $lockedSuperblog->articles()
+                    ->whereIn('id', $visibleIds)
+                    ->whereIn('id', $selectedIds)
+                    ->update(['is_selected_for_publication' => true]);
+            }
+
+            if ($lockedSuperblog->status !== 'published') {
+                return false;
+            }
+
+            $lockedSuperblog->articles()
                 ->whereIn('id', $visibleIds)
-                ->whereIn('id', $selectedIds)
-                ->update(['is_selected_for_publication' => true]);
+                ->where('is_selected_for_publication', true)
+                ->where('status', 'draft')
+                ->update([
+                    'status' => 'published',
+                    'published_at' => now(),
+                ]);
+
+            $lockedSuperblog->articles()
+                ->whereIn('id', $visibleIds)
+                ->where('is_selected_for_publication', false)
+                ->where(function ($query): void {
+                    $query->where('status', '!=', 'draft')->orWhereNotNull('published_at');
+                })
+                ->update([
+                    'status' => 'draft',
+                    'published_at' => null,
+                ]);
+
+            return true;
         });
+
+        $message = $isPublished
+            ? 'Article selection saved and applied to publication for the current page.'
+            : 'Article selection saved for the current page. The Superblog is offline, so article publication was not changed.';
 
         return to_route('admin.superblogs.edit', [
             $superblog,
             'flik' => 'innehall',
             'page' => $request->query('page', 1),
-        ])->with('status', 'Article selections saved. Publication status was not changed.');
+        ])->with('status', $message);
+    }
+
+    public function publishSelected(Superblog $superblog): RedirectResponse
+    {
+        Gate::authorize('update', $superblog);
+        $publishedAt = now();
+
+        [$published, $withdrawn, $wasAlreadyPublished] = DB::transaction(function () use ($superblog, $publishedAt): array {
+            $lockedSuperblog = Superblog::query()->lockForUpdate()->findOrFail($superblog->getKey());
+            $wasAlreadyPublished = $lockedSuperblog->status === 'published';
+
+            // Restrict each update to articles whose status actually needs to change; repeated requests are safe.
+            $articlesToPublish = $lockedSuperblog->articles()
+                ->where('is_selected_for_publication', true)
+                ->where('status', 'draft');
+            $articlesToWithdraw = $lockedSuperblog->articles()
+                ->where('is_selected_for_publication', false)
+                ->where('status', 'published');
+
+            // Count matching rows before updating so the message reports transitions, not driver-specific row counts.
+            $published = $articlesToPublish->count();
+            $withdrawn = $articlesToWithdraw->count();
+
+            if ($published > 0) {
+                $articlesToPublish->update([
+                    'status' => 'published',
+                    'published_at' => $publishedAt,
+                ]);
+            }
+
+            if ($withdrawn > 0) {
+                $articlesToWithdraw->update([
+                    'status' => 'draft',
+                    'published_at' => null,
+                ]);
+            }
+
+            if (! $wasAlreadyPublished) {
+                $lockedSuperblog->update(['status' => 'published']);
+            }
+
+            return [$published, $withdrawn, $wasAlreadyPublished];
+        });
+
+        $publishedMessage = $published === 1 ? '1 artikel publicerades' : "{$published} artiklar publicerades";
+        $withdrawnMessage = $withdrawn === 1 ? '1 artikel drogs tillbaka' : "{$withdrawn} artiklar drogs tillbaka";
+        $superblogMessage = $wasAlreadyPublished ? 'Superblocket var redan publicerat.' : 'Superblocket publicerades.';
+
+        return to_route('admin.superblogs.edit', [$superblog, 'flik' => 'publicera'])
+            ->with('status', "Publicering klar: {$publishedMessage} och {$withdrawnMessage}. {$superblogMessage}");
     }
 
     public function createFromRssItem(Superblog $superblog, RssSource $rssSource, RssItem $rssItem): RedirectResponse
@@ -150,6 +217,7 @@ class ArticleController extends Controller
                     'excerpt' => $lockedItem->summary,
                     'source_type' => 'rss',
                     'status' => 'draft',
+                    'is_selected_for_publication' => true,
                 ]);
 
                 return [$article, false];

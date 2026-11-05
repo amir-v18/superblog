@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Admin;
 
+use App\Models\Article;
 use App\Models\RssSource;
 use App\Models\Superblog;
 use App\Models\Template;
@@ -35,10 +36,22 @@ class RssFetchingAndItemsTest extends TestCase
         $this->assertSame('A short summary', $item->summary);
         $this->assertNotNull($source->fresh()->last_fetched_at);
 
+        $article = Article::query()->where('rss_item_id', $item->getKey())->firstOrFail();
+        $this->assertSame($superblog->getKey(), $article->superblog_id);
+        $this->assertSame('rss', $article->source_type);
+        $this->assertSame('draft', $article->status);
+        $this->assertTrue($article->is_selected_for_publication);
+        $this->assertSame('The original feed body', $item->fresh()->content);
+
+        // A user's Innehåll choice belongs to the Article and must survive a later refetch.
+        $article->update(['is_selected_for_publication' => false]);
+
         $this->post(route('admin.superblogs.rss-sources.fetch', [$superblog, $source]))
             ->assertSessionHas('status', 'Fetch completed. 0 new items imported.');
 
         $this->assertDatabaseCount('rss_items', 1);
+        $this->assertDatabaseCount('articles', 1);
+        $this->assertFalse($article->fresh()->is_selected_for_publication);
     }
 
     public function test_invalid_or_private_feed_targets_are_rejected_without_a_request(): void

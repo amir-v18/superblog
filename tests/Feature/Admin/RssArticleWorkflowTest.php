@@ -30,6 +30,7 @@ class RssArticleWorkflowTest extends TestCase
         $this->assertSame($item->getKey(), $article->rss_item_id);
         $this->assertSame('rss', $article->source_type);
         $this->assertSame('draft', $article->status);
+        $this->assertTrue($article->is_selected_for_publication);
         $this->assertSame('Original feed content', $article->content);
         $this->assertSame('Original feed content', $item->fresh()->content);
         $this->assertSame('A source summary', $item->fresh()->summary);

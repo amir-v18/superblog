@@ -10,7 +10,8 @@
     @php
         // Tabs are plain links with ?flik=..., so only the active tab is rendered and no JS is needed.
         // Each implemented step is a query-string tab with its own content branch below.
-        $tabs = ['grund' => '1 Grund', 'utseende' => '2 Utseende', 'floden' => '3 Flöden', 'innehall' => '4 Innehåll', 'skriv-artikel' => '5 Skriv artikel'];
+        $publicationTab = $superblog->status === 'published' ? '6 Avpublicera' : '6 Publicera';
+        $tabs = ['grund' => '1 Grund', 'utseende' => '2 Utseende', 'floden' => '3 Flöden', 'innehall' => '4 Innehåll', 'skriv-artikel' => '5 Skriv artikel', 'publicera' => $publicationTab];
         $tab = in_array(request()->query('flik'), array_keys($tabs), true) ? request()->query('flik') : 'grund';
         $tabClasses = 'block whitespace-nowrap border-b-2 border-transparent px-2 py-[13px] text-center text-xs font-semibold text-studio-muted hover:text-studio-ink aria-[current=page]:border-studio-brand aria-[current=page]:text-studio-brand focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-studio-brand';
         $selectedTemplate = old('template_id', $superblog->template_id);
@@ -24,22 +25,15 @@
         </div>
     </header>
 
-    @if ($superblog->status === 'published')
-        @include('admin.superblogs._section-tabs', ['activeTab' => 'settings'])
-    @endif
-
     <div class="lg:grid lg:min-h-0 lg:flex-1 lg:grid-cols-[390px_minmax(0,1fr)]">
         <section aria-label="Inställningar" class="flex flex-col border-studio-line bg-studio-side lg:min-h-0 lg:border-r">
             <nav aria-label="Byggarens steg" class="border-b border-studio-line">
-                <ul class="flex overflow-x-auto scrollbar-none">
+                <ul class="grid grid-cols-3">
                     @foreach ($tabs as $key => $label)
-                        <li class="flex-1">
+                        <li>
                             <a href="{{ route('admin.superblogs.edit', [$superblog, 'flik' => $key]) }}" @if ($tab === $key) aria-current="page" @endif class="{{ $tabClasses }}">{{ $label }}</a>
                         </li>
                     @endforeach
-                    <li class="flex-1" title="Publicera implementeras i ett senare steg">
-                        <span aria-disabled="true" class="block cursor-not-allowed whitespace-nowrap px-2 py-3.25 text-center text-xs font-semibold text-studio-muted/50">6 Publicera</span>
-                    </li>
                 </ul>
             </nav>
 
@@ -162,7 +156,7 @@
                 @elseif ($tab === 'innehall')
                     <section aria-labelledby="articles-heading">
                         <h2 id="articles-heading" class="text-lg font-semibold">Innehåll</h2>
-                        <p class="mt-1 text-sm text-studio-muted">Välj vilka artiklar som ska ingå i nästa publicering. Att spara urvalet publicerar eller avpublicerar inget.</p>
+                        <p class="mt-1 text-sm text-studio-muted">Välj vilka artiklar som ska ingå i publiceringen. På ett publicerat Superblogg tillämpas urvalet direkt när du sparar. När Superblogget är offline sparas bara urvalet.</p>
 
                         @if ($articles->isEmpty())
                             <p class="mt-5 rounded-lg border border-dashed border-studio-line p-4 text-sm text-studio-muted">Det finns inga artiklar i det här Superblocket ännu. RSS-artiklar visas här när de har skapats från ett hämtat flöde.</p>
@@ -180,8 +174,6 @@
                                                 <span class="min-w-0">
                                                     <a href="{{ route('admin.superblogs.articles.edit', [$superblog, $article]) }}" class="wrap-break-word font-medium underline decoration-studio-line underline-offset-4 hover:decoration-current">{{ $article->title }}</a>
                                                     <span class="mt-1 flex flex-wrap gap-x-2 text-xs text-studio-muted">
-                                                        <span>{{ ucfirst($article->status) }}</span>
-                                                        <span aria-hidden="true">·</span>
                                                         <span>{{ $article->source_type === 'rss' ? 'RSS' : 'Manuell' }}</span>
                                                     </span>
                                                 </span>
@@ -203,6 +195,41 @@
                         <p class="mt-1 text-sm text-studio-muted">Skapa en manuell artikel som sparas som utkast. Den publiceras inte automatiskt.</p>
                         <a href="{{ route('admin.superblogs.articles.create', $superblog) }}" class="mt-4 inline-flex rounded-lg bg-studio-brand px-4 py-2 text-sm font-medium text-studio-side hover:bg-studio-brand-hover studio-focus-ring">Skapa artikel</a>
                         <p class="mt-5 text-sm text-studio-muted">Redigera befintliga artiklar under <a href="{{ route('admin.superblogs.edit', [$superblog, 'flik' => 'innehall']) }}" class="font-medium text-studio-ink underline underline-offset-4 studio-focus-ring">Innehåll</a>. Där visas manuella artiklar tillsammans med RSS-artiklar.</p>
+                    </section>
+                @elseif ($tab === 'publicera')
+                    <section aria-labelledby="publish-heading">
+                        @if ($superblog->status === 'published')
+                            <h2 id="publish-heading" class="text-lg font-semibold">Avpublicera Superblog</h2>
+                            <p class="mt-1 text-sm text-studio-muted">Detta tar hela Superblocket offline. Artiklarna behåller sin publiceringsstatus och sina publiceringsdatum, och förhandsvisningen finns kvar i byggaren.</p>
+
+                            <form method="POST" action="{{ route('admin.superblogs.unpublish', $superblog) }}" class="mt-5">
+                                @csrf
+                                <button type="submit" class="rounded-lg border border-red-300 px-4 py-2 text-sm font-semibold text-red-700 hover:bg-red-50 studio-focus-ring">Avpublicera</button>
+                            </form>
+                        @else
+                            <h2 id="publish-heading" class="text-lg font-semibold">Publicera innehåll</h2>
+                            <p class="mt-1 text-sm text-studio-muted">Publicera tillämpar det sparade urvalet från Innehåll. Spara ändrade kryssrutor där innan du fortsätter. Valda utkast publiceras och publicerade artiklar som inte längre är valda dras tillbaka. Superblocket markeras som publicerat.</p>
+
+                            <dl class="mt-5 grid grid-cols-1 gap-2" aria-label="Publiceringsöversikt">
+                                <div class="rounded-lg border border-studio-line bg-studio-panel p-3">
+                                    <dt class="text-xs text-studio-muted">Valda artiklar</dt>
+                                    <dd class="mt-1 text-xl font-semibold">{{ $publicationSummary['selected'] }}</dd>
+                                </div>
+                                <div class="rounded-lg border border-studio-line bg-studio-panel p-3">
+                                    <dt class="text-xs text-studio-muted">Publiceras nu</dt>
+                                    <dd class="mt-1 text-xl font-semibold">{{ $publicationSummary['to_publish'] }}</dd>
+                                </div>
+                                <div class="rounded-lg border border-studio-line bg-studio-panel p-3">
+                                    <dt class="text-xs text-studio-muted">Dras tillbaka</dt>
+                                    <dd class="mt-1 text-xl font-semibold">{{ $publicationSummary['to_withdraw'] }}</dd>
+                                </div>
+                            </dl>
+
+                            <form method="POST" action="{{ route('admin.superblogs.articles.publish-selected', $superblog) }}" class="mt-5">
+                                @csrf
+                                <button type="submit" class="rounded-lg bg-studio-brand px-4 py-2 text-sm font-semibold text-studio-side hover:bg-studio-brand-hover studio-focus-ring">Publicera</button>
+                            </form>
+                        @endif
                     </section>
                 @else
                     @php

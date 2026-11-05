@@ -99,6 +99,7 @@ Route::middleware('auth')->group(function () {
                 Route::get('create', [ArticleController::class, 'create'])->name('create');
                 Route::post('/', [ArticleController::class, 'store'])->name('store');
                 Route::put('selection', [ArticleController::class, 'updateSelection'])->name('selection.update');
+                Route::post('publication', [ArticleController::class, 'publishSelected'])->name('publish-selected');
                 Route::get('{article}/edit', [ArticleController::class, 'edit'])->name('edit');
                 Route::put('{article}', [ArticleController::class, 'update'])->name('update');
                 Route::post('{article}/publish', [ArticleController::class, 'publish'])->name('publish');
@@ -106,6 +107,7 @@ Route::middleware('auth')->group(function () {
         Route::get('articles', [ArticleController::class, 'index'])->name('admin.articles.index');
         Route::get('publicerade', [DashboardController::class, 'published'])->name('admin.superblogs.published');
         Route::put('superblogs/{superblog}/theme', SuperblogThemeController::class)->name('admin.superblogs.theme.update');
+        Route::post('superblogs/{superblog}/unpublish', [SuperblogController::class, 'unpublish'])->name('admin.superblogs.unpublish');
         Route::get('superblogs/{superblog}/preview', SuperblogPreviewController::class)->name('admin.superblogs.preview');
         Route::get('superblogs/{superblog}/delete', [SuperblogController::class, 'confirmDeletion'])->name('admin.superblogs.delete');
         Route::resource('superblogs', SuperblogController::class)->except(['index', 'show'])->names('admin.superblogs');

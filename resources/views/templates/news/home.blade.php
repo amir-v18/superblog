@@ -31,49 +31,101 @@
         <h1 class="pt-[26px] pb-[22px] text-center font-display text-[64px] leading-none font-semibold tracking-[-.045em] max-[760px]:pt-[18px] max-[760px]:pb-[14px] max-[760px]:text-[42px]"><span data-live-name>{{ $superblog->name }}</span><span aria-hidden="true" class="text-primary italic">.</span></h1>
     </header>
 
-    {{-- Figma's section labels above each card are left out, since there are no sections yet. --}}
     <main class="flex-1 pb-6">
-        <section aria-label="Förstasidan" class="pt-[26px] pb-2.5 {{ $sidePadding }}">
-            <div class="grid grid-cols-[2fr_1fr_.9fr] gap-6 max-[760px]:grid-cols-1">
-                <article class="relative min-h-[470px] overflow-hidden rounded-md border-[1.5px] border-dashed border-ink/30 max-[760px]:min-h-[340px]">
-                    <div class="absolute inset-0 {{ $stripes }}"><span class="{{ $stripeLabel }}">Huvudbild</span></div>
-                    <div class="absolute right-5 bottom-5 left-5 flex flex-col gap-2 rounded-md bg-paper/92 p-4">
-                        <div class="my-2.5 h-[26px] rounded-[3px] bg-ink/14"></div>
-                        <div class="my-2.5 h-[26px] w-[60%] rounded-[3px] bg-ink/14"></div>
-                        <span class="text-[11px] opacity-72">Här visas din första artikel</span>
-                    </div>
-                </article>
+        @if ($articles->isNotEmpty())
+            @php
+                $featuredArticle = $articles->first();
+                $otherArticles = $articles->skip(1);
+            @endphp
 
-                <div class="flex flex-col gap-5">
-                    @foreach (range(1, 2) as $card)
+            <section aria-label="Förstasidan" class="pt-[26px] pb-2.5 {{ $sidePadding }}">
+                <div class="grid grid-cols-[2fr_1fr_.9fr] gap-6 max-[760px]:grid-cols-1">
+                    <article class="flex min-h-[320px] flex-col justify-end rounded-md bg-primary/10 p-7 max-[760px]:min-h-64">
+                        <p class="{{ $eyebrow }}">Senaste artikeln</p>
+                        <h2 class="mt-3 font-display text-4xl leading-tight font-semibold tracking-tight">
+                            <a href="{{ route('public.superblogs.articles.show', [$superblog, $featuredArticle]) }}" target="_blank" rel="noopener" class="hover:underline">{{ $featuredArticle->title }}</a>
+                        </h2>
+                        @if ($featuredArticle->excerpt)
+                            <p class="mt-3 max-w-2xl text-ink/70">{{ $featuredArticle->excerpt }}</p>
+                        @endif
+                        @if ($featuredArticle->published_at)
+                            <time class="mt-4 text-xs text-ink/60" datetime="{{ $featuredArticle->published_at->toIso8601String() }}">{{ $featuredArticle->published_at->locale('sv')->isoFormat('D MMMM YYYY') }}</time>
+                        @endif
+                    </article>
+
+                    <aside aria-labelledby="latest-sidebar-heading" class="border-l border-ink/15 pl-5 max-[760px]:border-l-0 max-[760px]:pl-0">
+                        <h2 id="latest-sidebar-heading" class="mb-1 border-b-3 border-primary pb-2 {{ $eyebrow }}">Fler artiklar</h2>
+                        @forelse ($otherArticles->take(5) as $article)
+                            <a href="{{ route('public.superblogs.articles.show', [$superblog, $article]) }}" target="_blank" rel="noopener" class="block border-b border-ink/12 py-3 font-medium hover:underline">{{ $article->title }}</a>
+                        @empty
+                            <p class="py-3 text-sm text-ink/60">Fler artiklar visas här när de publiceras.</p>
+                        @endforelse
+                    </aside>
+                </div>
+            </section>
+
+            @if ($otherArticles->isNotEmpty())
+                <section aria-labelledby="latest-heading" class="pt-[26px] pb-2.5 {{ $sidePadding }}">
+                    <p class="{{ $eyebrow }}">Det senaste</p>
+                    <h2 id="latest-heading" class="mt-1.5 mb-[18px] font-display text-[30px] leading-[1.1] font-semibold tracking-[-.02em]">Nytt från redaktionen</h2>
+                    <div class="grid grid-cols-3 gap-x-6 gap-y-[26px] max-[760px]:grid-cols-1">
+                        @foreach ($otherArticles as $article)
+                            <article class="border-t border-ink/15 pt-4">
+                                <h3 class="font-display text-xl font-semibold"><a href="{{ route('public.superblogs.articles.show', [$superblog, $article]) }}" target="_blank" rel="noopener" class="hover:underline">{{ $article->title }}</a></h3>
+                                @if ($article->excerpt)
+                                    <p class="mt-2 text-sm text-ink/70">{{ $article->excerpt }}</p>
+                                @endif
+                            </article>
+                        @endforeach
+                    </div>
+                </section>
+            @endif
+        @elseif ($superblog->status === 'published')
+            <p class="{{ $sidePadding }} py-12 text-center text-ink/60">Inga publicerade artiklar ännu.</p>
+        @else
+            {{-- Draft Superblogs without published articles keep the visual placeholders in the private preview. --}}
+            <section aria-label="Förstasidan" class="pt-[26px] pb-2.5 {{ $sidePadding }}">
+                <div class="grid grid-cols-[2fr_1fr_.9fr] gap-6 max-[760px]:grid-cols-1">
+                    <article class="relative min-h-[470px] overflow-hidden rounded-md border-[1.5px] border-dashed border-ink/30 max-[760px]:min-h-[340px]">
+                        <div class="absolute inset-0 {{ $stripes }}"><span class="{{ $stripeLabel }}">Huvudbild</span></div>
+                        <div class="absolute right-5 bottom-5 left-5 flex flex-col gap-2 rounded-md bg-paper/92 p-4">
+                            <div class="my-2.5 h-[26px] rounded-[3px] bg-ink/14"></div>
+                            <div class="my-2.5 h-[26px] w-[60%] rounded-[3px] bg-ink/14"></div>
+                            <span class="text-[11px] opacity-72">Här visas din första artikel</span>
+                        </div>
+                    </article>
+
+                    <div class="flex flex-col gap-5">
+                        @foreach (range(1, 2) as $card)
+                            <x-placeholder-card :stripes="$stripes" :stripe-label="$stripeLabel" />
+                        @endforeach
+                    </div>
+
+                    <aside aria-labelledby="most-read-heading" class="border-l border-ink/15 pl-5 max-[760px]:border-l-0 max-[760px]:pl-0">
+                        <h2 id="most-read-heading" class="mb-1 border-b-3 border-primary pb-2 {{ $eyebrow }}">Mest läst</h2>
+                        @foreach (range(1, 5) as $rank)
+                            <div class="grid grid-cols-[22px_1fr] items-center gap-2 border-b border-ink/12 py-[11px]">
+                                <span class="font-display text-[22px] leading-none font-medium text-primary opacity-40">{{ $rank }}</span>
+                                <div>
+                                    <div class="my-[3px] h-[11px] w-[92%] rounded-[3px] bg-ink/14"></div>
+                                    <div class="my-[3px] h-[11px] w-[70%] rounded-[3px] bg-ink/14"></div>
+                                </div>
+                            </div>
+                        @endforeach
+                    </aside>
+                </div>
+            </section>
+
+            <section aria-labelledby="latest-heading" class="pt-[26px] pb-2.5 {{ $sidePadding }}">
+                <p class="{{ $eyebrow }}">Det senaste</p>
+                <h2 id="latest-heading" class="mt-1.5 mb-[18px] font-display text-[30px] leading-[1.1] font-semibold tracking-[-.02em]">Nytt från redaktionen</h2>
+                <div class="grid grid-cols-3 gap-x-6 gap-y-[26px] max-[760px]:grid-cols-1">
+                    @foreach (range(1, 6) as $card)
                         <x-placeholder-card :stripes="$stripes" :stripe-label="$stripeLabel" />
                     @endforeach
                 </div>
-
-                <aside aria-labelledby="most-read-heading" class="border-l border-ink/15 pl-5 max-[760px]:border-l-0 max-[760px]:pl-0">
-                    <h2 id="most-read-heading" class="mb-1 border-b-3 border-primary pb-2 {{ $eyebrow }}">Mest läst</h2>
-                    @foreach (range(1, 5) as $rank)
-                        <div class="grid grid-cols-[22px_1fr] items-center gap-2 border-b border-ink/12 py-[11px]">
-                            <span class="font-display text-[22px] leading-none font-medium text-primary opacity-40">{{ $rank }}</span>
-                            <div>
-                                <div class="my-[3px] h-[11px] w-[92%] rounded-[3px] bg-ink/14"></div>
-                                <div class="my-[3px] h-[11px] w-[70%] rounded-[3px] bg-ink/14"></div>
-                            </div>
-                        </div>
-                    @endforeach
-                </aside>
-            </div>
-        </section>
-
-        <section aria-labelledby="latest-heading" class="pt-[26px] pb-2.5 {{ $sidePadding }}">
-            <p class="{{ $eyebrow }}">Det senaste</p>
-            <h2 id="latest-heading" class="mt-1.5 mb-[18px] font-display text-[30px] leading-[1.1] font-semibold tracking-[-.02em]">Nytt från redaktionen</h2>
-            <div class="grid grid-cols-3 gap-x-6 gap-y-[26px] max-[760px]:grid-cols-1">
-                @foreach (range(1, 6) as $card)
-                    <x-placeholder-card :stripes="$stripes" :stripe-label="$stripeLabel" />
-                @endforeach
-            </div>
-        </section>
+            </section>
+        @endif
     </main>
 
     <footer class="grid gap-2 border-t border-ink/15 pt-7 pb-[34px] text-[13px] {{ $sidePadding }}">

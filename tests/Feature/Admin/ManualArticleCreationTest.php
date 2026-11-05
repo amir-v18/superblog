@@ -57,14 +57,14 @@ class ManualArticleCreationTest extends TestCase
         $this->assertSame('manual', $article->source_type);
         $this->assertSame('draft', $article->status);
         $this->assertNull($article->rss_item_id);
-        $this->assertFalse($article->is_selected_for_publication);
+        $this->assertTrue($article->is_selected_for_publication);
         $this->assertNull($article->published_at);
 
         $this->get(route('admin.superblogs.edit', [$superblog, 'flik' => 'innehall']))
             ->assertOk()
             ->assertSee('A manual story')
             ->assertSee('name="selected_article_ids[]" value="'.$article->id.'"', false)
-            ->assertDontSee('name="selected_article_ids[]" value="'.$article->id.'" checked', false);
+            ->assertSee('name="selected_article_ids[]" value="'.$article->id.'" checked', false);
     }
 
     public function test_unassigned_user_cannot_create_or_edit_articles(): void

@@ -41,7 +41,9 @@ class ArticleSelectionTest extends TestCase
             ->assertSee('Published story')
             ->assertDontSee('Other blog article')
             ->assertSee('RSS')
-            ->assertSee('Manuell');
+            ->assertSee('Manuell')
+            ->assertDontSee('<span>Draft</span>', false)
+            ->assertDontSee('<span>Published</span>', false);
 
         $this->assertDatabaseHas('articles', ['id' => $rssDraft->id, 'rss_item_id' => $rssItem->id]);
         $this->assertDatabaseHas('articles', ['id' => $otherArticle->id, 'superblog_id' => $otherSuperblog->id]);
@@ -78,7 +80,7 @@ class ArticleSelectionTest extends TestCase
         $this->assertDatabaseHas('articles', ['id' => $draft->id, 'is_selected_for_publication' => false]);
     }
 
-    public function test_saving_selection_does_not_change_status_or_published_at(): void
+    public function test_saving_selection_on_an_offline_superblog_does_not_change_article_publication(): void
     {
         [$staff, $superblog] = $this->makeAssignedSuperblog();
         $publishedAt = now()->subDay()->startOfSecond();
@@ -91,7 +93,7 @@ class ArticleSelectionTest extends TestCase
                 'selected_article_ids' => [$draft->id],
             ])
             ->assertRedirect(route('admin.superblogs.edit', [$superblog, 'flik' => 'innehall', 'page' => 1]))
-            ->assertSessionHas('status', 'Article selections saved. Publication status was not changed.');
+            ->assertSessionHas('status', 'Article selection saved for the current page. The Superblog is offline, so article publication was not changed.');
 
         $published->refresh();
         $draft->refresh();
@@ -102,6 +104,69 @@ class ArticleSelectionTest extends TestCase
         $this->assertTrue($publishedAt->equalTo($published->published_at));
         $this->assertSame('draft', $draft->status);
         $this->assertNull($draft->published_at);
+    }
+
+    public function test_saving_selection_on_a_live_superblog_publishes_and_withdraws_only_current_page_articles(): void
+    {
+        [$staff, $superblog] = $this->makeAssignedSuperblog();
+        $superblog->update(['status' => 'published']);
+
+        $offPageDate = now()->subDays(5)->startOfSecond();
+        $offPageArticle = $this->makeArticle($superblog, 'Other page published', status: 'published', selected: true, publishedAt: $offPageDate);
+
+        for ($index = 0; $index < 16; $index++) {
+            $this->makeArticle($superblog, 'Earlier filler '.$index);
+        }
+
+        $publishedDate = now()->subDays(3)->startOfSecond();
+        $keepPublished = $this->makeArticle($superblog, 'Keep published', status: 'published', selected: true, publishedAt: $publishedDate);
+        $withdrawPublished = $this->makeArticle($superblog, 'Withdraw published', status: 'published', selected: true, publishedAt: now()->subDay());
+        $publishDraft = $this->makeArticle($superblog, 'Publish draft');
+        $leaveDraft = $this->makeArticle($superblog, 'Leave draft');
+
+        $page = $this->actingAs($staff)
+            ->get(route('admin.superblogs.edit', [$superblog, 'flik' => 'innehall', 'page' => 1]))
+            ->assertOk()
+            ->assertSee('page=2', false)
+            ->viewData('articles');
+        $visibleIds = $page->getCollection()->modelKeys();
+
+        $this->assertContains($keepPublished->getKey(), $visibleIds);
+        $this->assertContains($withdrawPublished->getKey(), $visibleIds);
+        $this->assertContains($publishDraft->getKey(), $visibleIds);
+        $this->assertContains($leaveDraft->getKey(), $visibleIds);
+        $this->assertNotContains($offPageArticle->getKey(), $visibleIds);
+
+        $this->put(route('admin.superblogs.articles.selection.update', [$superblog, 'flik' => 'innehall', 'page' => 1]), [
+            'visible_article_ids' => $visibleIds,
+            'selected_article_ids' => [$keepPublished->getKey(), $publishDraft->getKey()],
+        ])->assertRedirect(route('admin.superblogs.edit', [$superblog, 'flik' => 'innehall', 'page' => 1]))
+            ->assertSessionHas('status', 'Article selection saved and applied to publication for the current page.');
+
+        $this->assertSame('published', $keepPublished->fresh()->status);
+        $this->assertTrue($publishedDate->equalTo($keepPublished->fresh()->published_at));
+        $this->assertTrue($keepPublished->fresh()->is_selected_for_publication);
+
+        $this->assertSame('published', $publishDraft->fresh()->status);
+        $this->assertNotNull($publishDraft->fresh()->published_at);
+        $this->assertTrue($publishDraft->fresh()->is_selected_for_publication);
+
+        $this->assertSame('draft', $withdrawPublished->fresh()->status);
+        $this->assertNull($withdrawPublished->fresh()->published_at);
+        $this->assertFalse($withdrawPublished->fresh()->is_selected_for_publication);
+        $this->assertSame('draft', $leaveDraft->fresh()->status);
+        $this->assertNull($leaveDraft->fresh()->published_at);
+        $this->assertFalse($leaveDraft->fresh()->is_selected_for_publication);
+
+        $this->assertSame('published', $offPageArticle->fresh()->status);
+        $this->assertTrue($offPageArticle->fresh()->is_selected_for_publication);
+        $this->assertTrue($offPageDate->equalTo($offPageArticle->fresh()->published_at));
+
+        $pageTwoResponse = $this->get(route('admin.superblogs.edit', [$superblog, 'flik' => 'innehall', 'page' => 2]))
+            ->assertOk();
+        $pageTwo = $pageTwoResponse->viewData('articles');
+        $this->assertSame(2, $pageTwo->currentPage());
+        $pageTwoResponse->assertSee('action="'.e(route('admin.superblogs.articles.selection.update', [$superblog, 'flik' => 'innehall', 'page' => 2])).'"', false);
     }
 
     public function test_articles_from_another_superblog_cannot_be_selected_or_modified(): void

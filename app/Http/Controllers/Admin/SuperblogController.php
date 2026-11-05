@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\SaveSuperblogRequest;
+use App\Models\Article;
 use App\Models\Superblog;
 use App\Models\Template;
 use Illuminate\Database\UniqueConstraintViolationException;
@@ -54,6 +55,16 @@ class SuperblogController extends Controller
                 ->paginate(20)
                 ->withQueryString()
             : null;
+        $publicationSummary = null;
+
+        if (request()->query('flik') === 'publicera') {
+            $articles = Article::query()->where('superblog_id', $superblog->getKey());
+            $publicationSummary = [
+                'selected' => (clone $articles)->where('is_selected_for_publication', true)->count(),
+                'to_publish' => (clone $articles)->where('is_selected_for_publication', true)->where('status', 'draft')->count(),
+                'to_withdraw' => (clone $articles)->where('is_selected_for_publication', false)->where('status', 'published')->count(),
+            ];
+        }
 
         return view('admin.superblogs.edit', [
             'superblog' => $superblog,
@@ -63,19 +74,15 @@ class SuperblogController extends Controller
             // Same rule as the dashboard: only published articles count, drafts do not.
             'publishedArticlesCount' => $superblog->articles()->where('status', 'published')->count(),
             'articles' => $articles,
+            'publicationSummary' => $publicationSummary,
         ]);
     }
 
-    public function show(Superblog $superblog): View
+    public function show(Superblog $superblog): RedirectResponse
     {
         Gate::authorize('view', $superblog);
 
-        $superblog->loadCount([
-            'articles',
-            'articles as published_articles_count' => fn ($query) => $query->where('status', 'published'),
-        ]);
-
-        return view('admin.superblogs.show', compact('superblog'));
+        return to_route('admin.superblogs.edit', $superblog);
     }
 
     public function update(SaveSuperblogRequest $request, Superblog $superblog): RedirectResponse
@@ -87,6 +94,29 @@ class SuperblogController extends Controller
         }
 
         return to_route('admin.superblogs.edit', $superblog)->with('status', 'Superblog updated.');
+    }
+
+    public function unpublish(Superblog $superblog): RedirectResponse
+    {
+        Gate::authorize('update', $superblog);
+
+        $wasPublished = DB::transaction(function () use ($superblog): bool {
+            $lockedSuperblog = Superblog::query()->lockForUpdate()->findOrFail($superblog->getKey());
+            $wasPublished = $lockedSuperblog->status === 'published';
+
+            if ($wasPublished) {
+                // Taking a site offline must not alter the publication history of its articles.
+                $lockedSuperblog->update(['status' => 'draft']);
+            }
+
+            return $wasPublished;
+        });
+
+        $message = $wasPublished
+            ? 'Superblocket är avpublicerat. Artiklar och publiceringsdatum är oförändrade.'
+            : 'Superblocket var redan avpublicerat.';
+
+        return to_route('admin.superblogs.edit', [$superblog, 'flik' => 'publicera'])->with('status', $message);
     }
 
     public function confirmDeletion(Superblog $superblog): View

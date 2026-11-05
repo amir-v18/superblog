@@ -35,7 +35,6 @@
         @auth
             <nav aria-label="Huvudmeny" class="flex flex-col gap-0.5 overflow-auto lg:flex-1">
                 <a href="{{ route('admin.dashboard') }}" @if (request()->routeIs('admin.dashboard')) aria-current="page" @endif class="{{ $navItemClasses }}">Översikt</a>
-                <a href="{{ route('admin.articles.index') }}" @if (request()->routeIs('admin.articles.*')) aria-current="page" @endif class="{{ $navItemClasses }}">Artiklar</a>
 
                 {{-- The section only appears when this user has live Superblogs to open. --}}
                 @if ($sidebarPublished->isNotEmpty())
@@ -44,7 +43,7 @@
                         @php
                             $themeName = App\Support\Theme::nameFor($superblog);
                         @endphp
-                        <a href="{{ route('admin.superblogs.show', $superblog) }}" @if ($superblog->getKey() == $currentSuperblogId) aria-current="page" @endif class="{{ $navItemClasses }} pl-6">
+                        <a href="{{ route('admin.superblogs.edit', $superblog) }}" @if ($superblog->getKey() == $currentSuperblogId) aria-current="page" @endif class="{{ $navItemClasses }} pl-6">
                             {{-- data-theme scopes the theme's CSS variables to the dot, so bg-primary is the magazine's own color. --}}
                             @if ($themeName)
                                 <i data-theme="{{ $themeName }}" aria-hidden="true" class="size-2.5 shrink-0 rounded-[3px] bg-primary"></i>

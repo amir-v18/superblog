@@ -64,4 +64,80 @@ class SuperblogPreviewTest extends TestCase
             ->assertSee('data-theme="techenspraket"', false)
             ->assertDontSee('data-theme="bondebladet"', false);
     }
+
+    public function test_published_superblog_preview_uses_live_articles_and_excludes_drafts(): void
+    {
+        $admin = $this->makeUser(approved: true, superAdmin: true);
+        $superblog = $this->makeSuperblog($admin);
+        $superblog->update(['status' => 'published']);
+        $published = $superblog->articles()->create([
+            'title' => 'Published home preview article',
+            'slug' => 'published-home-preview-article',
+            'content' => 'Live article content.',
+            'excerpt' => 'Live article summary.',
+            'source_type' => 'manual',
+            'status' => 'published',
+            'is_selected_for_publication' => true,
+            'published_at' => now(),
+        ]);
+        $superblog->articles()->create([
+            'title' => 'Draft must stay hidden',
+            'slug' => 'draft-must-stay-hidden',
+            'content' => 'Draft content.',
+            'source_type' => 'manual',
+            'status' => 'draft',
+        ]);
+
+        $this->actingAs($admin)
+            ->get(route('admin.superblogs.preview', $superblog))
+            ->assertOk()
+            ->assertSee('Published home preview article')
+            ->assertSee('Live article summary.')
+            ->assertSee(route('public.superblogs.articles.show', [$superblog, $published]), false)
+            ->assertDontSee('Draft must stay hidden')
+            ->assertDontSee('Här visas din första artikel');
+    }
+
+    public function test_offline_preview_shows_checked_articles_after_saving_selection(): void
+    {
+        $admin = $this->makeUser(approved: true, superAdmin: true);
+        $superblog = $this->makeSuperblog($admin);
+        $article = $superblog->articles()->create([
+            'title' => 'Offline preview article',
+            'slug' => 'offline-preview-article',
+            'content' => 'This remains a private preview.',
+            'source_type' => 'manual',
+            'status' => 'draft',
+            'is_selected_for_publication' => false,
+            'published_at' => null,
+        ]);
+        $unselectedArticle = $superblog->articles()->create([
+            'title' => 'Unchecked offline preview article',
+            'slug' => 'unchecked-offline-preview-article',
+            'content' => 'This must not appear in the preview.',
+            'source_type' => 'manual',
+            'status' => 'draft',
+            'is_selected_for_publication' => true,
+            'published_at' => null,
+        ]);
+
+        $this->actingAs($admin)
+            ->put(route('admin.superblogs.articles.selection.update', $superblog), [
+                'visible_article_ids' => [$article->getKey(), $unselectedArticle->getKey()],
+                'selected_article_ids' => [$article->getKey()],
+            ])
+            ->assertRedirect();
+
+        $this->assertSame('draft', $article->fresh()->status);
+        $this->assertNull($article->fresh()->published_at);
+        $this->assertFalse($unselectedArticle->fresh()->is_selected_for_publication);
+        $this->assertTrue($article->fresh()->is_selected_for_publication);
+
+        $this->get(route('admin.superblogs.preview', $superblog))
+            ->assertOk()
+            ->assertSee('Offline preview article')
+            ->assertSee(route('public.superblogs.articles.show', [$superblog, $article]), false)
+            ->assertDontSee($unselectedArticle->title)
+            ->assertDontSee(route('public.superblogs.articles.show', [$superblog, $unselectedArticle]), false);
+    }
 }

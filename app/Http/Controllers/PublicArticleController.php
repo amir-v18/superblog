@@ -10,10 +10,13 @@ class PublicArticleController extends Controller
 {
     public function show(Superblog $superblog, Article $article): View
     {
+        abort_unless($superblog->status === 'published', 404);
+
         $article = $superblog->articles()
             ->whereKey($article->getKey())
             ->where('status', 'published')
             ->whereNotNull('published_at')
+            ->where('is_selected_for_publication', true)
             ->with(['articleLinks', 'rssItem'])
             ->firstOrFail();
 

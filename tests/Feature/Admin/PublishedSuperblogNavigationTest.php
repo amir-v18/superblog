@@ -31,7 +31,8 @@ class PublishedSuperblogNavigationTest extends TestCase
         $this->actingAs($admin)->get(route('admin.dashboard'))
             ->assertOk()
             ->assertSee('href="'.route('admin.superblogs.published').'"', false)
-            ->assertSee('href="'.route('admin.superblogs.show', $live).'"', false);
+            ->assertSee('href="'.route('admin.superblogs.edit', $live).'"', false)
+            ->assertDontSee('href="'.route('admin.articles.index').'"', false);
     }
 
     public function test_publicerade_page_lists_only_accessible_live_superblogs(): void
@@ -46,6 +47,7 @@ class PublishedSuperblogNavigationTest extends TestCase
         $response = $this->actingAs($staff)->get(route('admin.superblogs.published'))
             ->assertOk()
             ->assertSee('Assigned live')
+            ->assertSee('href="'.route('admin.superblogs.edit', $accessibleLive).'"', false)
             ->assertDontSee('Unassigned live');
 
         $this->assertSame(['Assigned live'], $response->viewData('superblogs')->pluck('name')->all());
@@ -59,12 +61,49 @@ class PublishedSuperblogNavigationTest extends TestCase
         $this->makeArticle($first, 'First article');
         $this->makeArticle($second, 'Second article');
 
-        $this->actingAs($owner)->get(route('admin.superblogs.articles.index', $first))
+        $this->actingAs($owner)
+            ->get(route('admin.superblogs.articles.index', $first))
+            ->assertRedirect(route('admin.superblogs.edit', [$first, 'flik' => 'innehall']));
+
+        $this->get(route('admin.superblogs.edit', [$first, 'flik' => 'innehall']))
             ->assertOk()
             ->assertSee('First article')
             ->assertDontSee('Second article')
-            ->assertSee('Översikt')
-            ->assertSee('Inställningar');
+            ->assertSee('1 Grund')
+            ->assertSee('6 Avpublicera')
+            ->assertDontSee('aria-label="Superblog"', false);
+    }
+
+    public function test_draft_and_published_superblogs_use_the_same_six_step_builder(): void
+    {
+        $owner = $this->makeUser(superAdmin: true);
+        $draft = $this->makeSuperblog($owner, 'Draft builder', 'draft');
+        $published = $this->makeSuperblog($owner, 'Published builder', 'published');
+
+        foreach ([[$draft, '6 Publicera'], [$published, '6 Avpublicera']] as [$superblog, $publicationLabel]) {
+            $this->actingAs($owner)
+                ->get(route('admin.superblogs.edit', $superblog))
+                ->assertOk()
+                ->assertSee('1 Grund')
+                ->assertSee('2 Utseende')
+                ->assertSee('3 Flöden')
+                ->assertSee('4 Innehåll')
+                ->assertSee('5 Skriv artikel')
+                ->assertSee($publicationLabel)
+                ->assertSee('aria-label="Byggarens steg"', false)
+                ->assertDontSee('aria-label="Superblog"', false)
+                ->assertSee('Förhandsvisning av '.$superblog->name);
+        }
+    }
+
+    public function test_legacy_superblog_overview_route_opens_the_builder(): void
+    {
+        $owner = $this->makeUser(superAdmin: true);
+        $published = $this->makeSuperblog($owner, 'Live route', 'published');
+
+        $this->actingAs($owner)
+            ->get(route('admin.superblogs.show', $published))
+            ->assertRedirect(route('admin.superblogs.edit', $published));
     }
 
     public function test_staff_cannot_open_another_superblogs_articles_tab(): void

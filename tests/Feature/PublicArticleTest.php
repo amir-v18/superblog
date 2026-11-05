@@ -46,6 +46,53 @@ class PublicArticleTest extends TestCase
             ->assertNotFound();
     }
 
+    public function test_published_article_is_not_accessible_when_its_superblog_is_unpublished(): void
+    {
+        [$superblog, $article] = $this->makeArticle('published', Carbon::parse('2026-11-02 14:30:00'));
+        $superblog->update(['status' => 'draft']);
+
+        $this->get(route('public.superblogs.articles.show', [$superblog, $article]))
+            ->assertNotFound();
+    }
+
+    public function test_unselected_article_is_not_publicly_accessible_even_if_its_status_is_published(): void
+    {
+        [$superblog, $article] = $this->makeArticle('published', Carbon::parse('2026-11-02 14:30:00'));
+        $article->update(['is_selected_for_publication' => false]);
+
+        $this->get(route('public.superblogs.articles.show', [$superblog, $article]))
+            ->assertNotFound();
+    }
+
+    public function test_public_urls_follow_published_and_withdrawn_article_states(): void
+    {
+        [$superblog, $published] = $this->makeArticle('draft', null);
+        $owner = $superblog->user;
+        $owner->approval_status = 'approved';
+        $owner->is_super_admin = true;
+        $owner->save();
+        $published->update(['is_selected_for_publication' => true]);
+        $withdrawn = $superblog->articles()->create([
+            'title' => 'Withdrawn article',
+            'slug' => 'withdrawn-article',
+            'content' => 'Previously public content',
+            'source_type' => 'manual',
+            'status' => 'published',
+            'published_at' => now(),
+            'is_selected_for_publication' => false,
+        ]);
+
+        $this->actingAs($owner)
+            ->post(route('admin.superblogs.articles.publish-selected', $superblog))
+            ->assertRedirect();
+
+        $this->get(route('public.superblogs.articles.show', [$superblog, $published]))
+            ->assertOk()
+            ->assertSee('Database article title');
+        $this->get(route('public.superblogs.articles.show', [$superblog, $withdrawn]))
+            ->assertNotFound();
+    }
+
     public function test_article_cannot_be_opened_through_another_superblogs_url(): void
     {
         [$firstSuperblog, $firstArticle] = $this->makeArticle('published', Carbon::parse('2026-11-02 14:30:00'));
@@ -84,6 +131,7 @@ class PublicArticleTest extends TestCase
             'template_id' => $template->getKey(),
             'name' => "Public {$blogSlug}",
             'slug' => $blogSlug,
+            'status' => 'published',
             'settings' => ['theme' => 'bondebladet'],
         ]);
         $source = $superblog->rssSources()->create([
@@ -105,6 +153,7 @@ class PublicArticleTest extends TestCase
             'excerpt' => 'A real article excerpt',
             'source_type' => 'rss',
             'status' => $status,
+            'is_selected_for_publication' => $status === 'published',
             'published_at' => $publishedAt,
         ]);
 

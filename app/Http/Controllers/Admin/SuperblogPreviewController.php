@@ -24,9 +24,17 @@ class SuperblogPreviewController extends Controller
             $theme = Theme::NAMES[0];
         }
 
+        // The private preview remains useful after taking a site offline, while public routes enforce site status.
+        $articles = $superblog->articles()
+            ->where('is_selected_for_publication', true)
+            ->orderByDesc('published_at')
+            ->orderByDesc('id')
+            ->limit(7)
+            ->get();
+
         // The header also covers non-HTML crawlers; the meta tag in the template is a second line of defence.
         return response()
-            ->view('templates.news.home', ['superblog' => $superblog, 'theme' => $theme])
+            ->view('templates.news.home', ['superblog' => $superblog, 'theme' => $theme, 'articles' => $articles])
             ->header('X-Robots-Tag', 'noindex, nofollow');
     }
 }
