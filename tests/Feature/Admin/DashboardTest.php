@@ -117,8 +117,8 @@ class DashboardTest extends TestCase
         $admin = $this->makeUser(approved: true, superAdmin: true);
         // Inactive, so the create modal does not list it and the name can only come from the card.
         $template = Template::create([
-            'name' => 'Klassisk tidning',
-            'slug' => 'klassisk',
+            'name' => 'Gammal mall',
+            'slug' => 'gammal-mall',
             'layout' => 'layouts.public',
             'is_active' => false,
         ]);
@@ -131,7 +131,7 @@ class DashboardTest extends TestCase
 
         $this->actingAs($admin)->get(route('admin.dashboard'))
             ->assertOk()
-            ->assertSee('Klassisk tidning');
+            ->assertSee('Gammal mall');
     }
 
     public function test_admin_pages_are_swedish_and_not_indexed(): void
