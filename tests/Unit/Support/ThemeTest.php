@@ -12,14 +12,24 @@ class ThemeTest extends TestCase
     {
         // Unsaved models: only the slug is read, so no database is needed.
         $this->assertSame('bondebladet', Theme::forTemplate(new Template(['slug' => 'modern'])));
-        $this->assertSame('techenspraket', Theme::forTemplate(new Template(['slug' => 'tech'])));
 
-        // Templates without a mapping get the grey fallback thumbnail.
+        // Classic has no theme of its own yet, and slugs missing from the registry get the grey fallback.
+        $this->assertNull(Theme::forTemplate(new Template(['slug' => 'classic'])));
+        $this->assertNull(Theme::forTemplate(new Template(['slug' => 'tech'])));
         $this->assertNull(Theme::forTemplate(new Template(['slug' => 'editorial-default'])));
-        $this->assertNull(Theme::forTemplate(new Template(['slug' => 'klassisk'])));
+        $this->assertNull(Theme::forTemplate(new Template));
 
-        foreach (Theme::TEMPLATE_THEMES as $theme) {
-            $this->assertContains($theme, Theme::NAMES);
+        foreach (config('templates.list') as $entry) {
+            if ($entry['theme'] !== null) {
+                $this->assertContains($entry['theme'], Theme::NAMES);
+            }
         }
+    }
+
+    public function test_the_theme_comes_from_the_registry(): void
+    {
+        config(['templates.list.modern.theme' => 'techenspraket']);
+
+        $this->assertSame('techenspraket', Theme::forTemplate(new Template(['slug' => 'modern'])));
     }
 }

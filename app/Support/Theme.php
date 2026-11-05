@@ -17,12 +17,6 @@ class Theme
     /** Themes defined in resources/css/app.css as [data-theme='...'] blocks. */
     public const NAMES = ['bondebladet', 'techenspraket'];
 
-    /**
-     * Which theme draws a template's thumbnail in the create modal, keyed on the template's slug.
-     * A slug missing here (or a renamed one) gets the grey fallback thumbnail instead of breaking.
-     */
-    public const TEMPLATE_THEMES = ['modern' => 'bondebladet', 'tech' => 'techenspraket'];
-
     public const COLOR_KEYS = ['paper', 'white', 'ink', 'muted', 'primary', 'deep', 'line', 'pale'];
 
     public const FONT_KEYS = ['display', 'body'];
@@ -55,12 +49,16 @@ class Theme
     }
 
     /**
-     * The thumbnail theme for a template, or null for the grey fallback. Goes through name(), so a mapped
-     * theme that is later removed from NAMES also falls back instead of reaching data-theme.
+     * The thumbnail theme for a template, read from config/templates.php by slug, or null for the grey fallback.
+     * A slug missing there (or a renamed one) falls back instead of breaking. Goes through name(), so a theme
+     * that is later removed from NAMES also falls back instead of reaching data-theme.
      */
     public static function forTemplate(Template $template): ?string
     {
-        return self::name(self::TEMPLATE_THEMES[$template->slug] ?? null);
+        // Looked up as an array key, not with dot notation, so the slug is never parsed as a config path.
+        $entry = config('templates.list', [])[(string) $template->slug] ?? [];
+
+        return self::name($entry['theme'] ?? null);
     }
 
     /**

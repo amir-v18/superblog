@@ -3,6 +3,7 @@
 namespace Tests\Feature\Admin;
 
 use App\Models\Template;
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
 use Tests\Concerns\CreatesSuperblogs;
@@ -80,70 +81,99 @@ class CreateSuperblogModalTest extends TestCase
     public function test_modal_shows_one_card_per_active_template(): void
     {
         $admin = $this->makeUser(approved: true, superAdmin: true);
+        // Created first and alphabetically first, so only the registry can put Modern ahead of it.
+        $classic = $this->makeTemplate('Klassisk tidning', 'classic', 'Nyhetsblad med spalter, dubbla linjer, titelblock och retroannonser.');
         $modern = $this->makeTemplate('Modern magasin', 'modern', 'Stor huvudartikel med bild, mest läst och ljusa kort. Lugnt och luftigt.');
-        $tech = $this->makeTemplate('Tech', 'tech', 'Samma struktur i mörkare ton med monospace-etiketter och annonsplats i kanten.');
-        $plain = $this->makeTemplate('Editorial Default', 'editorial-default', null);
-        $inactive = $this->makeTemplate('Klassisk tidning', 'klassisk', 'Nyhetsblad med spalter.', active: false);
+        $tech = $this->makeTemplate('Tech', 'tech', 'Samma struktur i mörkare ton.', active: false);
+        $editorial = $this->makeTemplate('Editorial Default', 'editorial-default', null, active: false);
 
         $content = $this->actingAs($admin)->get(route('admin.dashboard'))->assertOk()->getContent();
         // The modal sits after </main>, so the dashboard cards are left out.
         $modal = Str::after($content, '</main>');
         $form = Str::between($modal, '<form', '</form>');
 
-        // One radio per active template, inside the form, so the choice is sent with it.
-        $this->assertSame(3, substr_count($form, 'name="template_id"'));
-        foreach ([$modern, $tech, $plain] as $template) {
-            $this->assertStringContainsString('name="template_id" value="'.$template->id.'"', $form);
+        // One radio per active template, inside the form, so the choice is sent with it. Inactive ones are left out.
+        $this->assertSame(2, substr_count($form, 'name="template_id"'));
+        foreach ([$tech, $editorial] as $inactive) {
+            $this->assertStringNotContainsString('value="'.$inactive->id.'"', $form);
+            $this->assertStringNotContainsString($inactive->name, $modal);
         }
-        $this->assertStringNotContainsString('value="'.$inactive->id.'"', $form);
-        $this->assertStringNotContainsString('Klassisk tidning', $modal);
 
-        // Modern is preselected, the others are not.
-        $this->assertStringContainsString('value="'.$modern->id.'" required checked', $form);
-        $this->assertStringNotContainsString('value="'.$tech->id.'" required checked', $form);
-        $this->assertStringNotContainsString('value="'.$plain->id.'" required checked', $form);
-
-        // Descriptions come from the database; a template without one gets no empty line.
-        $this->assertStringContainsString('Stor huvudartikel med bild, mest läst och ljusa kort. Lugnt och luftigt.', $form);
-        $this->assertStringContainsString('Samma struktur i mörkare ton med monospace-etiketter och annonsplats i kanten.', $form);
-        $this->assertSame(2, substr_count($form, '<small class="px-3 pb-3 text-xs leading-[1.4] text-studio-muted">'));
-
-        // Thumbnails: modern and tech in their themes, the unmapped slug in the grey fallback.
-        $this->assertStringContainsString('data-theme="bondebladet"', $form);
-        $this->assertStringContainsString('data-theme="techenspraket"', $form);
-        $this->assertSame(2, substr_count($form, 'data-theme='));
-        $this->assertSame(1, substr_count($form, 'border-b border-studio-line bg-studio-bg'));
-    }
-
-    public function test_first_active_template_is_preselected_without_modern(): void
-    {
-        $admin = $this->makeUser(approved: true, superAdmin: true);
-        $tech = $this->makeTemplate('Tech', 'tech', null);
-        $first = $this->makeTemplate('Allmän', 'allman', null);
-
-        $form = Str::between(
-            Str::after($this->actingAs($admin)->get(route('admin.dashboard'))->assertOk()->getContent(), '</main>'),
-            '<form', '</form>'
+        // Cards follow the registry's order, not the name order.
+        $this->assertLessThan(
+            strpos($form, 'value="'.$classic->id.'"'),
+            strpos($form, 'value="'.$modern->id.'"'),
         );
 
-        // Templates are listed by name, so "Allmän" comes first and is chosen.
-        $this->assertStringContainsString('value="'.$first->id.'" required checked', $form);
-        $this->assertStringNotContainsString('value="'.$tech->id.'" required checked', $form);
+        // Modern is preselected, Klassisk tidning is not.
+        $this->assertStringContainsString('value="'.$modern->id.'" required checked', $form);
+        $this->assertStringNotContainsString('value="'.$classic->id.'" required checked', $form);
+
+        // Descriptions come from the database.
+        $this->assertStringContainsString('Stor huvudartikel med bild, mest läst och ljusa kort. Lugnt och luftigt.', $form);
+        $this->assertStringContainsString('Nyhetsblad med spalter, dubbla linjer, titelblock och retroannonser.', $form);
+
+        // Thumbnails: Modern in its theme, Klassisk tidning in the grey fallback.
+        $this->assertStringContainsString('data-theme="bondebladet"', $form);
+        $this->assertSame(1, substr_count($form, 'data-theme='));
+        $this->assertSame(1, substr_count($form, 'border-b border-studio-line bg-studio-bg'));
+
+        // Three columns as in the design, even with two templates.
+        $this->assertStringContainsString('grid gap-3 sm:grid-cols-3', $form);
+    }
+
+    public function test_a_template_without_description_gets_no_empty_line(): void
+    {
+        $admin = $this->makeUser(approved: true, superAdmin: true);
+        $this->makeTemplate('Modern magasin', 'modern', 'Stor huvudartikel med bild.');
+        $this->makeTemplate('Klassisk tidning', 'classic', null);
+
+        $form = $this->modalForm($admin);
+
+        $this->assertSame(1, substr_count($form, '<small class="px-3 pb-3 text-xs leading-[1.4] text-studio-muted">'));
+    }
+
+    public function test_first_card_is_preselected_when_the_default_is_inactive(): void
+    {
+        $admin = $this->makeUser(approved: true, superAdmin: true);
+        $modern = $this->makeTemplate('Modern magasin', 'modern', null, active: false);
+        $other = $this->makeTemplate('Allmän', 'allman', null);
+        $classic = $this->makeTemplate('Klassisk tidning', 'classic', null);
+
+        $form = $this->modalForm($admin);
+
+        // Classic is in the registry and comes before templates missing from it, so it is the first card and chosen.
+        $this->assertStringNotContainsString('value="'.$modern->id.'"', $form);
+        $this->assertStringContainsString('value="'.$classic->id.'" required checked', $form);
+        $this->assertStringNotContainsString('value="'.$other->id.'" required checked', $form);
+    }
+
+    public function test_the_preselected_template_comes_from_the_registry(): void
+    {
+        $admin = $this->makeUser(approved: true, superAdmin: true);
+        $modern = $this->makeTemplate('Modern magasin', 'modern', null);
+        $classic = $this->makeTemplate('Klassisk tidning', 'classic', null);
+        config(['templates.default' => 'classic']);
+
+        $form = $this->modalForm($admin);
+
+        $this->assertStringContainsString('value="'.$classic->id.'" required checked', $form);
+        $this->assertStringNotContainsString('value="'.$modern->id.'" required checked', $form);
     }
 
     public function test_the_chosen_template_is_saved(): void
     {
         $admin = $this->makeUser(approved: true, superAdmin: true);
         $this->makeTemplate('Modern magasin', 'modern', null);
-        $tech = $this->makeTemplate('Tech', 'tech', null);
+        $classic = $this->makeTemplate('Klassisk tidning', 'classic', null);
 
         $this->actingAs($admin)->post(route('admin.superblogs.store'), [
             '_form' => 'create-superblog',
-            'name' => 'Teknikbladet',
-            'template_id' => $tech->id,
+            'name' => 'Allmänna Tidningen',
+            'template_id' => $classic->id,
         ])->assertSessionHasNoErrors();
 
-        $this->assertDatabaseHas('superblogs', ['name' => 'Teknikbladet', 'template_id' => $tech->id]);
+        $this->assertDatabaseHas('superblogs', ['name' => 'Allmänna Tidningen', 'template_id' => $classic->id]);
     }
 
     public function test_duplicate_name_error_is_shown_under_the_name_field(): void
@@ -166,6 +196,14 @@ class CreateSuperblogModalTest extends TestCase
 
         $this->assertMatchesRegularExpression('#<p id="create-name-error" class="[^"]*">The slug has already been taken\.</p>#', $content);
         $this->assertDatabaseCount('superblogs', 1);
+    }
+
+    /** The modal's form on the dashboard. The modal sits after </main>, so the dashboard cards are left out. */
+    private function modalForm(User $admin): string
+    {
+        $content = $this->actingAs($admin)->get(route('admin.dashboard'))->assertOk()->getContent();
+
+        return Str::between(Str::after($content, '</main>'), '<form', '</form>');
     }
 
     private function makeTemplate(string $name, string $slug, ?string $description, bool $active = true): Template

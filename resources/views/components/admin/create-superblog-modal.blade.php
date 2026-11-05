@@ -2,8 +2,7 @@
     // The hidden _form field tells this modal apart from the page's own forms. Old input is shared by every
     // form on the page, so errors and typed values are only used here when this modal was the one submitted.
     $reopen = $errors->any() && old('_form') === 'create-superblog';
-    // Modern is preselected; without it the first active template, so a choice is always made.
-    $defaultTemplate = ($templates->firstWhere('slug', 'modern') ?? $templates->first())?->id;
+    // $defaultTemplate (an id or null) comes from the component class, which reads it from the template registry.
     $selectedTemplate = $reopen ? old('template_id', $defaultTemplate) : $defaultTemplate;
     // One message per field, under the field. The slug is built from the name (also for the duplicate
     // check), so its error belongs under Namn.
