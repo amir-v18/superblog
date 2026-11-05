@@ -16,26 +16,69 @@ class DevelopmentSeedersTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_template_seeder_is_idempotent_and_preserves_existing_template_edits(): void
+    public function test_template_seeder_creates_missing_registry_templates_and_never_changes_existing_ones(): void
     {
+        // Edited in admin before the seeder runs: name, description and is_active must survive.
+        $modern = Template::create([
+            'name' => 'Vårt moderna magasin',
+            'slug' => 'modern',
+            'description' => 'Egen text.',
+            'layout' => 'layouts.public',
+            'is_active' => false,
+        ]);
+
         $seeder = app(TemplateSeeder::class);
         $seeder->run();
-
-        $template = Template::where('seed_key', 'initial-editorial')->firstOrFail();
-        $template->name = 'Locally Customized Template';
-        $template->slug = 'my-custom-editorial';
-        $template->save();
-
         $seeder->run();
 
-        $this->assertDatabaseCount('templates', 1);
+        // One row per registry slug, and the old Editorial Default is no longer created.
+        $this->assertDatabaseCount('templates', count(config('templates.list')));
+        $this->assertDatabaseMissing('templates', ['slug' => 'editorial-default']);
+
         $this->assertDatabaseHas('templates', [
-            'id' => $template->id,
-            'name' => 'Locally Customized Template',
-            'slug' => 'my-custom-editorial',
-            'seed_key' => 'initial-editorial',
+            'id' => $modern->id,
+            'name' => 'Vårt moderna magasin',
+            'description' => 'Egen text.',
+            'is_active' => false,
         ]);
-        $this->assertSame('layouts.public', $template->fresh()->layout);
+
+        $this->assertDatabaseHas('templates', [
+            'slug' => 'classic',
+            'name' => 'Klassisk tidning',
+            'description' => 'Nyhetsblad med spalter, dubbla linjer, titelblock och retroannonser.',
+            'layout' => 'layouts.public',
+            'is_active' => true,
+        ]);
+    }
+
+    public function test_deactivation_migration_turns_off_only_the_old_templates_and_can_rerun(): void
+    {
+        $migration = require database_path('migrations/2026_11_05_000001_deactivate_editorial_default_and_tech_templates.php');
+
+        // No matching rows: nothing to do, and no error.
+        $migration->up();
+
+        $old = collect(['editorial-default', 'tech'])->map(fn (string $slug) => Template::create([
+            'name' => $slug,
+            'slug' => $slug,
+            'layout' => 'layouts.public',
+            'is_active' => true,
+        ]));
+        $modern = Template::create(['name' => 'Modern magasin', 'slug' => 'modern', 'layout' => 'layouts.public', 'is_active' => true]);
+
+        $migration->up();
+        $migration->up();
+
+        foreach ($old as $template) {
+            $this->assertFalse($template->fresh()->is_active);
+        }
+        $this->assertTrue($modern->fresh()->is_active);
+
+        // down() never switches anything back on.
+        $migration->down();
+        foreach ($old as $template) {
+            $this->assertFalse($template->fresh()->is_active);
+        }
     }
 
     public function test_renamed_legacy_template_can_be_adopted_and_seed_reruns_preserve_it(): void
@@ -53,7 +96,8 @@ class DevelopmentSeedersTest extends TestCase
 
         app(TemplateSeeder::class)->run();
 
-        $this->assertDatabaseCount('templates', 1);
+        // The seeder adds the registry's templates but leaves the adopted row as it was.
+        $this->assertDatabaseCount('templates', 1 + count(config('templates.list')));
         $this->assertDatabaseHas('templates', [
             'id' => $template->id,
             'name' => 'My renamed layout',
