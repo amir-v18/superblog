@@ -24,9 +24,15 @@ class SuperblogPreviewController extends Controller
             $theme = Theme::NAMES[0];
         }
 
+        // The template's site views come from config/templates.php. A template missing there (an old or
+        // hand-made one) gets the default template's site, so every magazine still has a preview.
+        $templates = config('templates.list', []);
+        $site = $templates[(string) $superblog->template?->slug]['site']
+            ?? $templates[config('templates.default')]['site'];
+
         // The header also covers non-HTML crawlers; the meta tag in the template is a second line of defence.
         return response()
-            ->view('templates.news.home', ['superblog' => $superblog, 'theme' => $theme])
+            ->view("{$site}.home", ['superblog' => $superblog, 'theme' => $theme])
             ->header('X-Robots-Tag', 'noindex, nofollow');
     }
 }

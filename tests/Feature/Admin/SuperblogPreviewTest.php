@@ -3,6 +3,7 @@
 namespace Tests\Feature\Admin;
 
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use InvalidArgumentException;
 use Tests\Concerns\CreatesSuperblogs;
 use Tests\TestCase;
 
@@ -38,6 +39,39 @@ class SuperblogPreviewTest extends TestCase
             ->assertViewIs('templates.news.home')
             ->assertSee('<span data-live-name>Dagens Budbärare</span>', false)
             ->assertHeader('X-Robots-Tag', 'noindex, nofollow');
+    }
+
+    public function test_the_templates_site_from_the_registry_is_shown(): void
+    {
+        $admin = $this->makeUser(approved: true, superAdmin: true);
+        $superblog = $this->makeSuperblog($admin);
+        $superblog->template->update(['slug' => 'classic']);
+        // A folder that does not exist: the error names the view, which shows the registry was read.
+        config(['templates.list.classic.site' => 'templates.registry-check']);
+
+        $this->withoutExceptionHandling();
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('View [templates.registry-check.home] not found.');
+
+        $this->actingAs($admin)->get(route('admin.superblogs.preview', $superblog));
+    }
+
+    public function test_a_template_missing_from_the_registry_gets_the_default_templates_site(): void
+    {
+        $admin = $this->makeUser(approved: true, superAdmin: true);
+        // makeSuperblog's template has the slug "news", which is not in the registry.
+        $superblog = $this->makeSuperblog($admin);
+        config(['templates.list.modern.site' => 'templates.news']);
+
+        $this->actingAs($admin)->get(route('admin.superblogs.preview', $superblog))
+            ->assertOk()
+            ->assertViewIs('templates.news.home');
+
+        $superblog->template->update(['slug' => 'tech']);
+
+        $this->get(route('admin.superblogs.preview', $superblog))
+            ->assertOk()
+            ->assertViewIs('templates.news.home');
     }
 
     public function test_missing_or_unknown_theme_falls_back_to_the_first_theme(): void
