@@ -158,36 +158,12 @@
                         <h2 id="articles-heading" class="text-lg font-semibold">Innehåll</h2>
                         <p class="mt-1 text-sm text-studio-muted">Välj vilka artiklar som ska ingå i publiceringen. På ett publicerat Superblogg tillämpas urvalet direkt när du sparar. När Superblogget är offline sparas bara urvalet.</p>
 
-                        @if ($articles->isEmpty())
-                            <p class="mt-5 rounded-lg border border-dashed border-studio-line p-4 text-sm text-studio-muted">Det finns inga artiklar i det här Superblocket ännu. RSS-artiklar visas här när de har skapats från ett hämtat flöde.</p>
-                        @else
-                            <form method="POST" action="{{ route('admin.superblogs.articles.selection.update', [$superblog, 'flik' => 'innehall', 'page' => $articles->currentPage()]) }}" class="mt-4">
-                                @csrf
-                                @method('PUT')
-
-                                <ul class="flex flex-col gap-2.5">
-                                    @foreach ($articles as $article)
-                                        <li class="rounded-lg border border-studio-line bg-studio-panel p-3">
-                                            <input type="hidden" name="visible_article_ids[]" value="{{ $article->id }}">
-                                            <label class="flex items-start gap-3">
-                                                <input type="checkbox" name="selected_article_ids[]" value="{{ $article->id }}" @checked($article->is_selected_for_publication) class="mt-1 size-4 shrink-0 accent-studio-brand">
-                                                <span class="min-w-0">
-                                                    <a href="{{ route('admin.superblogs.articles.edit', [$superblog, $article]) }}" class="wrap-break-word font-medium underline decoration-studio-line underline-offset-4 hover:decoration-current">{{ $article->title }}</a>
-                                                    <span class="mt-1 flex flex-wrap gap-x-2 text-xs text-studio-muted">
-                                                        <span>{{ $article->source_type === 'rss' ? 'RSS' : 'Manuell' }}</span>
-                                                    </span>
-                                                </span>
-                                            </label>
-                                        </li>
-                                    @endforeach
-                                </ul>
-
-                                <x-admin.button class="mt-4">Spara urval</x-admin.button>
-                                @if ($articles->hasPages())
-                                    <div class="mt-4">{{ $articles->links() }}</div>
-                                @endif
-                            </form>
-                        @endif
+                        @foreach ([
+                            ['key' => 'manual', 'label' => 'Manuella artiklar', 'articles' => $manualArticles],
+                            ['key' => 'rss', 'label' => 'RSS-artiklar', 'articles' => $rssArticles],
+                        ] as $group)
+                            @include('admin.superblogs._article-section', ['group' => $group, 'superblog' => $superblog])
+                        @endforeach
                     </section>
                 @elseif ($tab === 'skriv-artikel')
                     <section aria-labelledby="write-article-heading">
@@ -198,6 +174,11 @@
                     </section>
                 @elseif ($tab === 'publicera')
                     <section aria-labelledby="publish-heading">
+                        <aside aria-label="Tillfällig information om publiceringsinställningar" class="mb-5 rounded-lg border border-studio-line bg-studio-panel p-4">
+                            <h2 class="text-sm font-semibold">Slutlig publiceringskonfiguration återstår</h2>
+                            <p class="mt-1 text-sm text-studio-muted">Domän, DNS och hosting konfigureras när vi har fått de uppgifter som behövs. Den här delen av inställningarna är tillfällig och ännu inte färdigställd.</p>
+                        </aside>
+
                         @if ($superblog->status === 'published')
                             <h2 id="publish-heading" class="text-lg font-semibold">Avpublicera Superblog</h2>
                             <p class="mt-1 text-sm text-studio-muted">Detta tar hela Superblocket offline. Artiklarna behåller sin publiceringsstatus och sina publiceringsdatum, och förhandsvisningen finns kvar i byggaren.</p>

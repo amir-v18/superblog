@@ -250,15 +250,20 @@ class RssArticleWorkflowTest extends TestCase
     {
         [$staff, $superblog, $source, $item] = $this->makeAssignedSourceAndItem();
         $article = $this->createDraft($staff, $superblog, $source, $item);
+        $article->update(['is_selected_for_publication' => false]);
 
         $this->actingAs($staff)
             ->post(route('admin.superblogs.articles.publish', [$superblog, $article]))
-            ->assertRedirect(route('admin.superblogs.articles.edit', [$superblog, $article]))
+            ->assertRedirect(route('admin.superblogs.edit', [$superblog, 'flik' => 'innehall']))
             ->assertSessionHas('status', 'Article published.');
 
         $article->refresh();
         $this->assertSame('published', $article->status);
         $this->assertNotNull($article->published_at);
+        $this->assertTrue($article->is_selected_for_publication);
+        $this->get(route('admin.superblogs.edit', [$superblog, 'flik' => 'innehall']))
+            ->assertOk()
+            ->assertSee('name="selected_article_ids[]" value="'.$article->getKey().'" checked', false);
         $this->assertSame('Original feed content', $item->fresh()->content);
     }
 
@@ -318,7 +323,7 @@ class RssArticleWorkflowTest extends TestCase
 
         $this->actingAs($staff)
             ->post(route('admin.superblogs.articles.publish', [$superblog, $article]))
-            ->assertRedirect(route('admin.superblogs.articles.edit', [$superblog, $article]));
+            ->assertRedirect(route('admin.superblogs.edit', [$superblog, 'flik' => 'innehall']));
         $publishedAt = $article->fresh()->published_at;
 
         $this->get(route('admin.superblogs.articles.edit', [$superblog, $article]))

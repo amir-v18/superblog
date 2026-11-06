@@ -140,4 +140,41 @@ class SuperblogPreviewTest extends TestCase
             ->assertDontSee($unselectedArticle->title)
             ->assertDontSee(route('public.superblogs.articles.show', [$superblog, $unselectedArticle]), false);
     }
+
+    public function test_preview_timeline_keeps_manual_and_rss_articles_in_chronological_order(): void
+    {
+        $admin = $this->makeUser(approved: true, superAdmin: true);
+        $superblog = $this->makeSuperblog($admin);
+        $superblog->update(['status' => 'published']);
+        $olderManual = $superblog->articles()->create([
+            'title' => 'Older manual article',
+            'slug' => 'older-manual-article',
+            'content' => 'Manual article body.',
+            'source_type' => 'manual',
+            'status' => 'published',
+            'is_selected_for_publication' => true,
+            'published_at' => now()->subDays(2),
+        ]);
+        $newerRss = $superblog->articles()->create([
+            'title' => 'Newest RSS article',
+            'slug' => 'newest-rss-article',
+            'content' => 'RSS article body.',
+            'source_type' => 'rss',
+            'status' => 'published',
+            'is_selected_for_publication' => true,
+            'published_at' => now()->subDay(),
+        ]);
+
+        $html = $this->actingAs($admin)
+            ->get(route('admin.superblogs.preview', $superblog))
+            ->assertOk()
+            ->getContent();
+
+        $newerPosition = strpos($html, $newerRss->title);
+        $olderPosition = strpos($html, $olderManual->title);
+
+        $this->assertNotFalse($newerPosition);
+        $this->assertNotFalse($olderPosition);
+        $this->assertLessThan($olderPosition, $newerPosition);
+    }
 }

@@ -48,13 +48,35 @@ class SuperblogController extends Controller
         Gate::authorize('view', $superblog);
         Gate::authorize('update', $superblog);
 
-        $articles = request()->query('flik') === 'innehall'
-            ? $superblog->articles()
+        $manualArticles = null;
+        $rssArticles = null;
+
+        if (request()->query('flik') === 'innehall') {
+            $manualArticles = $superblog->articles()
+                ->where('source_type', 'manual')
                 ->orderByDesc('updated_at')
                 ->orderByDesc('id')
-                ->paginate(20)
-                ->withQueryString()
-            : null;
+                ->paginate(5, ['*'], 'manual_page')
+                ->withQueryString();
+            $rssArticles = $superblog->articles()
+                ->where('source_type', 'rss')
+                ->orderByDesc('updated_at')
+                ->orderByDesc('id')
+                ->paginate(5, ['*'], 'rss_page')
+                ->withQueryString();
+
+            $paginationSection = request()->header('X-Pagination-Section');
+            if (request()->ajax() && in_array($paginationSection, ['manual', 'rss'], true)) {
+                $articles = $paginationSection === 'manual' ? $manualArticles : $rssArticles;
+                $group = [
+                    'key' => $paginationSection,
+                    'label' => $paginationSection === 'manual' ? 'Manuella artiklar' : 'RSS-artiklar',
+                    'articles' => $articles,
+                ];
+
+                return view('admin.superblogs._article-section', compact('group', 'superblog'));
+            }
+        }
         $publicationSummary = null;
 
         if (request()->query('flik') === 'publicera') {
@@ -73,7 +95,8 @@ class SuperblogController extends Controller
             'rssSources' => $superblog->rssSources()->withCount('rssItems')->orderBy('name')->get(),
             // Same rule as the dashboard: only published articles count, drafts do not.
             'publishedArticlesCount' => $superblog->articles()->where('status', 'published')->count(),
-            'articles' => $articles,
+            'manualArticles' => $manualArticles,
+            'rssArticles' => $rssArticles,
             'publicationSummary' => $publicationSummary,
         ]);
     }

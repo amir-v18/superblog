@@ -40,6 +40,10 @@ class ArticleSelectionTest extends TestCase
             ->assertSee('Manual draft')
             ->assertSee('Published story')
             ->assertDontSee('Other blog article')
+            ->assertSee('Manuella artiklar')
+            ->assertSee('RSS-artiklar')
+            ->assertSee(route('admin.superblogs.articles.edit', [$superblog, $rssDraft]), false)
+            ->assertSee(route('admin.superblogs.articles.edit', [$superblog, $manualDraft]), false)
             ->assertSee('RSS')
             ->assertSee('Manuell')
             ->assertDontSee('<span>Draft</span>', false)
@@ -92,7 +96,7 @@ class ArticleSelectionTest extends TestCase
                 'visible_article_ids' => [$published->id, $draft->id],
                 'selected_article_ids' => [$draft->id],
             ])
-            ->assertRedirect(route('admin.superblogs.edit', [$superblog, 'flik' => 'innehall', 'page' => 1]))
+            ->assertRedirect(route('admin.superblogs.edit', [$superblog, 'flik' => 'innehall', 'manual_page' => 1, 'rss_page' => 1]))
             ->assertSessionHas('status', 'Article selection saved for the current page. The Superblog is offline, so article publication was not changed.');
 
         $published->refresh();
@@ -125,10 +129,10 @@ class ArticleSelectionTest extends TestCase
         $leaveDraft = $this->makeArticle($superblog, 'Leave draft');
 
         $page = $this->actingAs($staff)
-            ->get(route('admin.superblogs.edit', [$superblog, 'flik' => 'innehall', 'page' => 1]))
+            ->get(route('admin.superblogs.edit', [$superblog, 'flik' => 'innehall', 'manual_page' => 1]))
             ->assertOk()
-            ->assertSee('page=2', false)
-            ->viewData('articles');
+            ->assertSee('manual_page=2', false)
+            ->viewData('manualArticles');
         $visibleIds = $page->getCollection()->modelKeys();
 
         $this->assertContains($keepPublished->getKey(), $visibleIds);
@@ -137,10 +141,10 @@ class ArticleSelectionTest extends TestCase
         $this->assertContains($leaveDraft->getKey(), $visibleIds);
         $this->assertNotContains($offPageArticle->getKey(), $visibleIds);
 
-        $this->put(route('admin.superblogs.articles.selection.update', [$superblog, 'flik' => 'innehall', 'page' => 1]), [
+        $this->put(route('admin.superblogs.articles.selection.update', [$superblog, 'flik' => 'innehall', 'manual_page' => 1, 'rss_page' => 1]), [
             'visible_article_ids' => $visibleIds,
             'selected_article_ids' => [$keepPublished->getKey(), $publishDraft->getKey()],
-        ])->assertRedirect(route('admin.superblogs.edit', [$superblog, 'flik' => 'innehall', 'page' => 1]))
+        ])->assertRedirect(route('admin.superblogs.edit', [$superblog, 'flik' => 'innehall', 'manual_page' => 1, 'rss_page' => 1]))
             ->assertSessionHas('status', 'Article selection saved and applied to publication for the current page.');
 
         $this->assertSame('published', $keepPublished->fresh()->status);
@@ -162,11 +166,205 @@ class ArticleSelectionTest extends TestCase
         $this->assertTrue($offPageArticle->fresh()->is_selected_for_publication);
         $this->assertTrue($offPageDate->equalTo($offPageArticle->fresh()->published_at));
 
-        $pageTwoResponse = $this->get(route('admin.superblogs.edit', [$superblog, 'flik' => 'innehall', 'page' => 2]))
+        $pageTwoResponse = $this->get(route('admin.superblogs.edit', [$superblog, 'flik' => 'innehall', 'manual_page' => 2, 'rss_page' => 1]))
             ->assertOk();
-        $pageTwo = $pageTwoResponse->viewData('articles');
+        $pageTwo = $pageTwoResponse->viewData('manualArticles');
         $this->assertSame(2, $pageTwo->currentPage());
-        $pageTwoResponse->assertSee('action="'.e(route('admin.superblogs.articles.selection.update', [$superblog, 'flik' => 'innehall', 'page' => 2])).'"', false);
+        $pageTwoResponse->assertSee('action="'.e(route('admin.superblogs.articles.selection.update', [$superblog, 'flik' => 'innehall', 'manual_page' => 2, 'rss_page' => 1])).'"', false);
+    }
+
+    public function test_manual_and_rss_sections_keep_independent_pagination_and_selections(): void
+    {
+        [$staff, $superblog] = $this->makeAssignedSuperblog();
+        $manualArticles = [];
+        $rssArticles = [];
+
+        for ($index = 1; $index <= 11; $index++) {
+            $manualArticles[] = $this->makeArticle($superblog, 'Manual pagination '.$index);
+        }
+
+        for ($index = 1; $index <= 6; $index++) {
+            $rssArticles[] = $this->makeArticle($superblog, 'RSS pagination '.$index, sourceType: 'rss', selected: true);
+        }
+
+        $response = $this->actingAs($staff)
+            ->get(route('admin.superblogs.edit', [$superblog, 'flik' => 'innehall']))
+            ->assertOk()
+            ->assertSee('manual_page=2', false)
+            ->assertSee('rss_page=2', false);
+
+        $this->assertSame(1, $response->viewData('manualArticles')->currentPage());
+        $this->assertSame(1, $response->viewData('rssArticles')->currentPage());
+        $this->assertCount(5, $response->viewData('manualArticles'));
+        $this->assertCount(5, $response->viewData('rssArticles'));
+        $this->assertSame(11, $response->viewData('manualArticles')->total());
+        $this->assertSame(6, $response->viewData('rssArticles')->total());
+
+        $html = $response->getContent();
+        $manualListEnd = strpos($html, '</ul>', strpos($html, 'id="manual-articles-heading"'));
+        $manualPagination = strpos($html, 'manual_page=2', $manualListEnd);
+        $manualSave = strpos($html, 'Spara urval', $manualPagination);
+        $rssListEnd = strpos($html, '</ul>', strpos($html, 'id="rss-articles-heading"'));
+        $rssPagination = strpos($html, 'rss_page=2', $rssListEnd);
+        $rssSave = strpos($html, 'Spara urval', $rssPagination);
+
+        $this->assertNotFalse($manualListEnd);
+        $this->assertNotFalse($manualPagination);
+        $this->assertNotFalse($manualSave);
+        $this->assertLessThan($manualSave, $manualPagination);
+        $this->assertNotFalse($rssListEnd);
+        $this->assertNotFalse($rssPagination);
+        $this->assertNotFalse($rssSave);
+        $this->assertLessThan($rssSave, $rssPagination);
+
+        $pageTwoResponse = $this->get(route('admin.superblogs.edit', [$superblog, 'flik' => 'innehall', 'manual_page' => 2, 'rss_page' => 1]))
+            ->assertOk();
+        $manualPageTwo = $pageTwoResponse->viewData('manualArticles');
+        $this->assertSame(2, $manualPageTwo->currentPage());
+        $this->assertSame(1, $pageTwoResponse->viewData('rssArticles')->currentPage());
+        $visibleManualIds = $manualPageTwo->getCollection()->modelKeys();
+        $this->assertCount(5, $visibleManualIds);
+        $visibleRssIds = $pageTwoResponse->viewData('rssArticles')->getCollection()->modelKeys();
+        $this->assertCount(5, $visibleRssIds);
+
+        $this->put(route('admin.superblogs.articles.selection.update', [$superblog, 'flik' => 'innehall', 'manual_page' => 2, 'rss_page' => 1]), [
+            'visible_article_ids' => $visibleManualIds,
+            'selected_article_ids' => [$manualArticles[5]->getKey()],
+        ])->assertRedirect(route('admin.superblogs.edit', [$superblog, 'flik' => 'innehall', 'manual_page' => 2, 'rss_page' => 1]));
+
+        $this->assertFalse($manualArticles[0]->fresh()->is_selected_for_publication);
+        $this->assertTrue($manualArticles[5]->fresh()->is_selected_for_publication);
+        foreach (array_slice($manualArticles, 1, 4) as $article) {
+            $this->assertFalse($article->fresh()->is_selected_for_publication);
+        }
+        foreach (array_slice($manualArticles, 6) as $article) {
+            $this->assertFalse($article->fresh()->is_selected_for_publication);
+        }
+
+        foreach ($rssArticles as $article) {
+            $this->assertTrue($article->fresh()->is_selected_for_publication);
+        }
+
+        $pageTwoResponse = $this->get(route('admin.superblogs.edit', [$superblog, 'flik' => 'innehall', 'manual_page' => 2, 'rss_page' => 1]))
+            ->assertOk();
+        $this->assertSame(2, $pageTwoResponse->viewData('manualArticles')->currentPage());
+        $this->assertSame(1, $pageTwoResponse->viewData('rssArticles')->currentPage());
+
+        $rssPageTwoResponse = $this->get(route('admin.superblogs.edit', [$superblog, 'flik' => 'innehall', 'manual_page' => 1, 'rss_page' => 2]))
+            ->assertOk();
+        $this->assertSame(1, $rssPageTwoResponse->viewData('manualArticles')->currentPage());
+        $this->assertSame(2, $rssPageTwoResponse->viewData('rssArticles')->currentPage());
+        $this->assertCount(1, $rssPageTwoResponse->viewData('rssArticles'));
+    }
+
+    public function test_contents_pagination_is_compact_and_shows_all_pages_only_when_there_are_seven_or_fewer(): void
+    {
+        [$staff, $superblog] = $this->makeAssignedSuperblog();
+
+        for ($index = 1; $index <= 40; $index++) {
+            $this->makeArticle($superblog, 'Manual pagination UI '.$index);
+        }
+
+        for ($index = 1; $index <= 35; $index++) {
+            $this->makeArticle($superblog, 'RSS pagination UI '.$index, sourceType: 'rss');
+        }
+
+        $response = $this->actingAs($staff)
+            ->get(route('admin.superblogs.edit', [$superblog, 'flik' => 'innehall']))
+            ->assertOk()
+            ->assertDontSee('Showing')
+            ->assertSee('w-full min-w-0 max-w-full overflow-hidden', false)
+            ->assertSee('min-h-8 min-w-8 shrink-0', false)
+            ->assertSee('px-2 py-1.5 text-sm', false)
+            ->assertSee('border-2 border-studio-brand bg-studio-brand', false);
+
+        preg_match_all('/<nav role="navigation" aria-label="Pagination Navigation".*?<\/nav>/s', $response->getContent(), $matches);
+        $this->assertCount(2, $matches[0]);
+
+        $manualPages = $response->viewData('manualArticles');
+        $rssPages = $response->viewData('rssArticles');
+        $manualNavigation = $matches[0][0];
+        $rssNavigation = $matches[0][1];
+
+        $this->assertStringContainsString('aria-current="page"', $manualNavigation);
+        foreach ([2, 3, 4, 8] as $page) {
+            $this->assertStringContainsString('href="'.e($manualPages->url($page)).'" data-pagination-section="manual"', $manualNavigation);
+        }
+        $this->assertStringContainsString('…', $manualNavigation);
+        $this->assertStringNotContainsString('href="'.e($manualPages->url(5)).'" data-pagination-section="manual"', $manualNavigation);
+        $this->assertStringNotContainsString('#manual-articles-heading', $manualNavigation);
+
+        $this->assertStringContainsString('aria-current="page"', $rssNavigation);
+        foreach (range(2, 7) as $page) {
+            $this->assertStringContainsString('href="'.e($rssPages->url($page)).'" data-pagination-section="rss"', $rssNavigation);
+        }
+        $this->assertStringNotContainsString('#rss-articles-heading', $rssNavigation);
+        $this->assertStringNotContainsString('…', $rssNavigation);
+    }
+
+    public function test_compact_pagination_keeps_the_current_page_visible_at_the_beginning_middle_and_end(): void
+    {
+        [$staff, $superblog] = $this->makeAssignedSuperblog();
+
+        for ($index = 1; $index <= 40; $index++) {
+            $this->makeArticle($superblog, 'Pagination window '.$index);
+        }
+
+        $this->actingAs($staff);
+
+        foreach ([
+            1 => ['links' => [2, 3, 4, 8], 'ellipses' => 1],
+            5 => ['links' => [1, 4, 6, 8], 'ellipses' => 2],
+            6 => ['links' => [1, 7, 8], 'ellipses' => 1],
+            8 => ['links' => [1, 6, 7], 'ellipses' => 1],
+        ] as $page => $expected) {
+            $response = $this->get(route('admin.superblogs.edit', [$superblog, 'flik' => 'innehall', 'manual_page' => $page, 'rss_page' => 1]))
+                ->assertOk();
+
+            preg_match('/<nav role="navigation" aria-label="Pagination Navigation".*?<\/nav>/s', $response->getContent(), $match);
+            $this->assertNotEmpty($match);
+
+            $navigation = $match[0];
+            $paginator = $response->viewData('manualArticles');
+            $this->assertSame($page, $paginator->currentPage());
+            $this->assertMatchesRegularExpression('/<span aria-current="page"[^>]*>'.$page.'<\/span>/', $navigation);
+            $this->assertSame($expected['ellipses'], substr_count($navigation, '…'));
+
+            foreach ($expected['links'] as $linkedPage) {
+                $this->assertStringContainsString('href="'.e($paginator->url($linkedPage)).'" data-pagination-section="manual"', $navigation);
+            }
+        }
+    }
+
+    public function test_ajax_pagination_returns_only_the_requested_article_section(): void
+    {
+        [$staff, $superblog] = $this->makeAssignedSuperblog();
+
+        for ($index = 1; $index <= 6; $index++) {
+            $this->makeArticle($superblog, 'Manual partial '.$index);
+            $this->makeArticle($superblog, 'RSS partial '.$index, sourceType: 'rss');
+        }
+
+        $this->actingAs($staff)
+            ->get(route('admin.superblogs.edit', [$superblog, 'flik' => 'innehall', 'manual_page' => 2, 'rss_page' => 1]), [
+                'X-Requested-With' => 'XMLHttpRequest',
+                'X-Pagination-Section' => 'manual',
+            ])
+            ->assertOk()
+            ->assertSee('id="manual-articles-section"', false)
+            ->assertSee('Manual partial 1')
+            ->assertDontSee('id="rss-articles-section"', false)
+            ->assertDontSee('RSS partial');
+
+        $this->get(route('admin.superblogs.edit', [$superblog, 'flik' => 'innehall', 'manual_page' => 1, 'rss_page' => 2]), [
+            'X-Requested-With' => 'XMLHttpRequest',
+            'X-Pagination-Section' => 'rss',
+        ])
+            ->assertOk()
+            ->assertSee('id="rss-articles-section"', false)
+            ->assertSee('RSS partial 1')
+            ->assertDontSee('id="manual-articles-section"', false)
+            ->assertDontSee('Manual partial');
     }
 
     public function test_articles_from_another_superblog_cannot_be_selected_or_modified(): void

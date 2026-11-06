@@ -28,6 +28,8 @@ class ArticlePublicationTest extends TestCase
             ->assertOk()
             ->assertSee('6 Publicera')
             ->assertSee('grid grid-cols-3', false)
+            ->assertSee('Slutlig publiceringskonfiguration återstår')
+            ->assertSee('Domän, DNS och hosting konfigureras')
             ->assertSee('href="'.route('admin.superblogs.edit', [$superblog, 'flik' => 'publicera']).'"', false)
             ->assertSee('>Publicera</button>', false)
             ->assertSee('action="'.route('admin.superblogs.articles.publish-selected', $superblog).'"', false)
@@ -50,6 +52,8 @@ class ArticlePublicationTest extends TestCase
             ->get(route('admin.superblogs.edit', [$superblog, 'flik' => 'publicera']))
             ->assertOk()
             ->assertSee('6 Avpublicera')
+            ->assertSee('Slutlig publiceringskonfiguration återstår')
+            ->assertSee('tillfällig och ännu inte färdigställd')
             ->assertSee('Avpublicera Superblog')
             ->assertSee('action="'.route('admin.superblogs.unpublish', $superblog).'"', false)
             ->assertDontSee('Bekräfta och publicera');

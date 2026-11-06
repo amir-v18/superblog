@@ -134,7 +134,8 @@ class ArticleController extends Controller
         return to_route('admin.superblogs.edit', [
             $superblog,
             'flik' => 'innehall',
-            'page' => $request->query('page', 1),
+            'manual_page' => $request->query('manual_page', 1),
+            'rss_page' => $request->query('rss_page', 1),
         ])->with('status', $message);
     }
 
@@ -262,10 +263,11 @@ class ArticleController extends Controller
             $article->update([
                 'status' => 'published',
                 'published_at' => now(),
+                'is_selected_for_publication' => true,
             ]);
         });
 
-        return to_route('admin.superblogs.articles.edit', [$superblog, $article])
+        return to_route('admin.superblogs.edit', [$superblog, 'flik' => 'innehall'])
             ->with('status', 'Article published.');
     }
 

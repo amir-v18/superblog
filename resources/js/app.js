@@ -1,3 +1,81 @@
+// Fetch pagination in place so the other article section and the active scroll area remain untouched.
+const paginationRequests = new Map();
+
+async function updateArticleSection(sectionKey, destination, updateHistory = true) {
+    const section = document.querySelector(`[data-article-section="${sectionKey}"]`);
+    if (!section) {
+        return;
+    }
+
+    paginationRequests.get(sectionKey)?.abort();
+    const controller = new AbortController();
+    paginationRequests.set(sectionKey, controller);
+
+    try {
+        const response = await fetch(destination, {
+            headers: {
+                Accept: 'text/html',
+                'X-Pagination-Section': sectionKey,
+                'X-Requested-With': 'XMLHttpRequest',
+            },
+            signal: controller.signal,
+        });
+
+        if (!response.ok) {
+            return;
+        }
+
+        const documentFragment = new DOMParser().parseFromString(await response.text(), 'text/html');
+        const replacement = documentFragment.querySelector(`[data-article-section="${sectionKey}"]`);
+
+        if (!replacement || paginationRequests.get(sectionKey) !== controller) {
+            return;
+        }
+
+        section.replaceWith(replacement);
+        if (updateHistory) {
+            window.history.pushState({}, '', destination);
+        }
+    } catch (error) {
+        if (error.name !== 'AbortError') {
+            console.error('Could not load article page.', error);
+        }
+    } finally {
+        if (paginationRequests.get(sectionKey) === controller) {
+            paginationRequests.delete(sectionKey);
+        }
+    }
+}
+
+document.addEventListener('click', (event) => {
+    const link = event.target instanceof Element ? event.target.closest('a[data-pagination-section]') : null;
+
+    if (!link || event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) {
+        return;
+    }
+
+    const destination = new URL(link.href, window.location.href);
+    if (destination.origin !== window.location.origin) {
+        return;
+    }
+
+    event.preventDefault();
+    updateArticleSection(link.dataset.paginationSection, destination.href);
+});
+
+window.addEventListener('popstate', () => {
+    const currentUrl = new URL(window.location.href);
+
+    document.querySelectorAll('[data-article-section]').forEach((section) => {
+        const pageName = section.dataset.pageName;
+        const pageInUrl = currentUrl.searchParams.get(pageName) || '1';
+
+        if (pageInUrl !== section.dataset.currentPage) {
+            updateArticleSection(section.dataset.articleSection, currentUrl.href, false);
+        }
+    });
+});
+
 // Links with data-open-dialog open that <dialog> when the page has one; otherwise they stay normal links.
 document.addEventListener('click', (event) => {
     const opener = event.target.closest('[data-open-dialog]');
