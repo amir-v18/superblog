@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Admin\ArticleController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\RssSourceController;
 use App\Http\Controllers\Admin\StaffController;
@@ -9,6 +10,8 @@ use App\Http\Controllers\Admin\SuperblogThemeController;
 use App\Http\Controllers\Admin\TemplateController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Auth\GoogleAuthenticationController;
+use App\Http\Controllers\PublicArticleController;
+use App\Http\Controllers\PublicSuperblogController;
 use App\Http\Middleware\AllowPasswordLoginInDevelopment;
 use App\Support\DemoArticle;
 use App\Support\Theme;
@@ -18,6 +21,12 @@ use Illuminate\Support\Facades\Route;
 Route::get('/', function () {
     return view('welcome');
 });
+
+Route::get('/superblogs/{superblog:slug}/articles/{article:slug}', [PublicArticleController::class, 'show'])
+    ->scopeBindings()
+    ->name('public.superblogs.articles.show');
+Route::get('/superblogs/{superblog:slug}', PublicSuperblogController::class)
+    ->name('public.superblogs.show');
 
 // Demo page for previewing the public layout; only registered locally so it is never public or indexed.
 if (app()->environment('local')) {
@@ -79,15 +88,35 @@ Route::middleware('auth')->group(function () {
                 Route::delete('{rssSource}', [RssSourceController::class, 'destroy'])->name('destroy');
                 Route::post('{rssSource}/fetch', [RssSourceController::class, 'fetch'])->name('fetch');
                 Route::get('{rssSource}/items', [RssSourceController::class, 'items'])->name('items.index');
+                Route::post('{rssSource}/items/{rssItem}/article', [ArticleController::class, 'createFromRssItem'])->name('items.article.store');
                 Route::get('{rssSource}/items/clear', [RssSourceController::class, 'confirmClearItems'])->name('items.clear');
                 Route::delete('{rssSource}/items', [RssSourceController::class, 'clearItems'])->name('items.clear.destroy');
                 Route::get('{rssSource}/items/{rssItem}/delete', [RssSourceController::class, 'confirmItemDeletion'])->name('items.delete');
                 Route::delete('{rssSource}/items/{rssItem}', [RssSourceController::class, 'destroyItem'])->name('items.destroy');
             });
+        Route::prefix('superblogs/{superblog}/articles')
+            ->name('admin.superblogs.articles.')
+            ->scopeBindings()
+            ->group(function () {
+                Route::get('/', [ArticleController::class, 'superblogIndex'])->name('index');
+                Route::get('create', [ArticleController::class, 'create'])->name('create');
+                Route::post('/', [ArticleController::class, 'store'])->name('store');
+                Route::put('selection', [ArticleController::class, 'updateSelection'])->name('selection.update');
+                Route::post('publication', [ArticleController::class, 'publishSelected'])->name('publish-selected');
+                Route::get('{article}/edit', [ArticleController::class, 'edit'])->name('edit');
+                Route::put('{article}', [ArticleController::class, 'update'])->name('update');
+                Route::delete('{article}', [ArticleController::class, 'destroy'])->name('destroy');
+                Route::post('{article}/publish', [ArticleController::class, 'publish'])->name('publish');
+            });
+        Route::get('articles', [ArticleController::class, 'index'])->name('admin.articles.index');
+        Route::get('publicerade', [DashboardController::class, 'published'])->name('admin.superblogs.published');
         Route::put('superblogs/{superblog}/theme', SuperblogThemeController::class)->name('admin.superblogs.theme.update');
+        Route::post('superblogs/{superblog}/unpublish', [SuperblogController::class, 'unpublish'])->name('admin.superblogs.unpublish');
         Route::get('superblogs/{superblog}/preview', SuperblogPreviewController::class)->name('admin.superblogs.preview');
         Route::get('superblogs/{superblog}/delete', [SuperblogController::class, 'confirmDeletion'])->name('admin.superblogs.delete');
         Route::resource('superblogs', SuperblogController::class)->except(['index', 'show'])->names('admin.superblogs');
+        // Register after resource routes so /superblogs/create keeps resolving to the create form.
+        Route::get('superblogs/{superblog}', [SuperblogController::class, 'show'])->name('admin.superblogs.show');
     });
     Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])->name('logout');
 });

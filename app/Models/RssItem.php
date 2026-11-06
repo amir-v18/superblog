@@ -5,7 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 #[Fillable(['rss_source_id', 'external_id', 'guid', 'title', 'url', 'author', 'published_at', 'content', 'summary', 'content_hash'])]
 class RssItem extends Model
@@ -22,8 +22,8 @@ class RssItem extends Model
         return $this->belongsTo(RssSource::class);
     }
 
-    public function articles(): HasMany
+    public function article(): HasOne
     {
-        return $this->hasMany(Article::class);
+        return $this->hasOne(Article::class);
     }
 }

@@ -24,9 +24,17 @@ class SaveSuperblogRequest extends FormRequest
         $slug = $this->input('slug');
         $name = $this->input('name');
         $domain = $this->input('domain');
+        $routeSuperblog = $this->route('superblog');
+        $isCreating = ! ($routeSuperblog instanceof Superblog);
+
+        if ($slug === null && $isCreating && is_string($name)) {
+            $slug = Str::slug($name);
+        } elseif (is_string($slug)) {
+            $slug = Str::slug($slug);
+        }
 
         $this->merge([
-            'slug' => is_string($slug) ? Str::slug($slug) : ($slug === null && is_string($name) ? Str::slug($name) : $slug),
+            'slug' => $slug,
             'domain' => is_string($domain) ? strtolower(rtrim(trim($domain), '.')) : $domain,
         ]);
     }
