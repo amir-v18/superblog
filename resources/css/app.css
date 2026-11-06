@@ -66,6 +66,24 @@
     --body: 'DM Sans Variable', ui-sans-serif, system-ui, sans-serif;
 }
 
+[data-theme='budbararen'] {
+    --paper: #f8f4e8;
+    --white: #fbf8ee;
+    --ink: #1c1712;
+    --muted: #5b4f3e;
+    --primary: #a8321e;
+    --deep: #862818;
+    /* Dark, unlike the other themes: the newspaper look draws its rules in near-black ink. */
+    --line: #3a3024;
+    --pale: #eee8d6;
+    /* Accent, used by the Klassisk tidning template's thumbnail in the create modal. */
+    --accent: #cf9a2b;
+    /* Extra for this theme, not one of the theme keys: the table color around the paper on wide screens. */
+    --desk: #d6cdb3;
+    --display: 'Playfair Display', 'Bodoni MT', Georgia, serif;
+    --body: 'Old Standard TT', 'Times New Roman', Georgia, serif;
+}
+
 @theme inline {
     --color-paper: var(--paper);
     /* Overrides Tailwind's built-in white; the fallback keeps bg-white plain white on unthemed pages (e.g. admin). */

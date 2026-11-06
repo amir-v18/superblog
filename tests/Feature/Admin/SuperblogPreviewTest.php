@@ -88,6 +88,24 @@ class SuperblogPreviewTest extends TestCase
             ->assertSee('data-theme="bondebladet"', false);
     }
 
+    public function test_without_a_saved_theme_the_templates_theme_is_used(): void
+    {
+        $admin = $this->makeUser(approved: true, superAdmin: true);
+        $superblog = $this->makeSuperblog($admin);
+        $superblog->template->update(['slug' => 'classic']);
+
+        $this->actingAs($admin)->get(route('admin.superblogs.preview', $superblog))
+            ->assertSee('data-theme="budbararen"', false)
+            ->assertDontSee('data-theme="bondebladet"', false);
+
+        // A saved theme still wins over the template's theme.
+        $superblog->update(['settings' => ['theme' => ['name' => 'techenspraket']]]);
+
+        $this->get(route('admin.superblogs.preview', $superblog))
+            ->assertSee('data-theme="techenspraket"', false)
+            ->assertDontSee('data-theme="budbararen"', false);
+    }
+
     public function test_saved_theme_is_used_in_the_preview(): void
     {
         $admin = $this->makeUser(approved: true, superAdmin: true);

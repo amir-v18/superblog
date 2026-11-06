@@ -18,10 +18,11 @@ class SuperblogPreviewController extends Controller
         Gate::authorize('view', $superblog);
         Gate::authorize('update', $superblog);
 
-        // Without a saved theme the page would have no colors or fonts, so the first theme is shown until one is chosen.
+        // Without a saved theme the page would have no colors or fonts. Until one is chosen the template's own
+        // theme from the registry is shown, and if it has none, the first theme.
         $theme = $superblog->settings['theme'] ?? null;
         if (Theme::name($theme) === null) {
-            $theme = Theme::NAMES[0];
+            $theme = ($superblog->template ? Theme::forTemplate($superblog->template) : null) ?? Theme::NAMES[0];
         }
 
         // The template's site views come from config/templates.php. A template missing there (an old or

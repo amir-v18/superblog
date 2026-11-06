@@ -30,8 +30,7 @@ return [
         'classic' => [
             'name' => 'Klassisk tidning',
             'description' => 'Nyhetsblad med spalter, dubbla linjer, titelblock och retroannonser.',
-            // Grey thumbnail until the template gets its own colors.
-            'theme' => null,
+            'theme' => 'budbararen',
             // Shares the Modern site until it gets views of its own.
             'site' => 'templates.news',
         ],

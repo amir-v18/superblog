@@ -113,10 +113,11 @@ class CreateSuperblogModalTest extends TestCase
         $this->assertStringContainsString('Stor huvudartikel med bild, mest läst och ljusa kort. Lugnt och luftigt.', $form);
         $this->assertStringContainsString('Nyhetsblad med spalter, dubbla linjer, titelblock och retroannonser.', $form);
 
-        // Thumbnails: Modern in its theme, Klassisk tidning in the grey fallback.
+        // Thumbnails: both templates in their own themes, so no card falls back to grey.
         $this->assertStringContainsString('data-theme="bondebladet"', $form);
-        $this->assertSame(1, substr_count($form, 'data-theme='));
-        $this->assertSame(1, substr_count($form, 'border-b border-studio-line bg-studio-bg'));
+        $this->assertStringContainsString('data-theme="budbararen"', $form);
+        $this->assertSame(2, substr_count($form, 'data-theme='));
+        $this->assertSame(0, substr_count($form, 'border-b border-studio-line bg-studio-bg'));
 
         // Three columns as in the design, even with two templates.
         $this->assertStringContainsString('grid gap-3 sm:grid-cols-3', $form);
