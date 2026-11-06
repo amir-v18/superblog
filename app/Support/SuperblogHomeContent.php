@@ -22,7 +22,6 @@ class SuperblogHomeContent
             'articles' => $articles
                 ->orderByDesc('published_at')
                 ->orderByDesc('id')
-                ->limit(7)
                 ->get(),
             'manualArticles' => $superblog->articles()
                 ->where('source_type', 'manual')

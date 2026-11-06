@@ -11,6 +11,7 @@
     $featuredArticle = $articles->first();
     $middleArticles = $articles->slice(1, 2)->values();
     $latestArticles = $articles->slice(3, 6)->values();
+    $remainingArticles = $articles->slice(9)->values();
     $latestPlaceholderCount = max(0, 6 - $latestArticles->count());
 @endphp
 <!DOCTYPE html>
@@ -25,7 +26,7 @@
     <title>{{ $superblog->name }}</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
-<body class="flex min-h-screen flex-col bg-paper font-body leading-[1.4] text-ink antialiased">
+<body @if ($isPreview) data-admin-preview-superblog-id="{{ $superblog->getKey() }}" @endif class="flex min-h-screen flex-col bg-paper font-body leading-[1.4] text-ink antialiased">
     {{-- Hidden by decision: section menu, "Logga in"/"Prenumerera", tagline, ads and newsletter. --}}
     <header>
         {{-- Figma hides the date below 760 px, and the login links are not shown, so the whole bar goes away there. --}}
@@ -103,6 +104,13 @@
                     <x-placeholder-card :stripes="$stripes" :stripe-label="$stripeLabel" />
                 @endfor
             </div>
+            @if ($remainingArticles->isNotEmpty())
+                <div class="mt-8 grid grid-cols-3 gap-x-6 gap-y-[26px] max-[760px]:grid-cols-1" aria-label="Fler artiklar">
+                    @foreach ($remainingArticles as $article)
+                        <x-placeholder-card :stripes="$stripes" :stripe-label="$stripeLabel" :article="$article" :superblog="$superblog" />
+                    @endforeach
+                </div>
+            @endif
         </section>
     </main>
 

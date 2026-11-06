@@ -105,6 +105,7 @@ Route::middleware('auth')->group(function () {
                 Route::post('publication', [ArticleController::class, 'publishSelected'])->name('publish-selected');
                 Route::get('{article}/edit', [ArticleController::class, 'edit'])->name('edit');
                 Route::put('{article}', [ArticleController::class, 'update'])->name('update');
+                Route::delete('{article}', [ArticleController::class, 'destroy'])->name('destroy');
                 Route::post('{article}/publish', [ArticleController::class, 'publish'])->name('publish');
             });
         Route::get('articles', [ArticleController::class, 'index'])->name('admin.articles.index');

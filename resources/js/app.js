@@ -4,7 +4,7 @@ const paginationRequests = new Map();
 async function updateArticleSection(sectionKey, destination, updateHistory = true) {
     const section = document.querySelector(`[data-article-section="${sectionKey}"]`);
     if (!section) {
-        return;
+        return false;
     }
 
     paginationRequests.get(sectionKey)?.abort();
@@ -22,24 +22,27 @@ async function updateArticleSection(sectionKey, destination, updateHistory = tru
         });
 
         if (!response.ok) {
-            return;
+            return false;
         }
 
         const documentFragment = new DOMParser().parseFromString(await response.text(), 'text/html');
         const replacement = documentFragment.querySelector(`[data-article-section="${sectionKey}"]`);
 
         if (!replacement || paginationRequests.get(sectionKey) !== controller) {
-            return;
+            return false;
         }
 
         section.replaceWith(replacement);
         if (updateHistory) {
             window.history.pushState({}, '', destination);
         }
+        return true;
     } catch (error) {
         if (error.name !== 'AbortError') {
             console.error('Could not load article page.', error);
         }
+
+        return false;
     } finally {
         if (paginationRequests.get(sectionKey) === controller) {
             paginationRequests.delete(sectionKey);
@@ -76,8 +79,105 @@ window.addEventListener('popstate', () => {
     });
 });
 
+function showArticleDeleteNotice(message, isError = false) {
+    const notice = document.querySelector('[data-article-delete-notice]');
+    if (!notice) {
+        return;
+    }
+
+    notice.hidden = false;
+    notice.textContent = message;
+    notice.setAttribute('role', isError ? 'alert' : 'status');
+    notice.setAttribute('aria-live', isError ? 'assertive' : 'polite');
+    notice.className = isError
+        ? 'fixed top-4 right-4 left-4 z-50 mx-auto max-w-md rounded-lg border border-studio-bad/40 bg-studio-bad-bg p-3 text-sm text-studio-bad shadow-xl'
+        : 'fixed top-4 right-4 left-4 z-50 mx-auto max-w-md rounded-lg border border-studio-ok/30 bg-studio-live p-3 text-sm text-studio-ok shadow-xl';
+}
+
+document.addEventListener('submit', async (event) => {
+    const form = event.target instanceof HTMLFormElement ? event.target : null;
+    if (!form?.matches('[data-article-delete-form]')) {
+        return;
+    }
+
+    event.preventDefault();
+
+    try {
+        const csrfToken = form.querySelector('input[name="_token"]')?.value;
+        const response = await fetch(form.action, {
+            method: 'DELETE',
+            headers: {
+                Accept: 'application/json',
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRF-TOKEN': csrfToken,
+            },
+        });
+        const result = await response.json().catch(() => null);
+
+        if (!response.ok || !result?.sectionKey || !Number.isInteger(Number(result.currentPage))) {
+            showArticleDeleteNotice('Artikeln kunde inte tas bort. Försök igen.', true);
+            return;
+        }
+
+        try {
+            localStorage.setItem('superblog-article-deleted', JSON.stringify({
+                superblogId: result.superblogId,
+                nonce: `${Date.now()}-${Math.random()}`,
+            }));
+        } catch (error) {
+            console.warn('Could not notify open previews about the deleted article.', error);
+        }
+
+        const section = document.querySelector(`[data-article-section="${result.sectionKey}"]`);
+        if (!section) {
+            showArticleDeleteNotice('Artikeln har tagits bort permanent. Ladda om sidan för att uppdatera listan.');
+            form.closest('dialog')?.close();
+            return;
+        }
+
+        const destination = new URL(window.location.href);
+        destination.searchParams.set(section.dataset.pageName, String(result.currentPage));
+        window.history.replaceState({}, '', destination);
+        form.closest('dialog')?.close();
+
+        const sectionUpdated = await updateArticleSection(result.sectionKey, destination.href, false);
+        showArticleDeleteNotice(sectionUpdated
+            ? result.message
+            : 'Artikeln har tagits bort, men listan kunde inte uppdateras. Ladda om sidan.', !sectionUpdated);
+    } catch {
+        showArticleDeleteNotice('Artikeln kunde inte tas bort. Kontrollera anslutningen och försök igen.', true);
+    }
+});
+
+window.addEventListener('storage', (event) => {
+    if (event.key !== 'superblog-article-deleted' || !event.newValue) {
+        return;
+    }
+
+    const previewSuperblogId = document.body.dataset.adminPreviewSuperblogId;
+    if (!previewSuperblogId) {
+        return;
+    }
+
+    try {
+        const change = JSON.parse(event.newValue);
+        if (String(change.superblogId) === previewSuperblogId) {
+            window.location.reload();
+        }
+    } catch {
+        // Ignore malformed storage events; they do not affect the current page.
+    }
+});
+
 // Links with data-open-dialog open that <dialog> when the page has one; otherwise they stay normal links.
 document.addEventListener('click', (event) => {
+    const closer = event.target instanceof Element ? event.target.closest('[data-close-dialog]') : null;
+    if (closer) {
+        event.preventDefault();
+        closer.closest('dialog')?.close();
+        return;
+    }
+
     const opener = event.target.closest('[data-open-dialog]');
     const dialog = opener && document.getElementById(opener.dataset.openDialog);
 

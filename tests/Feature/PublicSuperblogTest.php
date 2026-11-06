@@ -52,6 +52,52 @@ class PublicSuperblogTest extends TestCase
         $this->assertStringNotContainsString($newerRss->title, $sidebar);
     }
 
+    public function test_published_homepage_shows_all_selected_manual_and_rss_articles_after_existing_slots(): void
+    {
+        $superblog = $this->makeSuperblog('published', 'all-home-articles');
+        $articles = collect();
+
+        foreach (range(1, 12) as $number) {
+            $articles->push($this->makeArticle(
+                $superblog,
+                "Timeline article {$number}",
+                $number % 2 === 0 ? 'manual' : 'rss',
+                'published',
+                true,
+                now()->subMinutes($number),
+            ));
+        }
+
+        $this->makeArticle($superblog, 'Excluded unchecked story', 'rss', 'published', false, now()->addDay());
+        $this->makeArticle($superblog, 'Excluded draft story', 'manual', 'draft', true, now()->addDay());
+        $this->makeArticle($superblog, 'Excluded undated story', 'rss', 'published', true, null);
+
+        $html = $this->get(route('public.superblogs.show', $superblog))
+            ->assertOk()
+            ->getContent();
+
+        foreach ($articles as $article) {
+            $this->assertStringContainsString($article->title, $html);
+        }
+        foreach (['Excluded unchecked story', 'Excluded draft story', 'Excluded undated story'] as $title) {
+            $this->assertStringNotContainsString($title, $html);
+        }
+
+        preg_match('/<div class="mt-8 grid[^>]*aria-label="Fler artiklar".*?<\/div>\s*<\/section>/s', $html, $match);
+        $this->assertNotEmpty($match);
+        $this->assertStringContainsString('Timeline article 10', $match[0]);
+        $this->assertStringContainsString('Timeline article 11', $match[0]);
+        $this->assertStringContainsString('Timeline article 12', $match[0]);
+        $this->assertLessThan(strpos($match[0], 'Timeline article 11'), strpos($match[0], 'Timeline article 10'));
+        $this->assertLessThan(strpos($match[0], 'Timeline article 12'), strpos($match[0], 'Timeline article 11'));
+
+        preg_match('/<aside aria-labelledby="latest-sidebar-heading".*?<\/aside>/s', $html, $sidebarMatch);
+        $this->assertNotEmpty($sidebarMatch);
+        $this->assertStringContainsString('Timeline article 10', $sidebarMatch[0]);
+        $this->assertStringNotContainsString('Timeline article 9', $sidebarMatch[0]);
+        $this->assertLessThan(strpos($sidebarMatch[0], 'Timeline article 10'), strpos($sidebarMatch[0], 'Timeline article 8'));
+    }
+
     public function test_unpublished_superblog_homepage_returns_not_found(): void
     {
         $superblog = $this->makeSuperblog('draft', 'offline-home');
@@ -123,6 +169,24 @@ class PublicSuperblogTest extends TestCase
 
         $this->get(route('public.superblogs.show', $superblog))
             ->assertNotFound();
+    }
+
+    public function test_offline_preview_includes_selected_articles_beyond_the_original_homepage_slots(): void
+    {
+        $admin = User::factory()->create(['approval_status' => 'approved', 'is_super_admin' => true]);
+        $superblog = $this->makeSuperblog('draft', 'long-offline-preview', $admin);
+
+        foreach (range(1, 12) as $number) {
+            $this->makeArticle($superblog, "Offline selected story {$number}", $number % 2 === 0 ? 'manual' : 'rss', 'draft', true, null);
+        }
+        $this->makeArticle($superblog, 'Offline unchecked story', 'manual', 'draft', false, null);
+
+        $this->actingAs($admin)
+            ->get(route('admin.superblogs.preview', $superblog))
+            ->assertOk()
+            ->assertSee('Offline selected story 12')
+            ->assertSee('Offline selected story 10')
+            ->assertDontSee('Offline unchecked story');
     }
 
     private function makeSuperblog(string $status, string $slug, ?User $owner = null): Superblog

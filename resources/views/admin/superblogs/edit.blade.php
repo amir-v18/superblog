@@ -73,6 +73,11 @@
                             <x-admin.button>Spara</x-admin.button>
                         </div>
                     </form>
+                    <section aria-labelledby="delete-superblog-heading" class="rounded-lg border border-studio-bad/35 bg-studio-panel p-4">
+                        <h3 id="delete-superblog-heading" class="font-semibold text-studio-bad">Ta bort Superblog</h3>
+                        <p class="mt-1 text-sm text-studio-muted">Tar permanent bort sajten och dess innehåll.</p>
+                        <a href="{{ route('admin.superblogs.delete', $superblog) }}" class="mt-3 inline-flex rounded-lg border border-studio-bad/50 px-3.5 py-2 text-sm font-semibold text-studio-bad hover:bg-studio-bad/10 studio-focus-ring">Ta bort Superblog permanent</a>
+                    </section>
                 @elseif ($tab === 'floden')
                     @php
                         // The dashboard card shows the same value. Swedish only here, since the app locale is English.
@@ -161,6 +166,7 @@
                     <section aria-labelledby="articles-heading">
                         <h2 id="articles-heading" class="text-lg font-semibold">Innehåll</h2>
                         <p class="mt-1 text-sm text-studio-muted">Välj vilka artiklar som ska ingå i publiceringen. På ett publicerat Superblogg tillämpas urvalet direkt när du sparar. När Superblogget är offline sparas bara urvalet.</p>
+                        <div hidden data-article-delete-notice role="status" aria-live="polite" class="fixed top-4 right-4 left-4 z-50 mx-auto max-w-md rounded-lg border border-studio-ok/30 bg-studio-live p-3 text-sm text-studio-ok shadow-xl"></div>
 
                         @foreach ([
                             ['key' => 'manual', 'label' => 'Manuella artiklar', 'articles' => $manualArticles],

@@ -161,7 +161,26 @@ class SuperblogController extends Controller
     public function destroy(Superblog $superblog): RedirectResponse
     {
         Gate::authorize('delete', $superblog);
-        $superblog->delete();
+
+        DB::transaction(function () use ($superblog): void {
+            $lockedSuperblog = Superblog::query()->lockForUpdate()->findOrFail($superblog->getKey());
+
+            $rssItemsAreUsedElsewhere = Article::query()
+                ->where('superblog_id', '!=', $lockedSuperblog->getKey())
+                ->whereHas('rssItem.rssSource', fn ($query) => $query->where('superblog_id', $lockedSuperblog->getKey()))
+                ->exists();
+
+            if ($rssItemsAreUsedElsewhere) {
+                throw ValidationException::withMessages([
+                    'superblog' => 'This Superblog has RSS items linked to articles in another Superblog. Repair those links before deleting it.',
+                ]);
+            }
+
+            // Remove articles before their RSS sources so a source cascade cannot reach an article in another Superblog.
+            $lockedSuperblog->articles()->delete();
+            $lockedSuperblog->rssSources()->delete();
+            $lockedSuperblog->delete();
+        });
 
         return to_route('admin.dashboard')->with('status', 'Superblog deleted.');
     }

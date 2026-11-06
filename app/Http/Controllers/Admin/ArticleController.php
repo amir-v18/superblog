@@ -11,6 +11,7 @@ use App\Models\RssSource;
 use App\Models\Superblog;
 use App\Support\SuperblogPublishingReadiness;
 use Illuminate\Database\UniqueConstraintViolationException;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -249,6 +250,48 @@ class ArticleController extends Controller
             'article' => $article,
             'isCreating' => false,
         ]);
+    }
+
+    public function destroy(Request $request, Superblog $superblog, Article $article): RedirectResponse|JsonResponse
+    {
+        Gate::authorize('update', $superblog);
+
+        [$sectionKey, $currentPage] = DB::transaction(function () use ($request, $superblog, $article): array {
+            $lockedSuperblog = Superblog::query()->lockForUpdate()->findOrFail($superblog->getKey());
+            $lockedArticle = $this->articleForSuperblog($lockedSuperblog, $article, lock: true);
+            $sectionKey = match ($lockedArticle->source_type) {
+                'manual' => 'manual',
+                'rss' => 'rss',
+                default => abort(404),
+            };
+
+            // Foreign-key cascades remove this article's child rows, but leave its RSS source item and files alone.
+            $lockedArticle->delete();
+
+            $pageName = $sectionKey.'_page';
+            $lastPage = max(1, (int) ceil($lockedSuperblog->articles()->where('source_type', $sectionKey)->count() / 5));
+            $requestedPage = max(1, (int) $request->query($pageName, 1));
+
+            return [$sectionKey, min($requestedPage, $lastPage)];
+        });
+
+        $message = 'Artikeln har tagits bort permanent.';
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'message' => $message,
+                'sectionKey' => $sectionKey,
+                'currentPage' => $currentPage,
+                'superblogId' => $superblog->getKey(),
+            ]);
+        }
+
+        return to_route('admin.superblogs.edit', [
+            $superblog,
+            'flik' => 'innehall',
+            'manual_page' => $sectionKey === 'manual' ? $currentPage : $request->query('manual_page', 1),
+            'rss_page' => $sectionKey === 'rss' ? $currentPage : $request->query('rss_page', 1),
+        ])->with('status', $message);
     }
 
     public function publish(Superblog $superblog, Article $article): RedirectResponse
