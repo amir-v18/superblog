@@ -31,10 +31,19 @@ class SuperblogPreviewController extends Controller
             ->orderByDesc('id')
             ->limit(7)
             ->get();
+        $manualArticles = $superblog->articles()
+            ->where('source_type', 'manual')
+            ->where('status', 'published')
+            ->where('is_selected_for_publication', true)
+            ->whereNotNull('published_at')
+            ->orderByDesc('published_at')
+            ->orderByDesc('id')
+            ->limit(5)
+            ->get();
 
         // The header also covers non-HTML crawlers; the meta tag in the template is a second line of defence.
         return response()
-            ->view('templates.news.home', ['superblog' => $superblog, 'theme' => $theme, 'articles' => $articles])
+            ->view('templates.news.home', ['superblog' => $superblog, 'theme' => $theme, 'articles' => $articles, 'manualArticles' => $manualArticles])
             ->header('X-Robots-Tag', 'noindex, nofollow');
     }
 }

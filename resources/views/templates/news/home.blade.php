@@ -54,11 +54,11 @@
                     </article>
 
                     <aside aria-labelledby="latest-sidebar-heading" class="border-l border-ink/15 pl-5 max-[760px]:border-l-0 max-[760px]:pl-0">
-                        <h2 id="latest-sidebar-heading" class="mb-1 border-b-3 border-primary pb-2 {{ $eyebrow }}">Fler artiklar</h2>
-                        @forelse ($otherArticles->take(5) as $article)
+                        <h2 id="latest-sidebar-heading" class="mb-1 border-b-3 border-primary pb-2 {{ $eyebrow }}">Mest lästa artiklar just nu</h2>
+                        @forelse ($manualArticles as $article)
                             <a href="{{ route('public.superblogs.articles.show', [$superblog, $article]) }}" target="_blank" rel="noopener" class="block border-b border-ink/12 py-3 font-medium hover:underline">{{ $article->title }}</a>
                         @empty
-                            <p class="py-3 text-sm text-ink/60">Fler artiklar visas här när de publiceras.</p>
+                            <p class="py-3 text-sm text-ink/60">Manuella artiklar visas här när de publiceras.</p>
                         @endforelse
                     </aside>
                 </div>
