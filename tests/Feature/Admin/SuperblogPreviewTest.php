@@ -74,6 +74,36 @@ class SuperblogPreviewTest extends TestCase
             ->assertViewIs('templates.news.home');
     }
 
+    public function test_classic_gets_its_own_front_page_and_modern_keeps_its_own(): void
+    {
+        $admin = $this->makeUser(approved: true, superAdmin: true);
+        $superblog = $this->makeSuperblog($admin);
+        $superblog->template->update(['slug' => 'classic']);
+
+        $response = $this->actingAs($admin)->get(route('admin.superblogs.preview', $superblog))
+            ->assertOk()
+            ->assertViewIs('templates.classic.home')
+            ->assertHeader('X-Robots-Tag', 'noindex, nofollow')
+            ->assertSee('<meta name="robots" content="noindex, nofollow">', false)
+            ->assertSee('<span data-live-name>Dagens Budbärare</span>', false);
+
+        $content = $response->getContent();
+        $this->assertSame(1, substr_count($content, '<h1'));
+        // The name sits in both the H1 and the footer, and both follow the builder's name field.
+        $this->assertSame(2, substr_count($content, 'data-live-name'));
+
+        // Nothing is made up: none of the design's sample texts reach the page.
+        foreach (['5 kronor', 'Vädret', 'Pris', 'Årg.', 'Grundad', 'Prenumerera', 'Annons', 'Små annonser', 'Allmän Tidning', 'Budbäraren'] as $sample) {
+            $this->assertStringNotContainsString($sample, $content);
+        }
+
+        $superblog->template->update(['slug' => 'modern']);
+
+        $this->get(route('admin.superblogs.preview', $superblog))
+            ->assertOk()
+            ->assertViewIs('templates.news.home');
+    }
+
     public function test_missing_or_unknown_theme_falls_back_to_the_first_theme(): void
     {
         $admin = $this->makeUser(approved: true, superAdmin: true);

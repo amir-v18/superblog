@@ -13,14 +13,7 @@
 {{-- Front page of the magazine. Its own document, because layouts.public has a generic header that does not belong here. --}}
 <html lang="sv" @if ($themeName) data-theme="{{ $themeName }}" @endif @if ($themeStyle) style="{{ $themeStyle }}" @endif>
 <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    {{-- Only used as an admin preview for now, so it must never show up in search results. --}}
-    <meta name="robots" content="noindex, nofollow">
-    <title>{{ $superblog->name }}</title>
-    @vite(['resources/css/app.css', 'resources/js/app.js'])
-    {{-- Every theme can be picked for every template, so the site loads the newspaper theme's fonts too. --}}
-    @fonts(['unifrakturmaguntia', 'playfair-display', 'old-standard-tt', 'im-fell-english-sc'])
+    @include('templates.partials.head')
 </head>
 <body class="flex min-h-screen flex-col bg-paper font-body leading-[1.4] text-ink antialiased">
     {{-- Left out for now: section menu, "Logga in"/"Prenumerera", tagline, ads and newsletter. --}}

@@ -31,8 +31,7 @@ return [
             'name' => 'Klassisk tidning',
             'description' => 'Nyhetsblad med spalter, dubbla linjer, titelblock och retroannonser.',
             'theme' => 'budbararen',
-            // Shares the Modern site until it gets views of its own.
-            'site' => 'templates.news',
+            'site' => 'templates.classic',
         ],
 
     ],
