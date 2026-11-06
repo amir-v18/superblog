@@ -9,6 +9,7 @@ use App\Models\Article;
 use App\Models\RssItem;
 use App\Models\RssSource;
 use App\Models\Superblog;
+use App\Support\SuperblogPublishingReadiness;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -139,13 +140,14 @@ class ArticleController extends Controller
         ])->with('status', $message);
     }
 
-    public function publishSelected(Superblog $superblog): RedirectResponse
+    public function publishSelected(Superblog $superblog, SuperblogPublishingReadiness $publishingReadiness): RedirectResponse
     {
         Gate::authorize('update', $superblog);
         $publishedAt = now();
 
-        [$published, $withdrawn, $wasAlreadyPublished] = DB::transaction(function () use ($superblog, $publishedAt): array {
+        [$published, $withdrawn, $wasAlreadyPublished] = DB::transaction(function () use ($superblog, $publishedAt, $publishingReadiness): array {
             $lockedSuperblog = Superblog::query()->lockForUpdate()->findOrFail($superblog->getKey());
+            $publishingReadiness->validate($lockedSuperblog);
             $wasAlreadyPublished = $lockedSuperblog->status === 'published';
 
             // Restrict each update to articles whose status actually needs to change; repeated requests are safe.

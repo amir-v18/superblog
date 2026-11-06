@@ -7,6 +7,8 @@ use App\Http\Requests\Admin\SaveSuperblogRequest;
 use App\Models\Article;
 use App\Models\Superblog;
 use App\Models\Template;
+use App\Support\SuperblogPublishingReadiness;
+use App\Support\Theme;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\DB;
@@ -30,7 +32,10 @@ class SuperblogController extends Controller
     {
         try {
             $superblog = DB::transaction(function () use ($request) {
-                $superblog = $request->user()->superblogs()->create($request->validated());
+                $superblog = $request->user()->superblogs()->create([
+                    ...$request->validated(),
+                    'settings' => ['theme' => ['name' => Theme::DEFAULT]],
+                ]);
                 // Ownership alone does not grant access: the policy uses staff assignments.
                 $superblog->staff()->attach($request->user()->getKey());
 
@@ -43,7 +48,7 @@ class SuperblogController extends Controller
         return to_route('admin.superblogs.edit', $superblog)->with('status', 'Superblog created.');
     }
 
-    public function edit(Superblog $superblog): View
+    public function edit(Superblog $superblog, SuperblogPublishingReadiness $publishingReadiness): View
     {
         Gate::authorize('view', $superblog);
         Gate::authorize('update', $superblog);
@@ -78,6 +83,7 @@ class SuperblogController extends Controller
             }
         }
         $publicationSummary = null;
+        $publicationErrors = [];
 
         if (request()->query('flik') === 'publicera') {
             $articles = Article::query()->where('superblog_id', $superblog->getKey());
@@ -86,6 +92,7 @@ class SuperblogController extends Controller
                 'to_publish' => (clone $articles)->where('is_selected_for_publication', true)->where('status', 'draft')->count(),
                 'to_withdraw' => (clone $articles)->where('is_selected_for_publication', false)->where('status', 'published')->count(),
             ];
+            $publicationErrors = $publishingReadiness->errorsFor($superblog);
         }
 
         return view('admin.superblogs.edit', [
@@ -98,6 +105,7 @@ class SuperblogController extends Controller
             'manualArticles' => $manualArticles,
             'rssArticles' => $rssArticles,
             'publicationSummary' => $publicationSummary,
+            'publicationErrors' => $publicationErrors,
         ]);
     }
 

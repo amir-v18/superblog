@@ -46,14 +46,18 @@
                     <form method="POST" action="{{ route('admin.superblogs.update', $superblog) }}" class="space-y-6">
                         @csrf
                         @method('PUT')
-                        {{-- Without a slug, SaveSuperblogRequest regenerates it from the name, so renaming would change it. --}}
-                        <input type="hidden" name="slug" value="{{ old('slug', $superblog->slug) }}">
 
                         <h2 class="text-lg font-semibold">Grunduppgifter</h2>
 
                         <div>
                             <label for="name" class="block text-sm font-medium">Namn</label>
                             <x-admin.input id="name" name="name" data-live-name-source value="{{ old('name', $superblog->name) }}" required maxlength="255" class="mt-2" />
+                        </div>
+
+                        <div>
+                            <label for="slug" class="block text-sm font-medium">Slug</label>
+                            <x-admin.input id="slug" name="slug" value="{{ old('slug', $superblog->slug) }}" required maxlength="255" aria-describedby="slug-help" class="mt-2" />
+                            <p id="slug-help" class="mt-1 text-sm text-studio-muted">Adressen blir /superblogs/{slug}. Använd små bokstäver och bindestreck. Måste vara unik.</p>
                         </div>
 
                         <fieldset>
@@ -191,6 +195,21 @@
                             <h2 id="publish-heading" class="text-lg font-semibold">Publicera innehåll</h2>
                             <p class="mt-1 text-sm text-studio-muted">Publicera tillämpar det sparade urvalet från Innehåll. Spara ändrade kryssrutor där innan du fortsätter. Valda utkast publiceras och publicerade artiklar som inte längre är valda dras tillbaka. Superblocket markeras som publicerat.</p>
 
+                            @if ($publicationErrors !== [])
+                                @php
+                                    $grundFieldNames = ['name' => 'Namn', 'slug' => 'Slug', 'template_id' => 'Mall', 'domain' => 'Domän'];
+                                @endphp
+                                <aside role="status" class="mt-5 rounded-lg border border-amber-300 bg-amber-50 p-4 text-sm text-amber-950">
+                                    <p class="font-semibold">Komplettera Grund innan du publicerar</p>
+                                    <ul class="mt-2 list-inside list-disc">
+                                        @foreach ($publicationErrors as $field => $messages)
+                                            <li>{{ $grundFieldNames[$field] ?? $field }}</li>
+                                        @endforeach
+                                    </ul>
+                                    <a href="{{ route('admin.superblogs.edit', [$superblog, 'flik' => 'grund']) }}" class="mt-3 inline-block font-medium underline underline-offset-4 studio-focus-ring">Gå till Grund</a>
+                                </aside>
+                            @endif
+
                             <dl class="mt-5 grid grid-cols-1 gap-2" aria-label="Publiceringsöversikt">
                                 <div class="rounded-lg border border-studio-line bg-studio-panel p-3">
                                     <dt class="text-xs text-studio-muted">Valda artiklar</dt>
@@ -208,7 +227,7 @@
 
                             <form method="POST" action="{{ route('admin.superblogs.articles.publish-selected', $superblog) }}" class="mt-5">
                                 @csrf
-                                <button type="submit" class="rounded-lg bg-studio-brand px-4 py-2 text-sm font-semibold text-studio-side hover:bg-studio-brand-hover studio-focus-ring">Publicera</button>
+                                <button type="submit" @disabled($publicationErrors !== []) class="rounded-lg bg-studio-brand px-4 py-2 text-sm font-semibold text-studio-side hover:bg-studio-brand-hover studio-focus-ring disabled:cursor-not-allowed disabled:opacity-50">Publicera</button>
                             </form>
                         @endif
                     </section>

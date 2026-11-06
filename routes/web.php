@@ -11,6 +11,7 @@ use App\Http\Controllers\Admin\TemplateController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Auth\GoogleAuthenticationController;
 use App\Http\Controllers\PublicArticleController;
+use App\Http\Controllers\PublicSuperblogController;
 use App\Http\Middleware\AllowPasswordLoginInDevelopment;
 use App\Support\DemoArticle;
 use App\Support\Theme;
@@ -24,6 +25,8 @@ Route::get('/', function () {
 Route::get('/superblogs/{superblog:slug}/articles/{article:slug}', [PublicArticleController::class, 'show'])
     ->scopeBindings()
     ->name('public.superblogs.articles.show');
+Route::get('/superblogs/{superblog:slug}', PublicSuperblogController::class)
+    ->name('public.superblogs.show');
 
 // Demo page for previewing the public layout; only registered locally so it is never public or indexed.
 if (app()->environment('local')) {

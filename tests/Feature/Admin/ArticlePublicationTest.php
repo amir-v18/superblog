@@ -59,6 +59,77 @@ class ArticlePublicationTest extends TestCase
             ->assertDontSee('Bekräfta och publicera');
     }
 
+    public function test_publication_without_a_domain_is_blocked_and_guides_user_to_grund(): void
+    {
+        [$staff, $superblog] = $this->makeAssignedSuperblog();
+        $superblog->update(['domain' => null]);
+        $article = $this->makeArticle($superblog, 'Still a draft', selected: true);
+
+        $this->actingAs($staff)
+            ->from(route('admin.superblogs.edit', [$superblog, 'flik' => 'publicera']))
+            ->followingRedirects()
+            ->post(route('admin.superblogs.articles.publish-selected', $superblog))
+            ->assertOk()
+            ->assertSee('Ange en domän under Grund innan du publicerar.')
+            ->assertSee('Gå till Grund')
+            ->assertSee('<button type="submit" disabled', false);
+
+        $this->assertSame('draft', $superblog->fresh()->status);
+        $this->assertSame('draft', $article->fresh()->status);
+        $this->assertNull($article->fresh()->published_at);
+    }
+
+    public function test_valid_placeholder_domain_allows_superblog_publication_without_dns_verification(): void
+    {
+        [$staff, $superblog] = $this->makeAssignedSuperblog();
+        $superblog->update(['domain' => 'teknikbyn.se']);
+        $article = $this->makeArticle($superblog, 'Ready to publish', selected: true);
+
+        $this->actingAs($staff)
+            ->post(route('admin.superblogs.articles.publish-selected', $superblog))
+            ->assertRedirect(route('admin.superblogs.edit', [$superblog, 'flik' => 'publicera']))
+            ->assertSessionHasNoErrors();
+
+        $this->assertSame('published', $superblog->fresh()->status);
+        $this->assertSame('published', $article->fresh()->status);
+        $this->assertNotNull($article->fresh()->published_at);
+    }
+
+    public function test_publication_is_blocked_when_other_required_grund_fields_are_invalid(): void
+    {
+        [$staff, $superblog] = $this->makeAssignedSuperblog();
+        $superblog->update(['name' => '', 'slug' => 'invalid slug', 'domain' => 'teknikbyn.se']);
+
+        $this->actingAs($staff)
+            ->post(route('admin.superblogs.articles.publish-selected', $superblog))
+            ->assertSessionHasErrors(['name', 'slug']);
+
+        $this->assertSame('draft', $superblog->fresh()->status);
+    }
+
+    public function test_publication_rejects_a_malformed_domain(): void
+    {
+        [$staff, $superblog] = $this->makeAssignedSuperblog();
+        $superblog->update(['domain' => 'https://teknikbyn.se/path']);
+
+        $this->actingAs($staff)
+            ->post(route('admin.superblogs.articles.publish-selected', $superblog))
+            ->assertSessionHasErrors('domain');
+
+        $this->assertSame('draft', $superblog->fresh()->status);
+    }
+
+    public function test_publishing_does_not_change_existing_appearance_settings(): void
+    {
+        [$staff, $superblog] = $this->makeAssignedSuperblog();
+        $settings = ['theme' => ['name' => 'bondebladet', 'primary' => '#123456']];
+        $superblog->update(['domain' => 'teknikbyn.se', 'settings' => $settings]);
+
+        $this->actingAs($staff)->post(route('admin.superblogs.articles.publish-selected', $superblog));
+
+        $this->assertSame($settings, $superblog->fresh()->settings);
+    }
+
     public function test_unpublishing_takes_the_superblog_offline_without_changing_article_publication(): void
     {
         [$staff, $superblog] = $this->makeAssignedSuperblog();
@@ -262,6 +333,7 @@ class ArticlePublicationTest extends TestCase
             'template_id' => $template->id,
             'name' => $name,
             'slug' => str($name)->slug(),
+            'domain' => str($name)->slug().'.example.test',
         ]);
     }
 

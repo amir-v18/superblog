@@ -4,7 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Superblog;
-use App\Support\Theme;
+use App\Support\SuperblogHomeContent;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Gate;
 
@@ -13,37 +13,18 @@ class SuperblogPreviewController extends Controller
     /**
      * The builder's live preview, shown in an iframe. Same access as the builder itself.
      */
-    public function __invoke(Superblog $superblog): Response
+    public function __invoke(Superblog $superblog, SuperblogHomeContent $homeContent): Response
     {
         Gate::authorize('view', $superblog);
         Gate::authorize('update', $superblog);
 
-        // Without a saved theme the page would have no colors or fonts, so the first theme is shown until one is chosen.
-        $theme = $superblog->settings['theme'] ?? null;
-        if (Theme::name($theme) === null) {
-            $theme = Theme::NAMES[0];
-        }
-
-        // The private preview remains useful after taking a site offline, while public routes enforce site status.
-        $articles = $superblog->articles()
-            ->where('is_selected_for_publication', true)
-            ->orderByDesc('published_at')
-            ->orderByDesc('id')
-            ->limit(7)
-            ->get();
-        $manualArticles = $superblog->articles()
-            ->where('source_type', 'manual')
-            ->where('status', 'published')
-            ->where('is_selected_for_publication', true)
-            ->whereNotNull('published_at')
-            ->orderByDesc('published_at')
-            ->orderByDesc('id')
-            ->limit(5)
-            ->get();
-
         // The header also covers non-HTML crawlers; the meta tag in the template is a second line of defence.
         return response()
-            ->view('templates.news.home', ['superblog' => $superblog, 'theme' => $theme, 'articles' => $articles, 'manualArticles' => $manualArticles])
+            ->view('templates.news.home', [
+                'superblog' => $superblog,
+                ...$homeContent->for($superblog),
+                'isPreview' => true,
+            ])
             ->header('X-Robots-Tag', 'noindex, nofollow');
     }
 }

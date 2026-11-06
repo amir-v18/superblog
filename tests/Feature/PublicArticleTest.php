@@ -132,6 +132,7 @@ class PublicArticleTest extends TestCase
             'name' => "Public {$blogSlug}",
             'slug' => $blogSlug,
             'status' => 'published',
+            'domain' => "{$blogSlug}.example.test",
             'settings' => ['theme' => 'bondebladet'],
         ]);
         $source = $superblog->rssSources()->create([
