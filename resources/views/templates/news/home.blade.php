@@ -19,6 +19,8 @@
     <meta name="robots" content="noindex, nofollow">
     <title>{{ $superblog->name }}</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
+    {{-- Every theme can be picked for every template, so the site loads the newspaper theme's fonts too. --}}
+    @fonts(['unifrakturmaguntia', 'playfair-display', 'old-standard-tt', 'im-fell-english-sc'])
 </head>
 <body class="flex min-h-screen flex-col bg-paper font-body leading-[1.4] text-ink antialiased">
     {{-- Left out for now: section menu, "Logga in"/"Prenumerera", tagline, ads and newsletter. --}}

@@ -8,6 +8,8 @@
     <meta name="robots" content="noindex, nofollow">
     <title>@yield('title', 'Admin') · Pressverket</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
+    {{-- Only the logo font of the newspaper theme, for template and magazine thumbnails. Named, so the admin does not start loading other fonts. --}}
+    @fonts(['unifrakturmaguntia'])
 </head>
 {{-- color-scheme makes native controls (radios, scrollbars, dialogs) dark too. --}}
 <body class="min-h-screen bg-studio-bg font-sans text-studio-ink antialiased accent-studio-brand [color-scheme:dark] lg:flex">

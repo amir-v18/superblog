@@ -11,7 +11,7 @@
         $variant === 'template' && $themeName !== null => [
             'strip' => 'h-2 bg-primary',
             'area' => 'flex h-22 flex-col justify-between overflow-hidden border-b border-primary/33 bg-paper px-3.5 pt-2.5 pb-4.5 text-ink',
-            'title' => 'mt-2 truncate font-display text-lg leading-none font-semibold tracking-[-.03em]',
+            'title' => 'mt-2 truncate font-logo text-lg leading-none font-semibold tracking-[-.03em]',
             'bars' => 'grid grid-cols-[2fr_1fr_1fr] gap-1.5',
             'bar' => ['h-[34px] rounded-[3px] bg-accent opacity-65', 'h-[34px] rounded-[3px] bg-primary opacity-65', 'h-[34px] rounded-[3px] bg-accent opacity-65'],
         ],
@@ -25,7 +25,7 @@
         $themeName !== null => [
             'strip' => 'h-2 bg-primary',
             'area' => 'flex h-32 flex-col justify-between bg-paper p-4 text-ink',
-            'title' => 'truncate font-display text-2xl font-semibold',
+            'title' => 'truncate font-logo text-2xl font-semibold',
             'bars' => 'grid h-8 grid-cols-[2fr_1fr_1fr] gap-2',
             'bar' => ['rounded-md bg-primary/90', 'rounded-md bg-deep/70', 'rounded-md bg-pale'],
         ],

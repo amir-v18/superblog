@@ -49,6 +49,8 @@
     --accent: #589168;
     --display: 'Newsreader Variable', ui-serif, Georgia, serif;
     --body: 'DM Sans Variable', ui-sans-serif, system-ui, sans-serif;
+    /* The magazine name in thumbnails; here the same face as the headings. */
+    --logo: 'Newsreader Variable', ui-serif, Georgia, serif;
 }
 
 [data-theme='techenspraket'] {
@@ -64,6 +66,7 @@
     --accent: #19c3ff;
     --display: 'Space Grotesk Variable', ui-sans-serif, system-ui, sans-serif;
     --body: 'DM Sans Variable', ui-sans-serif, system-ui, sans-serif;
+    --logo: 'Space Grotesk Variable', ui-sans-serif, system-ui, sans-serif;
 }
 
 [data-theme='budbararen'] {
@@ -82,6 +85,10 @@
     --desk: #d6cdb3;
     --display: 'Playfair Display', 'Bodoni MT', Georgia, serif;
     --body: 'Old Standard TT', 'Times New Roman', Georgia, serif;
+    --logo: 'UnifrakturMaguntia', 'Old English Text MT', Georgia, serif;
+    /* Extra for this theme: the newspaper name and the small capitals used for labels and rules. */
+    --blackletter: 'UnifrakturMaguntia', 'Old English Text MT', Georgia, serif;
+    --caps: 'IM Fell English SC', 'Playfair Display', Georgia, serif;
 }
 
 @theme inline {
@@ -97,4 +104,8 @@
     --color-accent: var(--accent);
     --font-display: var(--display);
     --font-body: var(--body);
+    --font-logo: var(--logo);
+    /* Only the newspaper theme sets these; under the other themes they fall back to that theme's own faces. */
+    --font-blackletter: var(--blackletter, var(--logo));
+    --font-caps: var(--caps, var(--display));
 }
