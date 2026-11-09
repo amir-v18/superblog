@@ -5,6 +5,7 @@ namespace Tests\Feature\Admin;
 use App\Models\Template;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Route;
 use Tests\TestCase;
 
 class TemplateManagementTest extends TestCase
@@ -26,7 +27,7 @@ class TemplateManagementTest extends TestCase
             ->get(route('admin.templates.index'))
             ->assertForbidden();
 
-        $this->post(route('admin.templates.store'), [
+        $this->put(route('admin.templates.update', $template), [
             'name' => 'Unauthorized',
             'layout' => 'layouts.public',
             'is_active' => '1',
@@ -39,13 +40,46 @@ class TemplateManagementTest extends TestCase
             ->assertForbidden();
 
         $this->assertDatabaseCount('templates', 1);
+        $this->assertDatabaseHas('templates', ['id' => $template->id, 'name' => 'Protected']);
     }
 
-    public function test_super_admin_can_create_and_edit_a_valid_template(): void
+    public function test_templates_cannot_be_created_from_the_admin(): void
     {
         $admin = $this->makeUser(approved: true, superAdmin: true);
 
-        $this->actingAs($admin)->post(route('admin.templates.store'), [
+        // Templates come from config/templates.php, since each one needs its own views in the code.
+        $this->assertFalse(Route::has('admin.templates.create'));
+        $this->assertFalse(Route::has('admin.templates.store'));
+
+        $this->actingAs($admin)->get(route('admin.templates.index'))
+            ->assertOk()
+            ->assertDontSee('Create template');
+
+        $this->post('/admin/templates', [
+            'name' => 'Sneaky',
+            'layout' => 'layouts.public',
+            'is_active' => '1',
+        ])->assertMethodNotAllowed();
+        $this->assertDatabaseCount('templates', 0);
+    }
+
+    public function test_super_admin_can_edit_a_valid_template(): void
+    {
+        $admin = $this->makeUser(approved: true, superAdmin: true);
+        $template = Template::create([
+            'name' => 'News Layout',
+            'slug' => 'old-slug',
+            'layout' => 'layouts.public',
+            'is_active' => true,
+        ]);
+
+        $this->actingAs($admin)->get(route('admin.templates.edit', $template))
+            ->assertOk()
+            ->assertSee('Edit template')
+            ->assertSee('action="'.route('admin.templates.update', $template).'"', false);
+
+        // A blank slug is generated from the name.
+        $this->put(route('admin.templates.update', $template), [
             'name' => 'News Layout',
             'slug' => '',
             'description' => 'A clean layout for news.',
@@ -53,8 +87,9 @@ class TemplateManagementTest extends TestCase
             'is_active' => '1',
         ])->assertRedirect(route('admin.templates.index'));
 
-        $template = Template::where('name', 'News Layout')->firstOrFail();
+        $template->refresh();
         $this->assertSame('news-layout', $template->slug);
+        $this->assertSame('A clean layout for news.', $template->description);
         $this->assertTrue($template->is_active);
 
         $this->put(route('admin.templates.update', $template), [
@@ -81,18 +116,25 @@ class TemplateManagementTest extends TestCase
             'layout' => 'layouts.public',
             'is_active' => true,
         ]);
+        $other = Template::create([
+            'name' => 'Other',
+            'slug' => 'other',
+            'layout' => 'layouts.public',
+            'is_active' => true,
+        ]);
 
-        $this->actingAs($admin)->from(route('admin.templates.create'))
-            ->post(route('admin.templates.store'), [
+        $this->actingAs($admin)->from(route('admin.templates.edit', $other))
+            ->put(route('admin.templates.update', $other), [
                 'name' => 'Duplicate',
                 'slug' => 'existing',
                 'layout' => 'layouts.not-real',
                 'is_active' => '1',
             ])
-            ->assertRedirect(route('admin.templates.create'))
+            ->assertRedirect(route('admin.templates.edit', $other))
             ->assertSessionHasErrors(['slug', 'layout']);
 
-        $this->assertDatabaseCount('templates', 1);
+        $this->assertDatabaseCount('templates', 2);
+        $this->assertDatabaseHas('templates', ['id' => $other->id, 'name' => 'Other', 'slug' => 'other']);
     }
 
     public function test_inactive_template_cannot_be_selected_for_a_new_superblog_but_can_remain_on_an_existing_one(): void

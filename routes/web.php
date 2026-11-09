@@ -74,7 +74,9 @@ Route::middleware('auth')->group(function () {
             Route::delete('{user}', [StaffController::class, 'destroy'])->name('destroy');
         });
         Route::get('templates/{template}/delete', [TemplateController::class, 'confirmDeletion'])->name('admin.templates.delete');
-        Route::resource('templates', TemplateController::class)->except(['show'])->names('admin.templates');
+        // No create or store: new templates come from config/templates.php via TemplateSeeder, since each one
+        // needs its own views in the code. Admins can still edit, deactivate and delete them.
+        Route::resource('templates', TemplateController::class)->except(['show', 'create', 'store'])->names('admin.templates');
         Route::prefix('superblogs/{superblog}/rss-sources')
             ->name('admin.superblogs.rss-sources.')
             ->scopeBindings()

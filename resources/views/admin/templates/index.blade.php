@@ -9,7 +9,6 @@
             <h1 class="text-3xl font-semibold tracking-tight">Templates</h1>
             <p class="mt-2 text-studio-muted">Manage the layouts available to Superblogs.</p>
         </div>
-        <a href="{{ route('admin.templates.create') }}" class="rounded-lg bg-studio-brand px-4 py-2 text-sm font-medium text-studio-side hover:bg-[#ff9068] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-studio-brand">Create template</a>
     </div>
 
     @if ($errors->any())
@@ -40,7 +39,7 @@
                     </div>
                 </li>
             @empty
-                <li class="py-4 text-sm text-studio-muted">No templates exist yet. Create one before adding a Superblog.</li>
+                <li class="py-4 text-sm text-studio-muted">No templates exist yet.</li>
             @endforelse
         </ul>
         <div class="mt-4">{{ $templates->links() }}</div>

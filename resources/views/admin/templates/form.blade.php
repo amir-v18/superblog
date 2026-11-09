@@ -1,10 +1,10 @@
 @extends('layouts.admin')
 
-@section('title', $template->exists ? 'Edit template' : 'Create template')
+@section('title', 'Edit template')
 
 @section('content')
     <a href="{{ route('admin.templates.index') }}" class="text-sm underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-studio-brand">Back to templates</a>
-    <h1 class="mt-4 text-3xl font-semibold tracking-tight">{{ $template->exists ? 'Edit template' : 'Create template' }}</h1>
+    <h1 class="mt-4 text-3xl font-semibold tracking-tight">Edit template</h1>
 
     @if ($errors->any())
         <div role="alert" class="mt-6 rounded-lg border border-studio-bad/40 bg-[#43261c] p-4 text-studio-bad">
@@ -17,11 +17,10 @@
         </div>
     @endif
 
-    <form method="POST" action="{{ $template->exists ? route('admin.templates.update', $template) : route('admin.templates.store') }}" class="mt-6 space-y-5 rounded-xl border border-studio-line bg-studio-panel p-6">
+    {{-- Edit only: templates are added in config/templates.php, not here. --}}
+    <form method="POST" action="{{ route('admin.templates.update', $template) }}" class="mt-6 space-y-5 rounded-xl border border-studio-line bg-studio-panel p-6">
         @csrf
-        @if ($template->exists)
-            @method('PUT')
-        @endif
+        @method('PUT')
         <div>
             <label for="name" class="block text-sm font-medium">Name</label>
             <input id="name" name="name" value="{{ old('name', $template->name) }}" required maxlength="255" class="mt-2 w-full rounded-lg border border-studio-line bg-studio-bg p-3 focus-visible:outline-2 focus-visible:outline-studio-brand">
@@ -46,7 +45,7 @@
         <div>
             <input type="hidden" name="is_active" value="0">
             <label class="flex items-center gap-3 text-sm font-medium">
-                <input type="checkbox" name="is_active" value="1" @checked(old('is_active', $template->exists ? $template->is_active : true)) class="rounded border-studio-line">
+                <input type="checkbox" name="is_active" value="1" @checked(old('is_active', $template->is_active)) class="rounded border-studio-line">
                 Active and available for new Superblogs
             </label>
         </div>
