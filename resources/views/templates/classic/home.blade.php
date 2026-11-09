@@ -55,9 +55,6 @@
                                 <h3 class="mb-1.5 font-display text-[21px] leading-[1.12] font-bold text-balance">
                                     <a href="{{ route('public.superblogs.articles.show', [$superblog, $story]) }}" target="_blank" rel="noopener" class="hover:text-primary">{{ $story->title }}</a>
                                 </h3>
-                                @if ($story->excerpt)
-                                    <p class="mb-1.5 text-justify text-sm leading-[1.45] hyphens-auto">{{ $story->excerpt }}</p>
-                                @endif
                                 <x-classic.date :article="$story" :class="$byline" />
                             @else
                                 <div class="my-[7px] w-[92%] {{ $textLine }}"></div>
@@ -75,9 +72,6 @@
                         <h2 class="mt-1 text-center font-display text-[clamp(34px,4.4cqw,62px)] leading-[1.02] font-black tracking-[-.01em] text-balance @max-[640px]:text-[34px]">
                             <a href="{{ route('public.superblogs.articles.show', [$superblog, $lead]) }}" target="_blank" rel="noopener" class="hover:text-primary">{{ $lead->title }}</a>
                         </h2>
-                        @if ($lead->excerpt)
-                            <p class="mx-auto mt-2.5 mb-2 max-w-[36em] text-center font-display text-[clamp(16px,1.5cqw,21px)] leading-[1.35] text-muted italic">{{ $lead->excerpt }}</p>
-                        @endif
                         <p class="mt-2 mb-3.5 border-y border-line py-[5px] text-center {{ $byline }}"><x-classic.date :article="$lead" /></p>
                     @else
                         <div class="my-2.5 {{ $headLine }}"></div>

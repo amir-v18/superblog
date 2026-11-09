@@ -36,8 +36,9 @@ class ClassicFrontPageTest extends TestCase
         $row = $this->part($html, '<section aria-labelledby="more-heading"');
 
         $this->assertStringContainsString('Story 1<', $lead);
-        $this->assertStringContainsString('Ingress 1', $lead);
-        $this->assertTrue($this->inOrder($news, ['Story 2<', 'Ingress 2', 'Story 3<', 'Ingress 3']));
+        $this->assertStringNotContainsString('Ingress 1', $lead);
+        $this->assertTrue($this->inOrder($news, ['Story 2<', 'Story 3<']));
+        $this->assertStringNotContainsString('Ingress', $news);
         $this->assertTrue($this->inOrder($row, ['Story 4<', 'Story 5<', 'Story 6<', 'Story 7<']));
         // Exactly seven articles fill the first row, so no extra row follows.
         $this->assertSame(1, substr_count($row, 'grid grid-cols-4'));
@@ -132,8 +133,6 @@ class ClassicFrontPageTest extends TestCase
         $this->assertStringContainsString('Story 1<', $this->part($html, '<section aria-label="Huvudartikel"'));
         $this->assertStringNotContainsString('Här visas din första artikel', $html);
         $this->assertStringNotContainsString('Av redaktionen', $html);
-        // Without an excerpt there is no empty line under the headline.
-        $this->assertStringNotContainsString('italic">', $html);
 
         // The row is still empty: four stand-ins without headlines.
         $this->assertStringNotContainsString('<h3', $row);

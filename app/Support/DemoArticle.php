@@ -17,7 +17,6 @@ class DemoArticle
         return [
             'title' => 'Så påverkar höstregnen skörden i år',
             'slug' => 'sa-paverkar-hostregnen-skorden-i-ar',
-            'excerpt' => 'Ovanligt mycket regn under september har försenat skörden på många gårdar. Här är vad det betyder för odlare och konsumenter.',
             'author' => 'Demo Skribent',
             'published_at' => Carbon::parse('2026-10-14 08:30'),
             'source_type' => 'rss',

@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Article;
 use App\Models\Superblog;
+use Illuminate\Support\Str;
 use Illuminate\View\View;
 
 class PublicArticleController extends Controller
@@ -53,10 +54,12 @@ class PublicArticleController extends Controller
             $sources[] = ['name' => $rssItem->title, 'url' => $rssItem->url];
         }
 
+        $body = $this->contentBlocks($article->content);
+
         return [
             'title' => $article->title,
             'slug' => $article->slug,
-            'excerpt' => $article->excerpt,
+            'description' => $this->metaDescription($body),
             'author' => $rssItem?->author,
             'published_at' => $article->published_at,
             'source_type' => $article->source_type,
@@ -64,7 +67,7 @@ class PublicArticleController extends Controller
             'is_ai_processed' => false,
             'is_locked' => $article->is_locked,
             'image' => null,
-            'body' => $this->contentBlocks($article->content),
+            'body' => $body,
             'links' => $links,
             'sources' => $sources,
         ];
@@ -78,6 +81,19 @@ class PublicArticleController extends Controller
         $paragraphs = preg_split('/\R{2,}/u', trim($plainText), -1, PREG_SPLIT_NO_EMPTY) ?: [];
 
         return array_map(fn (string $text): array => ['type' => 'p', 'text' => $text], $paragraphs);
+    }
+
+    /**
+     * Built from the first paragraph only: a locked article page also shows only its first paragraph,
+     * so the description can never reveal locked text. The paragraphs are already free of HTML and
+     * have their entities decoded. Always returns a string, never null.
+     */
+    private function metaDescription(array $body): string
+    {
+        $firstParagraph = collect($body)->firstWhere('type', 'p')['text'] ?? '';
+        $text = trim(preg_replace('/\s+/u', ' ', $firstParagraph) ?? '');
+
+        return Str::limit($text, 160, '…', preserveWords: true);
     }
 
     private function isHttpUrl(string $url): bool

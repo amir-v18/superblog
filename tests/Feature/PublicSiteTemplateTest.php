@@ -89,8 +89,6 @@ class PublicSiteTemplateTest extends TestCase
         $superblog = $this->publishedMagazine('classic');
         $this->makeArticle($superblog, 'Lead story', now());
         $article = $superblog->articles()->firstOrFail();
-        // With an excerpt, since the article page cannot render an article without one yet.
-        $article->update(['excerpt' => 'Lead excerpt']);
 
         // The article page is shared by all templates for now, so it only takes the magazine's colours.
         $this->get(route('public.superblogs.articles.show', [$superblog, $article]))

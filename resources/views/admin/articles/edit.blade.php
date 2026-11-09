@@ -72,9 +72,6 @@
         <section class="mt-6 space-y-4 rounded-xl border border-studio-line bg-studio-panel p-6" aria-label="Article content (read only)">
             <h2 class="text-xl font-semibold">{{ $article->title }}</h2>
             <p class="text-sm text-studio-muted">/{{ $article->slug }}</p>
-            @if ($article->excerpt)
-                <p class="text-studio-muted">{{ $article->excerpt }}</p>
-            @endif
             <div class="whitespace-pre-wrap">{{ $article->content }}</div>
         </section>
     @endif

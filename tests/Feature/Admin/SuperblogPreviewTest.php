@@ -168,7 +168,7 @@ class SuperblogPreviewTest extends TestCase
             ->get(route('admin.superblogs.preview', $superblog))
             ->assertOk()
             ->assertSee('Published home preview article')
-            ->assertSee('Live article summary.')
+            ->assertDontSee('Live article summary.')
             ->assertSee(route('public.superblogs.articles.show', [$superblog, $published]), false)
             ->assertDontSee('Draft must stay hidden')
             ->assertDontSee('Här visas din första artikel');

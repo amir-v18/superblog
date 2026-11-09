@@ -45,9 +45,6 @@
                             <h2 class="line-clamp-3 font-display text-3xl leading-tight font-semibold tracking-tight">
                                 <a href="{{ route('public.superblogs.articles.show', [$superblog, $featuredArticle]) }}" target="_blank" rel="noopener" class="hover:underline">{{ $featuredArticle->title }}</a>
                             </h2>
-                            @if ($featuredArticle->excerpt)
-                                <p class="line-clamp-2 text-sm text-ink/70">{{ $featuredArticle->excerpt }}</p>
-                            @endif
                             @if ($featuredArticle->published_at)
                                 <time class="text-xs text-ink/60" datetime="{{ $featuredArticle->published_at->toIso8601String() }}">{{ $featuredArticle->published_at->locale('sv')->isoFormat('D MMMM YYYY') }}</time>
                             @endif
