@@ -14,9 +14,13 @@ use Illuminate\Support\Facades\Log;
  */
 class Theme
 {
-    /** Themes defined in resources/css/app.css as [data-theme='...'] blocks. */
-    /** The first one is the last-resort fallback in the builder preview, so new themes go at the end. */
+    /**
+     * Themes defined in resources/css/app.css as [data-theme='...'] blocks. The first one is the last-resort
+     * fallback when a magazine is shown without a theme, so new themes go at the end.
+     */
     public const NAMES = ['bondebladet', 'techenspraket', 'budbararen'];
+
+    public const DEFAULT = 'techenspraket';
 
     public const COLOR_KEYS = ['paper', 'white', 'ink', 'muted', 'primary', 'deep', 'line', 'pale'];
 

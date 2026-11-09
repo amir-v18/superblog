@@ -2,8 +2,10 @@
 
 namespace Tests\Feature\Admin;
 
+use App\Models\Superblog;
 use App\Models\Template;
 use App\Models\User;
+use App\Support\Theme;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
 use Tests\Concerns\CreatesSuperblogs;
@@ -175,6 +177,28 @@ class CreateSuperblogModalTest extends TestCase
         ])->assertSessionHasNoErrors();
 
         $this->assertDatabaseHas('superblogs', ['name' => 'Allmänna Tidningen', 'template_id' => $classic->id]);
+    }
+
+    public function test_a_new_magazine_starts_in_its_templates_theme(): void
+    {
+        $admin = $this->makeUser(approved: true, superAdmin: true);
+        $templates = [
+            'Klassisk' => [$this->makeTemplate('Klassisk tidning', 'classic', null), 'budbararen'],
+            'Modern' => [$this->makeTemplate('Modern magasin', 'modern', null), 'bondebladet'],
+            // Not in config/templates.php, so it has no theme of its own.
+            'Egen' => [$this->makeTemplate('Egen mall', 'egen-mall', null), Theme::DEFAULT],
+        ];
+
+        foreach ($templates as $name => [$template, $theme]) {
+            $this->actingAs($admin)->post(route('admin.superblogs.store'), [
+                '_form' => 'create-superblog',
+                'name' => "{$name} Nyheter",
+                'template_id' => $template->id,
+            ])->assertSessionHasNoErrors();
+
+            $superblog = Superblog::where('name', "{$name} Nyheter")->firstOrFail();
+            $this->assertSame(['theme' => ['name' => $theme]], $superblog->settings, $name);
+        }
     }
 
     public function test_duplicate_name_error_is_shown_under_the_name_field(): void

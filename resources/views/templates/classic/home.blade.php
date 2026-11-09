@@ -16,7 +16,7 @@
 <head>
     @include('templates.partials.head')
 </head>
-<body class="min-h-screen bg-desk px-5 pt-[22px] pb-[60px] font-body text-ink antialiased max-[640px]:p-0">
+<body @if ($isPreview ?? false) data-admin-preview-superblog-id="{{ $superblog->getKey() }}" @endif class="min-h-screen bg-desk px-5 pt-[22px] pb-[60px] font-body text-ink antialiased max-[640px]:p-0">
     {{-- Left out for now, since there is no data for them: weather and price boxes, volume number and founding
          year, tagline, section menu, the strip of short news, ads, small ads and publisher details. --}}
     {{-- Two kinds of breakpoints. The sheet cannot measure itself, so its own spacing and the desk around it follow

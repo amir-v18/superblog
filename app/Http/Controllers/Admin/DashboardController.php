@@ -24,6 +24,18 @@ class DashboardController extends Controller
         ]);
     }
 
+    public function published(Request $request): View
+    {
+        Gate::authorize('viewAny', Superblog::class);
+
+        return view('admin.superblogs.published', [
+            'superblogs' => $this->superblogs($request)
+                ->where('status', 'published')
+                ->paginate(20)
+                ->withQueryString(),
+        ]);
+    }
+
     private function superblogs(Request $request)
     {
         // withCount/withMax add subqueries to the same query and with() loads all templates at once, avoiding one query per card.

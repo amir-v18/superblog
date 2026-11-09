@@ -5,6 +5,7 @@ namespace Tests\Feature\Admin;
 use App\Models\Superblog;
 use App\Models\Template;
 use App\Models\User;
+use App\Support\Theme;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
 use Tests\TestCase;
@@ -78,16 +79,27 @@ class DashboardTest extends TestCase
             'layout' => 'layouts.public',
             'is_active' => true,
         ]);
+        $existingSettings = ['theme' => ['name' => 'bondebladet', 'primary' => '#123456']];
+        $existing = $admin->superblogs()->create([
+            'template_id' => $template->id,
+            'name' => 'Existing Blog',
+            'slug' => 'existing-blog',
+            'settings' => $existingSettings,
+        ]);
 
         $response = $this->actingAs($admin)->post(route('admin.superblogs.store'), [
             '_form' => 'create-superblog',
             'name' => 'Dagens Budbärare',
             'template_id' => $template->id,
-            'domain' => 'dagensbudbarare.se',
         ]);
 
-        $superblog = Superblog::where('domain', 'dagensbudbarare.se')->firstOrFail();
+        $superblog = Superblog::where('slug', 'dagens-budbarare')->firstOrFail();
         $response->assertRedirect(route('admin.superblogs.edit', $superblog));
+        $this->assertSame('dagens-budbarare', $superblog->slug);
+        $this->assertNull($superblog->domain);
+        $this->assertSame(['theme' => ['name' => Theme::DEFAULT]], $superblog->settings);
+        $this->assertSame($existingSettings, $existing->fresh()->settings);
+        $this->assertSame(1, Template::count());
     }
 
     public function test_card_strip_uses_the_saved_theme(): void

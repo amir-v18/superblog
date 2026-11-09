@@ -21,7 +21,7 @@ class SuperblogBuilderTest extends TestCase
             ->assertOk()
             ->assertSee('id="name"', false)
             ->assertSee('id="domain" name="domain"', false)
-            ->assertSee('type="hidden" name="slug" value="dagens-budbarare"', false)
+            ->assertSee('id="slug" name="slug"', false)
             ->assertDontSee('name="theme"', false);
         $this->assertSame(2, substr_count($basics->getContent(), 'name="template_id"'));
 
@@ -53,6 +53,78 @@ class SuperblogBuilderTest extends TestCase
             'domain' => 'nyabudbararen.se',
             'description' => 'Behålls',
         ]);
+    }
+
+    public function test_authorized_user_can_change_slug_used_by_the_public_homepage(): void
+    {
+        $admin = $this->makeUser(approved: true, superAdmin: true);
+        $superblog = $this->makeSuperblog($admin);
+        $superblog->update(['status' => 'published']);
+
+        $this->actingAs($admin)->put(route('admin.superblogs.update', $superblog), [
+            'name' => $superblog->name,
+            'slug' => 'new-public-address',
+            'template_id' => $superblog->template_id,
+        ])->assertRedirect(route('admin.superblogs.edit', $superblog));
+
+        $superblog->refresh();
+        $this->assertSame('new-public-address', $superblog->slug);
+        $this->get('/superblogs/dagens-budbarare')->assertNotFound();
+        $this->get(route('public.superblogs.show', $superblog))
+            ->assertOk()
+            ->assertSee($superblog->name);
+    }
+
+    public function test_slug_is_required_when_editing_and_must_be_unique(): void
+    {
+        $admin = $this->makeUser(approved: true, superAdmin: true);
+        $superblog = $this->makeSuperblog($admin);
+        $anotherSuperblog = $admin->superblogs()->create([
+            'template_id' => $superblog->template_id,
+            'name' => 'Another blog',
+            'slug' => 'another-blog',
+        ]);
+
+        $this->actingAs($admin)->put(route('admin.superblogs.update', $superblog), [
+            'name' => $superblog->name,
+            'slug' => '',
+            'template_id' => $superblog->template_id,
+        ])->assertSessionHasErrors('slug');
+
+        $this->put(route('admin.superblogs.update', $superblog), [
+            'name' => $superblog->name,
+            'slug' => $anotherSuperblog->slug,
+            'template_id' => $superblog->template_id,
+        ])->assertSessionHasErrors('slug');
+
+        $this->assertDatabaseHas('superblogs', [
+            'id' => $superblog->id,
+            'slug' => 'dagens-budbarare',
+        ]);
+    }
+
+    public function test_a_legacy_superblog_with_an_empty_slug_can_be_repaired_without_changing_other_slugs(): void
+    {
+        $admin = $this->makeUser(approved: true, superAdmin: true);
+        $existing = $this->makeSuperblog($admin);
+        $legacy = $admin->superblogs()->create([
+            'template_id' => $existing->template_id,
+            'name' => 'Legacy magazine',
+            'slug' => '',
+        ]);
+
+        $this->actingAs($admin)->get(route('admin.superblogs.edit', $legacy))
+            ->assertOk()
+            ->assertSee('id="slug"', false);
+
+        $this->put(route('admin.superblogs.update', $legacy), [
+            'name' => $legacy->name,
+            'slug' => 'legacy-magazine',
+            'template_id' => $legacy->template_id,
+        ])->assertRedirect(route('admin.superblogs.edit', $legacy));
+
+        $this->assertDatabaseHas('superblogs', ['id' => $legacy->id, 'slug' => 'legacy-magazine']);
+        $this->assertDatabaseHas('superblogs', ['id' => $existing->id, 'slug' => 'dagens-budbarare']);
     }
 
     public function test_users_without_access_cannot_open_or_save_the_builder(): void
