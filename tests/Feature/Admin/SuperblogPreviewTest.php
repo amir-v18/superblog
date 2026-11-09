@@ -80,7 +80,9 @@ class SuperblogPreviewTest extends TestCase
         $superblog = $this->makeSuperblog($admin);
         $superblog->template->update(['slug' => 'classic']);
 
-        $response = $this->actingAs($admin)->get(route('admin.superblogs.preview', $superblog))
+        // What the page itself contains (one H1, the name in two places, nothing made up) is tested in
+        // ClassicFrontPageTest; this test covers which view the preview picks and how it is kept out of search.
+        $this->actingAs($admin)->get(route('admin.superblogs.preview', $superblog))
             ->assertOk()
             ->assertViewIs('templates.classic.home')
             ->assertHeader('X-Robots-Tag', 'noindex, nofollow')
@@ -88,16 +90,6 @@ class SuperblogPreviewTest extends TestCase
             // The builder's script finds the preview by this id, to reload it when an article is deleted.
             ->assertSee('data-admin-preview-superblog-id="'.$superblog->getKey().'"', false)
             ->assertSee('<span data-live-name>Dagens Budbärare</span>', false);
-
-        $content = $response->getContent();
-        $this->assertSame(1, substr_count($content, '<h1'));
-        // The name sits in both the H1 and the footer, and both follow the builder's name field.
-        $this->assertSame(2, substr_count($content, 'data-live-name'));
-
-        // Nothing is made up: none of the design's sample texts reach the page.
-        foreach (['5 kronor', 'Vädret', 'Pris', 'Årg.', 'Grundad', 'Prenumerera', 'Annons', 'Små annonser', 'Allmän Tidning', 'Budbäraren'] as $sample) {
-            $this->assertStringNotContainsString($sample, $content);
-        }
 
         $superblog->template->update(['slug' => 'modern']);
 

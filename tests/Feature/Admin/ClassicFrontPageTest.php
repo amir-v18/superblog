@@ -41,6 +41,9 @@ class ClassicFrontPageTest extends TestCase
         $this->assertTrue($this->inOrder($news, ['Story 2<', 'Ingress 2', 'Story 3<', 'Ingress 3']));
         $this->assertTrue($this->inOrder($telegrams, ['Story 4<', 'Story 5<', 'Story 6<', 'Story 7<', 'Story 8<']));
         $this->assertTrue($this->inOrder($row, ['Story 9<', 'Story 10<', 'Story 11<', 'Story 12<']));
+        // Exactly twelve articles fill the first row, so no extra row follows.
+        $this->assertSame(1, substr_count($row, 'grid grid-cols-4'));
+        $this->assertSame(4, substr_count($row, '<article'));
         // The row shows headlines and dates only.
         $this->assertStringNotContainsString('Ingress 9', $row);
 
@@ -81,19 +84,6 @@ class ClassicFrontPageTest extends TestCase
         $this->assertStringNotContainsString('rounded-[3px] bg-ink/14', $row);
     }
 
-    public function test_twelve_articles_or_fewer_keep_a_single_row(): void
-    {
-        [$admin, $superblog] = $this->classicMagazine('published');
-        foreach (range(1, 12) as $number) {
-            $this->makeArticle($superblog, "Story {$number}", now()->subMinutes($number));
-        }
-
-        $row = $this->part($this->preview($admin, $superblog), '<section aria-labelledby="more-heading"');
-
-        $this->assertSame(1, substr_count($row, 'grid grid-cols-4'));
-        $this->assertSame(4, substr_count($row, '<article'));
-    }
-
     public function test_slots_without_an_article_keep_their_stand_ins(): void
     {
         [$admin, $superblog] = $this->classicMagazine('published');
@@ -131,6 +121,10 @@ class ClassicFrontPageTest extends TestCase
         $this->assertStringNotContainsString('<h3', $html);
         $this->assertStringNotContainsString(route('public.superblogs.show', $superblog).'/articles', $html);
         $this->assertNothingIsMadeUp($html);
+        // Without articles the magazine name is still the single H1, and it sits in both the H1 and the
+        // footer, where both follow the builder's name field.
+        $this->assertSame(1, substr_count($html, '<h1'));
+        $this->assertSame(2, substr_count($html, 'data-live-name'));
     }
 
     public function test_selected_drafts_show_in_the_offline_preview_without_a_made_up_time(): void

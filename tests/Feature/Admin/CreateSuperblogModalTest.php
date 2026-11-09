@@ -89,10 +89,8 @@ class CreateSuperblogModalTest extends TestCase
         $tech = $this->makeTemplate('Tech', 'tech', 'Samma struktur i mörkare ton.', active: false);
         $editorial = $this->makeTemplate('Editorial Default', 'editorial-default', null, active: false);
 
-        $content = $this->actingAs($admin)->get(route('admin.dashboard'))->assertOk()->getContent();
-        // The modal sits after </main>, so the dashboard cards are left out.
-        $modal = Str::after($content, '</main>');
-        $form = Str::between($modal, '<form', '</form>');
+        $modal = $this->modal($admin);
+        $form = $this->modalForm($admin);
 
         // One radio per active template, inside the form, so the choice is sent with it. Inactive ones are left out.
         $this->assertSame(2, substr_count($form, 'name="template_id"'));
@@ -223,12 +221,18 @@ class CreateSuperblogModalTest extends TestCase
         $this->assertDatabaseCount('superblogs', 1);
     }
 
-    /** The modal's form on the dashboard. The modal sits after </main>, so the dashboard cards are left out. */
-    private function modalForm(User $admin): string
+    /** The modal on the dashboard. It sits after </main>, so the dashboard cards are left out. */
+    private function modal(User $admin): string
     {
         $content = $this->actingAs($admin)->get(route('admin.dashboard'))->assertOk()->getContent();
 
-        return Str::between(Str::after($content, '</main>'), '<form', '</form>');
+        return Str::after($content, '</main>');
+    }
+
+    /** The modal's form, where the template cards are. */
+    private function modalForm(User $admin): string
+    {
+        return Str::between($this->modal($admin), '<form', '</form>');
     }
 
     private function makeTemplate(string $name, string $slug, ?string $description, bool $active = true): Template
