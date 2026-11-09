@@ -58,6 +58,6 @@ class SuperblogHomeContent
 
         // Without a theme the page would have no colors or fonts. Until one is saved, the template's own theme
         // from the registry is used, and if it has none, the first theme.
-        return ($superblog->template ? Theme::forTemplate($superblog->template) : null) ?? Theme::NAMES[0];
+        return Theme::forTemplate($superblog->template) ?? Theme::NAMES[0];
     }
 }

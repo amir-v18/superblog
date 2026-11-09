@@ -34,8 +34,7 @@ class SuperblogController extends Controller
             $superblog = DB::transaction(function () use ($request) {
                 // A new magazine starts in its template's own theme from config/templates.php, so a newspaper
                 // template opens looking like a newspaper. A template missing there gets the general default.
-                $template = Template::find($request->validated('template_id'));
-                $theme = ($template ? Theme::forTemplate($template) : null) ?? Theme::DEFAULT;
+                $theme = Theme::forTemplate(Template::find($request->validated('template_id'))) ?? Theme::DEFAULT;
 
                 $superblog = $request->user()->superblogs()->create([
                     ...$request->validated(),

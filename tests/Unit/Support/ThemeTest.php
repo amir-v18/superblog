@@ -26,6 +26,13 @@ class ThemeTest extends TestCase
         }
     }
 
+    public function test_no_template_gives_no_theme(): void
+    {
+        // Callers pass a template that may be missing (an id that matches no row, or a magazine without one),
+        // so null must give null rather than an error, leaving the fallback to them.
+        $this->assertNull(Theme::forTemplate(null));
+    }
+
     public function test_the_theme_comes_from_the_registry(): void
     {
         config(['templates.list.modern.theme' => 'techenspraket']);
