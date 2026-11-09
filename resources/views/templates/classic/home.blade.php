@@ -3,14 +3,14 @@
     // $theme: a theme name or an array of overrides with a base 'name', as in layouts.public.
     $themeName = Theme::name($theme);
     $themeStyle = Theme::cssVariables($theme);
-    // Articles arrive newest first and fill the page in reading order: the lead story, two news items on the left,
-    // five telegrams on the right and the row of four. A slot without an article keeps its stand-in.
+    // Articles arrive newest first and fill the page in reading order: the lead story, two news items on the left
+    // and the rows of four. A slot without an article keeps its stand-in. The "Mest lästa" list on the right has
+    // its own articles ($manualArticles), as on the Modern front page.
     $lead = $articles->first();
     $news = $articles->slice(1, 2)->values();
-    $telegrams = $articles->slice(3, 5)->values();
-    // From the ninth article on, rows of four. The first row always has four slots; later rows only hold the
+    // From the fourth article on, rows of four. The first row always has four slots; later rows only hold the
     // articles that do not fit, without stand-ins, so no selected article is ever left off the page.
-    $rows = $articles->slice(8)->values()->chunk(4)->map->values()->whenEmpty(fn ($rows) => $rows->push(collect()));
+    $rows = $articles->slice(3)->values()->chunk(4)->map->values()->whenEmpty(fn ($rows) => $rows->push(collect()));
     // Stand-ins for empty slots: striped picture areas and grey text lines, so no titles or texts are ever made up.
     // There are no article pictures yet either, so the plates stay striped next to real headlines.
     $stripes = 'grid place-items-center border-[1.5px] border-dashed border-ink/30 bg-ink/10 [background-image:repeating-linear-gradient(45deg,transparent_0_9px,color-mix(in_srgb,var(--ink)_6%,transparent)_9px_18px)]';
@@ -94,23 +94,33 @@
                     @endunless
                 </section>
 
-                <section aria-labelledby="telegram-heading" class="min-w-0 pl-5 @max-[640px]:mb-3.5 @max-[640px]:pl-0">
-                    <x-classic.ornament id="telegram-heading">Senaste telegram</x-classic.ornament>
-                    {{-- The time of day only, as on a telegram. A stand-in time is plain text rather than a time element. --}}
-                    <ol class="mb-3.5">
-                        @foreach (range(0, 4) as $slot)
-                            @php($telegram = $telegrams->get($slot))
-                            <li class="grid grid-cols-[46px_1fr] gap-2 border-b border-dotted border-line py-[7px] text-sm leading-[1.3]">
-                                @if ($telegram)
-                                    <x-classic.date :article="$telegram" format="HH.mm" class="pt-0.5 font-caps text-xs tracking-[.06em] text-primary" />
-                                    <a href="{{ route('public.superblogs.articles.show', [$superblog, $telegram]) }}" target="_blank" rel="noopener" class="min-w-0 hover:underline">{{ $telegram->title }}</a>
-                                @else
-                                    <span class="pt-0.5 font-caps text-xs tracking-[.06em] text-primary opacity-40">00.00</span>
-                                    <div class="my-1 w-[92%] {{ $textLine }}"></div>
-                                @endif
-                            </li>
-                        @endforeach
-                    </ol>
+                {{-- The same rule as the Modern front page: the newest published manual articles. Stand-ins only while
+                     the magazine has no articles at all; with articles but no manual ones, a short note says why the
+                     list is empty. The list itself is numbered for screen readers, so the printed numbers are skipped. --}}
+                <section aria-labelledby="most-read-heading" class="min-w-0 pl-5 @max-[640px]:mb-3.5 @max-[640px]:pl-0">
+                    <x-classic.ornament id="most-read-heading">Mest lästa</x-classic.ornament>
+                    @if ($manualArticles->isNotEmpty() || $articles->isEmpty())
+                        <ol class="mb-3.5">
+                            @forelse ($manualArticles as $article)
+                                <li class="grid grid-cols-[22px_1fr] items-center gap-2 border-b border-dotted border-line py-[7px] text-sm leading-[1.3]">
+                                    <span aria-hidden="true" class="font-display text-[22px] leading-none font-medium text-primary">{{ $loop->iteration }}</span>
+                                    <a href="{{ route('public.superblogs.articles.show', [$superblog, $article]) }}" target="_blank" rel="noopener" class="min-w-0 hover:underline">{{ $article->title }}</a>
+                                </li>
+                            @empty
+                                @foreach (range(1, 5) as $rank)
+                                    <li class="grid grid-cols-[22px_1fr] items-center gap-2 border-b border-dotted border-line py-[7px] text-sm leading-[1.3]">
+                                        <span aria-hidden="true" class="font-display text-[22px] leading-none font-medium text-primary opacity-40">{{ $rank }}</span>
+                                        <div>
+                                            <div class="my-[3px] w-[92%] {{ $textLine }}"></div>
+                                            <div class="my-[3px] w-[70%] {{ $textLine }}"></div>
+                                        </div>
+                                    </li>
+                                @endforeach
+                            @endforelse
+                        </ol>
+                    @else
+                        <p class="mb-3.5 border-b border-dotted border-line py-[7px] text-sm leading-[1.3] text-muted">Manuella artiklar visas här när de publiceras.</p>
+                    @endif
                 </section>
             </div>
 
