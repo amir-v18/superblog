@@ -67,6 +67,53 @@ class ManualArticleCreationTest extends TestCase
             ->assertSee('name="selected_article_ids[]" value="'.$article->id.'" checked', false);
     }
 
+    public function test_manual_article_saved_from_the_form_is_shown_on_the_public_page(): void
+    {
+        [$staff, $superblog] = $this->makeAssignedSuperblog();
+
+        $this->actingAs($staff)->post(route('admin.superblogs.articles.store', $superblog), [
+            'title' => 'A public manual story',
+            'slug' => 'a-public-manual-story',
+            'content' => '<p>The manual body text.</p>',
+        ])->assertSessionHasNoErrors()->assertRedirect();
+
+        $article = Article::query()->where('slug', 'a-public-manual-story')->firstOrFail();
+        $this->post(route('admin.superblogs.articles.publish', [$superblog, $article]))
+            ->assertSessionHas('status', 'Article published.');
+        $superblog->update(['status' => 'published']);
+
+        $this->get(route('public.superblogs.articles.show', [$superblog, $article]))
+            ->assertOk()
+            ->assertSee('A public manual story')
+            ->assertSee('The manual body text.');
+    }
+
+    public function test_a_posted_excerpt_field_is_ignored_without_an_error(): void
+    {
+        [$staff, $superblog] = $this->makeAssignedSuperblog();
+
+        // Dropped twice: the form rules leave it out of the validated data, and the model would discard
+        // it anyway since it is not fillable. Only if both let it through would saving fail on the
+        // missing column, and this test would turn red.
+        $this->actingAs($staff)->post(route('admin.superblogs.articles.store', $superblog), [
+            'title' => 'An old form post',
+            'slug' => 'an-old-form-post',
+            'content' => '<p>The body text.</p>',
+            'excerpt' => 'Old ingress text',
+        ])->assertSessionHasNoErrors()->assertRedirect();
+
+        $article = Article::query()->where('slug', 'an-old-form-post')->firstOrFail();
+        $this->assertArrayNotHasKey('excerpt', $article->getAttributes());
+
+        $this->post(route('admin.superblogs.articles.publish', [$superblog, $article]));
+        $superblog->update(['status' => 'published']);
+
+        $this->get(route('public.superblogs.articles.show', [$superblog, $article]))
+            ->assertOk()
+            ->assertSee('The body text.')
+            ->assertDontSee('Old ingress text');
+    }
+
     public function test_unassigned_user_cannot_create_or_edit_articles(): void
     {
         $owner = $this->makeApprovedUser(superAdmin: true);

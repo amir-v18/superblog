@@ -42,6 +42,33 @@ class RssArticleWorkflowTest extends TestCase
         $this->assertDatabaseCount('articles', 1);
     }
 
+    public function test_rss_item_with_only_a_summary_becomes_a_readable_public_article(): void
+    {
+        [$staff, $superblog, $source] = $this->makeAssignedSourceAndItem();
+        $item = $source->rssItems()->create([
+            'title' => 'A summary only story',
+            'url' => 'https://news.example/summary-only',
+            'summary' => 'Only the feed summary.',
+        ]);
+
+        $article = $this->createDraft($staff, $superblog, $source, $item);
+
+        // The summary becomes the article body, while the RSS item keeps its own copy unchanged.
+        $this->assertSame('Only the feed summary.', $article->content);
+        $this->assertNull($item->fresh()->content);
+        $this->assertSame('Only the feed summary.', $item->fresh()->summary);
+
+        $this->post(route('admin.superblogs.articles.publish', [$superblog, $article]))
+            ->assertSessionHas('status', 'Article published.');
+        $superblog->update(['status' => 'published']);
+
+        $this->get(route('public.superblogs.articles.show', [$superblog, $article]))
+            ->assertOk()
+            ->assertSee('A summary only story')
+            ->assertSee('Only the feed summary.')
+            ->assertSee('<meta name="description" content="Only the feed summary.">', false);
+    }
+
     public function test_item_page_offers_create_then_edit_for_its_article(): void
     {
         [$staff, $superblog, $source, $item] = $this->makeAssignedSourceAndItem();
