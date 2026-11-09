@@ -8,7 +8,9 @@
     $lead = $articles->first();
     $news = $articles->slice(1, 2)->values();
     $telegrams = $articles->slice(3, 5)->values();
-    $more = $articles->slice(8, 4)->values();
+    // From the ninth article on, rows of four. The first row always has four slots; later rows only hold the
+    // articles that do not fit, without stand-ins, so no selected article is ever left off the page.
+    $rows = $articles->slice(8)->values()->chunk(4)->map->values()->whenEmpty(fn ($rows) => $rows->push(collect()));
     // Stand-ins for empty slots: striped picture areas and grey text lines, so no titles or texts are ever made up.
     // There are no article pictures yet either, so the plates stay striped next to real headlines.
     $stripes = 'grid place-items-center border-[1.5px] border-dashed border-ink/30 bg-ink/10 [background-image:repeating-linear-gradient(45deg,transparent_0_9px,color-mix(in_srgb,var(--ink)_6%,transparent)_9px_18px)]';
@@ -115,26 +117,29 @@
             <section aria-labelledby="more-heading" class="mt-[18px] border-t-4 border-double border-line pt-3">
                 <x-classic.ornament id="more-heading">Ur dagens tidning</x-classic.ornament>
                 {{-- Four in a row, two by two on narrower sheets (the third one then starts a new row without a rule
-                     on its left), and one under the other on phones with a rule below each. --}}
-                <div class="grid grid-cols-4 @max-[1000px]:grid-cols-2 @max-[1000px]:gap-y-4 @max-[640px]:grid-cols-1">
-                    @foreach (range(0, 3) as $slot)
-                        @php($story = $more->get($slot))
-                        <article class="min-w-0 border-l border-line px-4 first:border-l-0 first:pl-0 last:pr-0 @max-[1000px]:nth-3:border-l-0 @max-[1000px]:nth-3:pl-0 @max-[640px]:border-b @max-[640px]:border-l-0 @max-[640px]:px-0 @max-[640px]:pb-3">
-                            <div class="classic-plate mb-3">
-                                <div class="aspect-[16/9] {{ $stripes }}"><span class="{{ $stripeLabel }}">Bild</span></div>
-                            </div>
-                            @if ($story)
-                                <h3 class="mb-1.5 font-display text-[19px] leading-[1.12] font-bold text-balance">
-                                    <a href="{{ route('public.superblogs.articles.show', [$superblog, $story]) }}" target="_blank" rel="noopener" class="hover:text-primary">{{ $story->title }}</a>
-                                </h3>
-                                <x-classic.date :article="$story" :class="$byline" />
-                            @else
-                                <div class="my-[7px] w-[92%] {{ $textLine }}"></div>
-                                <div class="my-[7px] w-[70%] {{ $textLine }}"></div>
-                            @endif
-                        </article>
-                    @endforeach
-                </div>
+                     on its left), and one under the other on phones with a rule below each. Each row is its own grid,
+                     so the first and third in every row get those same rules. --}}
+                @foreach ($rows as $index => $row)
+                    <div class="grid grid-cols-4 @max-[1000px]:grid-cols-2 @max-[1000px]:gap-y-4 @max-[640px]:grid-cols-1 {{ $index > 0 ? 'mt-4' : '' }}">
+                        @foreach ($index === 0 ? range(0, 3) : $row->keys() as $slot)
+                            @php($story = $row->get($slot))
+                            <article class="min-w-0 border-l border-line px-4 first:border-l-0 first:pl-0 last:pr-0 @max-[1000px]:nth-3:border-l-0 @max-[1000px]:nth-3:pl-0 @max-[640px]:border-b @max-[640px]:border-l-0 @max-[640px]:px-0 @max-[640px]:pb-3">
+                                <div class="classic-plate mb-3">
+                                    <div class="aspect-[16/9] {{ $stripes }}"><span class="{{ $stripeLabel }}">Bild</span></div>
+                                </div>
+                                @if ($story)
+                                    <h3 class="mb-1.5 font-display text-[19px] leading-[1.12] font-bold text-balance">
+                                        <a href="{{ route('public.superblogs.articles.show', [$superblog, $story]) }}" target="_blank" rel="noopener" class="hover:text-primary">{{ $story->title }}</a>
+                                    </h3>
+                                    <x-classic.date :article="$story" :class="$byline" />
+                                @else
+                                    <div class="my-[7px] w-[92%] {{ $textLine }}"></div>
+                                    <div class="my-[7px] w-[70%] {{ $textLine }}"></div>
+                                @endif
+                            </article>
+                        @endforeach
+                    </div>
+                @endforeach
             </section>
         </main>
 

@@ -65,6 +65,35 @@ class ClassicFrontPageTest extends TestCase
         $this->assertStringContainsString('href="'.route('public.superblogs.articles.show', [$superblog, $story1]).'" target="_blank" rel="noopener"', $lead);
     }
 
+    public function test_articles_after_the_twelfth_get_more_rows_of_four_without_stand_ins(): void
+    {
+        [$admin, $superblog] = $this->classicMagazine('published');
+        foreach (range(1, 18) as $number) {
+            $this->makeArticle($superblog, "Story {$number}", now()->subMinutes($number));
+        }
+
+        $row = $this->part($this->preview($admin, $superblog), '<section aria-labelledby="more-heading"');
+
+        // The first row of four, then 13–16 and a last row with only 17 and 18: no selected article is left off.
+        $this->assertTrue($this->inOrder($row, array_map(fn ($number) => "Story {$number}<", range(9, 18))));
+        $this->assertSame(3, substr_count($row, 'grid grid-cols-4'));
+        $this->assertSame(10, substr_count($row, '<article'));
+        $this->assertStringNotContainsString('rounded-[3px] bg-ink/14', $row);
+    }
+
+    public function test_twelve_articles_or_fewer_keep_a_single_row(): void
+    {
+        [$admin, $superblog] = $this->classicMagazine('published');
+        foreach (range(1, 12) as $number) {
+            $this->makeArticle($superblog, "Story {$number}", now()->subMinutes($number));
+        }
+
+        $row = $this->part($this->preview($admin, $superblog), '<section aria-labelledby="more-heading"');
+
+        $this->assertSame(1, substr_count($row, 'grid grid-cols-4'));
+        $this->assertSame(4, substr_count($row, '<article'));
+    }
+
     public function test_slots_without_an_article_keep_their_stand_ins(): void
     {
         [$admin, $superblog] = $this->classicMagazine('published');
