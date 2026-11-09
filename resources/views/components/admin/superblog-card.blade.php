@@ -24,8 +24,9 @@
         <x-admin.theme-thumb :theme="$themeName" :name="$superblog->name" />
 
         <div class="flex flex-col gap-1.5 px-4 pt-3.5 pb-4">
+            {{-- A word too long for the card is broken rather than pushing the status out of it. --}}
             <div class="flex items-center justify-between gap-3">
-                <h3 class="text-[17px] font-semibold">{{ $superblog->name }}</h3>
+                <h3 class="min-w-0 text-[17px] font-semibold wrap-anywhere">{{ $superblog->name }}</h3>
                 <x-admin.status-pill :live="$isLive" class="shrink-0" />
             </div>
             {{-- Live cards show where they are published, drafts show which template they are built on. --}}

@@ -28,8 +28,9 @@
         <div class="flex justify-between border-b border-ink/14 py-2.5 text-[11px] tracking-[.1em] uppercase max-[760px]:hidden {{ $sidePadding }}">
             <time datetime="{{ now()->toDateString() }}">{{ now()->locale('sv')->isoFormat('dddd D MMMM YYYY') }}</time>
         </div>
-        {{-- The magazine name is the page's single H1 until articles exist. The dot is decoration, so screen readers skip it. --}}
-        <h1 class="pt-[26px] pb-[22px] text-center font-display text-[64px] leading-none font-semibold tracking-[-.045em] max-[760px]:pt-[18px] max-[760px]:pb-[14px] max-[760px]:text-[42px]"><span data-live-name>{{ $superblog->name }}</span><span aria-hidden="true" class="text-primary italic">.</span></h1>
+        {{-- The magazine name is the page's single H1 until articles exist. The dot is decoration, so screen readers skip it.
+             A single word wider than the screen is broken, here and in the footer, so the page never scrolls sideways. --}}
+        <h1 class="pt-[26px] pb-[22px] text-center font-display text-[64px] leading-none font-semibold tracking-[-.045em] wrap-anywhere max-[760px]:pt-[18px] max-[760px]:pb-[14px] max-[760px]:text-[42px]"><span data-live-name>{{ $superblog->name }}</span><span aria-hidden="true" class="text-primary italic">.</span></h1>
     </header>
 
     {{-- Section labels above the cards are left out, since there are no sections yet. --}}
@@ -111,8 +112,8 @@
     </main>
 
     <footer class="grid gap-2 border-t border-ink/15 pt-7 pb-[34px] text-[13px] {{ $sidePadding }}">
-        <p class="pb-2.5 font-display text-[34px] leading-none font-semibold tracking-[-.045em]"><span data-live-name>{{ $superblog->name }}</span><span aria-hidden="true" class="text-primary italic">.</span></p>
-        <small class="text-ink/60">&copy; {{ now()->year }} <span data-live-name>{{ $superblog->name }}</span>. Alla rättigheter förbehållna.</small>
+        <p class="pb-2.5 font-display text-[34px] leading-none font-semibold tracking-[-.045em] wrap-anywhere"><span data-live-name>{{ $superblog->name }}</span><span aria-hidden="true" class="text-primary italic">.</span></p>
+        <small class="text-ink/60 wrap-anywhere">&copy; {{ now()->year }} <span data-live-name>{{ $superblog->name }}</span>. Alla rättigheter förbehållna.</small>
     </footer>
 </body>
 </html>

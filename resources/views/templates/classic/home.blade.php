@@ -33,8 +33,10 @@
          follows the width of the sheet, at 1000 and 640 px. --}}
     <div class="classic-paper @container mx-auto max-w-[1280px] border px-[clamp(16px,3vw,38px)] pt-[26px] pb-[34px] max-[640px]:px-3.5 max-[640px]:pt-4 max-[640px]:pb-[26px]">
         <header>
-            {{-- The name is the page's single H1 until articles exist, as on the Modern front page. --}}
-            <h1 class="px-2 pt-1 pb-2 text-center font-logo text-[clamp(46px,8.2cqw,112px)] leading-none font-normal tracking-[-.01em] whitespace-nowrap @max-[640px]:text-[clamp(44px,15cqw,64px)]"><span data-live-name>{{ $superblog->name }}</span></h1>
+            {{-- The name is the page's single H1 until articles exist, as on the Modern front page. A name too long for
+                 one line goes onto more lines of even length, and a single word wider than the sheet is broken, so the
+                 page never scrolls sideways. --}}
+            <h1 class="px-2 pt-1 pb-2 text-center font-logo text-[clamp(46px,8.2cqw,112px)] leading-none font-normal tracking-[-.01em] text-balance wrap-anywhere @max-[640px]:text-[clamp(44px,15cqw,64px)]"><span data-live-name>{{ $superblog->name }}</span></h1>
             <p class="border-t-4 border-b border-double border-line px-1 py-1.5 text-center font-caps text-xs tracking-[.14em] uppercase @max-[640px]:text-[10px]">
                 <time datetime="{{ now()->toDateString() }}">{{ now()->locale('sv')->isoFormat('dddd[en den] D MMMM YYYY') }}</time>
             </p>
@@ -155,7 +157,7 @@
 
         <footer class="mt-[22px] border-t-4 border-double border-line pt-2.5">
             <x-classic.ornament decorative>❖ ❖ ❖</x-classic.ornament>
-            <p class="mt-3.5 text-center font-caps text-xs tracking-[.16em] text-muted uppercase">&copy; {{ now()->year }} <span data-live-name>{{ $superblog->name }}</span></p>
+            <p class="mt-3.5 text-center font-caps text-xs tracking-[.16em] text-muted uppercase wrap-anywhere">&copy; {{ now()->year }} <span data-live-name>{{ $superblog->name }}</span></p>
         </footer>
     </div>
 </body>
