@@ -64,4 +64,199 @@ class SuperblogPreviewTest extends TestCase
             ->assertSee('data-theme="techenspraket"', false)
             ->assertDontSee('data-theme="bondebladet"', false);
     }
+
+    public function test_published_superblog_preview_uses_live_articles_and_excludes_drafts(): void
+    {
+        $admin = $this->makeUser(approved: true, superAdmin: true);
+        $superblog = $this->makeSuperblog($admin);
+        $superblog->update(['status' => 'published']);
+        $published = $superblog->articles()->create([
+            'title' => 'Published home preview article',
+            'slug' => 'published-home-preview-article',
+            'content' => 'Live article content.',
+            'excerpt' => 'Live article summary.',
+            'source_type' => 'manual',
+            'status' => 'published',
+            'is_selected_for_publication' => true,
+            'published_at' => now(),
+        ]);
+        $superblog->articles()->create([
+            'title' => 'Draft must stay hidden',
+            'slug' => 'draft-must-stay-hidden',
+            'content' => 'Draft content.',
+            'source_type' => 'manual',
+            'status' => 'draft',
+        ]);
+
+        $this->actingAs($admin)
+            ->get(route('admin.superblogs.preview', $superblog))
+            ->assertOk()
+            ->assertSee('Published home preview article')
+            ->assertSee('Live article summary.')
+            ->assertSee(route('public.superblogs.articles.show', [$superblog, $published]), false)
+            ->assertDontSee('Draft must stay hidden')
+            ->assertDontSee('Här visas din första artikel');
+    }
+
+    public function test_offline_preview_shows_checked_articles_after_saving_selection(): void
+    {
+        $admin = $this->makeUser(approved: true, superAdmin: true);
+        $superblog = $this->makeSuperblog($admin);
+        $article = $superblog->articles()->create([
+            'title' => 'Offline preview article',
+            'slug' => 'offline-preview-article',
+            'content' => 'This remains a private preview.',
+            'source_type' => 'manual',
+            'status' => 'draft',
+            'is_selected_for_publication' => false,
+            'published_at' => null,
+        ]);
+        $unselectedArticle = $superblog->articles()->create([
+            'title' => 'Unchecked offline preview article',
+            'slug' => 'unchecked-offline-preview-article',
+            'content' => 'This must not appear in the preview.',
+            'source_type' => 'manual',
+            'status' => 'draft',
+            'is_selected_for_publication' => true,
+            'published_at' => null,
+        ]);
+
+        $this->actingAs($admin)
+            ->put(route('admin.superblogs.articles.selection.update', $superblog), [
+                'visible_article_ids' => [$article->getKey(), $unselectedArticle->getKey()],
+                'selected_article_ids' => [$article->getKey()],
+            ])
+            ->assertRedirect();
+
+        $this->assertSame('draft', $article->fresh()->status);
+        $this->assertNull($article->fresh()->published_at);
+        $this->assertFalse($unselectedArticle->fresh()->is_selected_for_publication);
+        $this->assertTrue($article->fresh()->is_selected_for_publication);
+
+        $this->get(route('admin.superblogs.preview', $superblog))
+            ->assertOk()
+            ->assertSee('Offline preview article')
+            ->assertSee(route('public.superblogs.articles.show', [$superblog, $article]), false)
+            ->assertDontSee($unselectedArticle->title)
+            ->assertDontSee(route('public.superblogs.articles.show', [$superblog, $unselectedArticle]), false);
+    }
+
+    public function test_preview_timeline_keeps_manual_and_rss_articles_in_chronological_order(): void
+    {
+        $admin = $this->makeUser(approved: true, superAdmin: true);
+        $superblog = $this->makeSuperblog($admin);
+        $superblog->update(['status' => 'published']);
+        $olderManual = $superblog->articles()->create([
+            'title' => 'Older manual article',
+            'slug' => 'older-manual-article',
+            'content' => 'Manual article body.',
+            'source_type' => 'manual',
+            'status' => 'published',
+            'is_selected_for_publication' => true,
+            'published_at' => now()->subDays(2),
+        ]);
+        $newerRss = $superblog->articles()->create([
+            'title' => 'Newest RSS article',
+            'slug' => 'newest-rss-article',
+            'content' => 'RSS article body.',
+            'source_type' => 'rss',
+            'status' => 'published',
+            'is_selected_for_publication' => true,
+            'published_at' => now()->subDay(),
+        ]);
+
+        $html = $this->actingAs($admin)
+            ->get(route('admin.superblogs.preview', $superblog))
+            ->assertOk()
+            ->getContent();
+
+        $newerPosition = strpos($html, $newerRss->title);
+        $olderPosition = strpos($html, $olderManual->title);
+
+        $this->assertNotFalse($newerPosition);
+        $this->assertNotFalse($olderPosition);
+        $this->assertLessThan($olderPosition, $newerPosition);
+    }
+
+    public function test_most_read_section_shows_only_published_selected_manual_articles_in_newest_first_order(): void
+    {
+        $admin = $this->makeUser(approved: true, superAdmin: true);
+        $superblog = $this->makeSuperblog($admin);
+        $superblog->update(['status' => 'published']);
+
+        $olderManual = $superblog->articles()->create([
+            'title' => 'Older manual sidebar article',
+            'slug' => 'older-manual-sidebar-article',
+            'content' => 'Older manual content.',
+            'source_type' => 'manual',
+            'status' => 'published',
+            'is_selected_for_publication' => true,
+            'published_at' => now()->subDays(2),
+        ]);
+        $newerManual = $superblog->articles()->create([
+            'title' => 'Newer manual sidebar article',
+            'slug' => 'newer-manual-sidebar-article',
+            'content' => 'Newer manual content.',
+            'source_type' => 'manual',
+            'status' => 'published',
+            'is_selected_for_publication' => true,
+            'published_at' => now()->subDay(),
+        ]);
+        $rssArticle = $superblog->articles()->create([
+            'title' => 'RSS sidebar article must be excluded',
+            'slug' => 'rss-sidebar-article-must-be-excluded',
+            'content' => 'RSS content.',
+            'source_type' => 'rss',
+            'status' => 'published',
+            'is_selected_for_publication' => true,
+            'published_at' => now(),
+        ]);
+        $unselectedManual = $superblog->articles()->create([
+            'title' => 'Unselected manual sidebar article must be excluded',
+            'slug' => 'unselected-manual-sidebar-article-must-be-excluded',
+            'content' => 'Unselected content.',
+            'source_type' => 'manual',
+            'status' => 'published',
+            'is_selected_for_publication' => false,
+            'published_at' => now(),
+        ]);
+        $undatedManual = $superblog->articles()->create([
+            'title' => 'Undated manual sidebar article must be excluded',
+            'slug' => 'undated-manual-sidebar-article-must-be-excluded',
+            'content' => 'Undated content.',
+            'source_type' => 'manual',
+            'status' => 'published',
+            'is_selected_for_publication' => true,
+            'published_at' => null,
+        ]);
+        $draftManual = $superblog->articles()->create([
+            'title' => 'Draft manual sidebar article must be excluded',
+            'slug' => 'draft-manual-sidebar-article-must-be-excluded',
+            'content' => 'Draft content.',
+            'source_type' => 'manual',
+            'status' => 'draft',
+            'is_selected_for_publication' => true,
+            'published_at' => now(),
+        ]);
+
+        $response = $this->actingAs($admin)
+            ->get(route('admin.superblogs.preview', $superblog))
+            ->assertOk()
+            ->assertSee('Mest lästa artiklar just nu');
+
+        preg_match('/<aside aria-labelledby="latest-sidebar-heading".*?<\/aside>/s', $response->getContent(), $match);
+        $this->assertNotEmpty($match);
+        $sidebar = $match[0];
+
+        $newerPosition = strpos($sidebar, $newerManual->title);
+        $olderPosition = strpos($sidebar, $olderManual->title);
+        $this->assertNotFalse($newerPosition);
+        $this->assertNotFalse($olderPosition);
+        $this->assertLessThan($olderPosition, $newerPosition);
+        $this->assertStringContainsString(route('public.superblogs.articles.show', [$superblog, $newerManual]), $sidebar);
+
+        foreach ([$rssArticle, $unselectedManual, $undatedManual, $draftManual] as $excludedArticle) {
+            $this->assertStringNotContainsString($excludedArticle->title, $sidebar);
+        }
+    }
 }

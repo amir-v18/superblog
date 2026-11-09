@@ -81,15 +81,15 @@ class RssSourceManagementTest extends TestCase
 
         $this->get(route('admin.superblogs.rss-sources.delete', [$superblog, $created]))
             ->assertOk()
-            ->assertSee('also deletes its stored RSS items')
-            ->assertSee('their RSS item references are cleared');
+            ->assertSee('permanently deletes its stored RSS items')
+            ->assertSee('associated with those items');
 
         $this->delete(route('admin.superblogs.rss-sources.destroy', [$superblog, $created]))
             ->assertRedirect(route('admin.superblogs.rss-sources.index', $superblog));
 
         $this->assertDatabaseMissing('rss_sources', ['id' => $created->getKey()]);
         $this->assertDatabaseMissing('rss_items', ['id' => $item->getKey()]);
-        $this->assertDatabaseHas('articles', ['id' => $article->getKey(), 'rss_item_id' => null]);
+        $this->assertDatabaseMissing('articles', ['id' => $article->getKey()]);
     }
 
     public function test_source_validation_rejects_missing_fields_invalid_urls_and_duplicates_per_superblog(): void

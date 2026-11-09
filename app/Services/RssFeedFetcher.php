@@ -2,7 +2,9 @@
 
 namespace App\Services;
 
+use App\Models\RssItem;
 use App\Models\RssSource;
+use App\Models\Superblog;
 use App\Support\RssFeedDnsResolver;
 use App\Support\RssFeedFetchException;
 use Carbon\CarbonImmutable;
@@ -82,14 +84,16 @@ class RssFeedFetcher
         $items = $this->parse($body);
 
         return DB::transaction(function () use ($rssSource, $items): int {
-            $lockedSource = RssSource::whereKey($rssSource->getKey())->lockForUpdate()->firstOrFail();
+            // Lock in the same order as article creation so concurrent fetches share slug allocation safely.
+            $lockedSuperblog = Superblog::query()->lockForUpdate()->findOrFail($rssSource->superblog_id);
+            $lockedSource = $lockedSuperblog->rssSources()->whereKey($rssSource->getKey())->lockForUpdate()->firstOrFail();
             $imported = 0;
 
             foreach ($items as $item) {
                 $identity = $item['guid'] ?: ($item['url'] ?: hash('sha256', $item['title'].'|'.$item['published_at'].'|'.$item['content']));
                 $externalId = hash('sha256', $identity);
 
-                $alreadyImported = $lockedSource->rssItems()->where(function ($query) use ($externalId, $item): void {
+                $rssItem = $lockedSource->rssItems()->where(function ($query) use ($externalId, $item): void {
                     $query->where('external_id', $externalId);
 
                     if ($item['guid'] !== null) {
@@ -97,31 +101,59 @@ class RssFeedFetcher
                     } elseif ($item['url'] !== '') {
                         $query->orWhere('url', $item['url']);
                     }
-                })->exists();
+                })->first();
 
-                if ($alreadyImported) {
-                    continue;
+                if (! $rssItem) {
+                    $rssItem = $lockedSource->rssItems()->create([
+                        'external_id' => $externalId,
+                        'guid' => $item['guid'],
+                        'title' => $item['title'],
+                        'url' => $item['url'],
+                        'author' => $item['author'],
+                        'published_at' => $item['published_at'],
+                        'content' => $item['content'],
+                        'summary' => $item['summary'],
+                        'content_hash' => hash('sha256', $item['content'] ?? $item['summary'] ?? ''),
+                    ]);
+
+                    $imported++;
                 }
 
-                $lockedSource->rssItems()->create([
-                    'external_id' => $externalId,
-                    'guid' => $item['guid'],
-                    'title' => $item['title'],
-                    'url' => $item['url'],
-                    'author' => $item['author'],
-                    'published_at' => $item['published_at'],
-                    'content' => $item['content'],
-                    'summary' => $item['summary'],
-                    'content_hash' => hash('sha256', $item['content'] ?? $item['summary'] ?? ''),
-                ]);
-
-                $imported++;
+                $this->createArticleIfMissing($lockedSuperblog, $rssItem);
             }
 
             $lockedSource->forceFill(['last_fetched_at' => now()])->save();
 
             return $imported;
         });
+    }
+
+    private function createArticleIfMissing(Superblog $superblog, RssItem $rssItem): void
+    {
+        if ($rssItem->article()->exists()) {
+            return;
+        }
+
+        $baseSlug = Str::slug($rssItem->title) ?: 'rss-item-'.$rssItem->getKey();
+        $baseSlug = rtrim(mb_substr($baseSlug, 0, 240), '-') ?: 'rss-item-'.$rssItem->getKey();
+        $slug = $baseSlug;
+        $suffix = 2;
+
+        while ($superblog->articles()->where('slug', $slug)->exists()) {
+            $ending = '-'.$suffix++;
+            $slug = rtrim(mb_substr($baseSlug, 0, 255 - strlen($ending)), '-').$ending;
+        }
+
+        $superblog->articles()->create([
+            'rss_item_id' => $rssItem->getKey(),
+            'title' => $rssItem->title,
+            'slug' => $slug,
+            'content' => $rssItem->content ?: $rssItem->summary ?: '',
+            'excerpt' => $rssItem->summary,
+            'source_type' => 'rss',
+            'status' => 'draft',
+            'is_selected_for_publication' => true,
+        ]);
     }
 
     /** @return array{resolve: ?string} */

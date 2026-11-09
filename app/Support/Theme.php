@@ -16,6 +16,8 @@ class Theme
     /** Themes defined in resources/css/app.css as [data-theme='...'] blocks. */
     public const NAMES = ['bondebladet', 'techenspraket'];
 
+    public const DEFAULT = 'techenspraket';
+
     public const COLOR_KEYS = ['paper', 'white', 'ink', 'muted', 'primary', 'deep', 'line', 'pale'];
 
     public const FONT_KEYS = ['display', 'body'];
