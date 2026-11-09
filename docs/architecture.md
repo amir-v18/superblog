@@ -136,12 +136,14 @@ There can be several admins. An admin can do everything in the central applicati
 
 An editor can only:
 
+* Create articles
 * Edit articles
 * Publish articles
-* Remove customers who are leaving
+* Delete articles
+* Remove customers who are leaving (the customer's backlinks, see Customer Backlink Removal)
 * See warnings, so they can inform an admin, who resolves them
 
-"Remove customers who are leaving" most likely means removing the customer's backlinks (see Customer Backlink Removal). This is to be confirmed.
+An editor can only reach the Superblogs they are assigned to.
 
 Status: planned. The current code allows only one super admin, and staff users can do more than an editor.
 
@@ -154,6 +156,10 @@ From that overview, the customer's backlinks can be removed without deleting the
 V1 identifies a customer by domain only; there is no customers table.
 
 Status: planned, not implemented.
+
+Whether subdomains and www count as the same customer is to be confirmed.
+
+What happens to an article that loses its required brand or product/service link is to be confirmed.
 
 ### Warnings
 
@@ -170,9 +176,11 @@ Status: planned. Today a failed RSS fetch is only shown as a one-off error messa
 
 Publication changes must be visible to readers on every article and to search engines in the HTML or structured data, where it is most suitable for SEO.
 
-For example, the article can show its publication date and, when it has been updated, an "Updated" date. The same dates can be exposed as, for example, `datePublished` and `dateModified` in the article's JSON-LD and as Open Graph `article:published_time` and `article:modified_time`.
+A publication change is a first publication, or a visible change to the title or body after publication.
 
-What counts as a publication change is to be confirmed.
+For example, the article can show "Published 2 November 2026 · Updated 9 November 2026", with a `<time datetime>` element for both dates. The same dates can be exposed as, for example, `datePublished` and `dateModified` in the article's JSON-LD and as Open Graph `article:published_time` and `article:modified_time`.
+
+Whether the first publication date is kept when an article is withdrawn is to be confirmed.
 
 Status: planned. Today only the publication date, `datePublished` and `article:published_time` exist, and withdrawing an article clears `published_at`.
 
@@ -212,6 +220,8 @@ Key fields:
 * timestamps
 
 A Superblog is identified by its domain. Only articles have slugs.
+
+Until a Superblog has a live domain, it is previewed in the admin application.
 
 Status: planned. The current code still gives each Superblog a slug that is used in its public URLs, and the domain is optional.
 
@@ -394,7 +404,7 @@ Publish
 ## 8. Manual Content Flow
 
 ```text
-Admin
+Admin or editor
   |
   v
 Manual Article
@@ -407,8 +417,6 @@ SEO/content validation
   v
 Publish
 ```
-
-Whether an editor may create new manual articles is to be confirmed.
 
 ## 9. Duplicate Protection
 
