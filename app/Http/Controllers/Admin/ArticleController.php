@@ -218,7 +218,6 @@ class ArticleController extends Controller
                     'title' => $lockedItem->title,
                     'slug' => $this->uniqueSlug($lockedSuperblog, $lockedItem),
                     'content' => $sourceContent,
-                    'excerpt' => $lockedItem->summary,
                     'source_type' => 'rss',
                     'status' => 'draft',
                     'is_selected_for_publication' => true,

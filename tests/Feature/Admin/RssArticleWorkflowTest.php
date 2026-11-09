@@ -227,7 +227,6 @@ class RssArticleWorkflowTest extends TestCase
             'title' => 'Edited title',
             'slug' => 'edited-title',
             'content' => 'Edited article body',
-            'excerpt' => 'Edited summary',
             'status' => 'published',
             'source_type' => 'manual',
             'rss_item_id' => null,
@@ -238,7 +237,6 @@ class RssArticleWorkflowTest extends TestCase
         $this->assertSame('Edited title', $article->title);
         $this->assertSame('edited-title', $article->slug);
         $this->assertSame('Edited article body', $article->content);
-        $this->assertSame('Edited summary', $article->excerpt);
         $this->assertSame('draft', $article->status);
         $this->assertSame('rss', $article->source_type);
         $this->assertSame($item->getKey(), $article->rss_item_id);
@@ -336,7 +334,6 @@ class RssArticleWorkflowTest extends TestCase
             'title' => 'Updated published title',
             'slug' => 'updated-published-title',
             'content' => 'Updated published body',
-            'excerpt' => 'Updated published excerpt',
             'status' => 'draft',
             'published_at' => null,
         ])->assertRedirect(route('admin.superblogs.articles.edit', [$superblog, $article]));
@@ -370,10 +367,9 @@ class RssArticleWorkflowTest extends TestCase
                 'title' => '',
                 'slug' => 'taken-slug',
                 'content' => '',
-                'excerpt' => str_repeat('x', 65536),
             ])
             ->assertRedirect(route('admin.superblogs.articles.edit', [$superblog, $article]))
-            ->assertSessionHasErrors(['title', 'slug', 'content', 'excerpt']);
+            ->assertSessionHasErrors(['title', 'slug', 'content']);
 
         $this->assertDatabaseHas('articles', ['id' => $other->getKey(), 'slug' => 'taken-slug']);
         $this->assertSame('A source story', $article->fresh()->title);

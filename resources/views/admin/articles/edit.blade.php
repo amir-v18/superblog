@@ -59,10 +59,6 @@
                 <p id="slug-help" class="mt-1 text-sm text-studio-muted">Use lowercase words separated by hyphens. Must be unique within this Superblog.</p>
             </div>
             <div>
-                <label for="excerpt" class="block text-sm font-medium">Excerpt (optional)</label>
-                <textarea id="excerpt" name="excerpt" rows="3" class="mt-2 w-full rounded-lg border border-studio-line bg-studio-bg p-3 focus-visible:outline-2 focus-visible:outline-studio-brand">{{ old('excerpt', $article->excerpt) }}</textarea>
-            </div>
-            <div>
                 <label for="content" class="block text-sm font-medium">Article content</label>
                 <textarea id="content" name="content" rows="18" required class="mt-2 w-full rounded-lg border border-studio-line bg-studio-bg p-3 focus-visible:outline-2 focus-visible:outline-studio-brand">{{ old('content', $article->content) }}</textarea>
             </div>

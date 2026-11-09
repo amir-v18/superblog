@@ -20,7 +20,6 @@ class PublicArticleTest extends TestCase
         $this->get(route('public.superblogs.articles.show', [$superblog, $article]))
             ->assertOk()
             ->assertSee('Database article title')
-            ->assertDontSee('A real article excerpt')
             ->assertSee('Real paragraph one.')
             ->assertSee('Real paragraph two & more.')
             ->assertSee('2 november 2026')
@@ -34,7 +33,6 @@ class PublicArticleTest extends TestCase
     {
         [$superblog, $article] = $this->makeArticle('published', Carbon::parse('2026-11-02 14:30:00'));
         $article->update([
-            'excerpt' => null,
             'content' => "<p>First   paragraph&nbsp;with a\nline break &amp; more.</p><p>Second paragraph.</p>",
         ]);
 
@@ -51,7 +49,7 @@ class PublicArticleTest extends TestCase
     public function test_article_without_paragraph_text_renders_with_an_empty_meta_description(): void
     {
         [$superblog, $article] = $this->makeArticle('published', Carbon::parse('2026-11-02 14:30:00'));
-        $article->update(['excerpt' => null, 'content' => '<p> </p><script>alert("not rendered")</script>']);
+        $article->update(['content' => '<p> </p><script>alert("not rendered")</script>']);
 
         $this->get(route('public.superblogs.articles.show', [$superblog, $article]))
             ->assertOk()
@@ -64,7 +62,6 @@ class PublicArticleTest extends TestCase
     {
         [$superblog, $article] = $this->makeArticle('published', Carbon::parse('2026-11-02 14:30:00'));
         $article->update([
-            'excerpt' => null,
             'is_locked' => true,
             'content' => '<p>'.str_repeat('Open words ', 30).'</p><p>Locked secret paragraph.</p>',
         ]);
@@ -200,7 +197,6 @@ class PublicArticleTest extends TestCase
             'title' => 'Database article title',
             'slug' => 'database-article',
             'content' => '<p>Real paragraph one.</p><p>Real paragraph two &amp; more.</p><script>alert("not rendered")</script>',
-            'excerpt' => 'A real article excerpt',
             'source_type' => 'rss',
             'status' => $status,
             'is_selected_for_publication' => $status === 'published',

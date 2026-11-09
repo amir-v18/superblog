@@ -57,12 +57,6 @@ class SaveArticleRequest extends FormRequest
                 $uniqueSlug,
             ],
             'content' => ['required', 'string'],
-            'excerpt' => ['nullable', 'string', function ($attribute, $value, $fail): void {
-                // The database column is TEXT, whose limit is measured in bytes.
-                if (strlen($value) > 65535) {
-                    $fail('The excerpt must not exceed 65,535 bytes.');
-                }
-            }],
         ];
     }
 }

@@ -149,7 +149,6 @@ class RssFeedFetcher
             'title' => $rssItem->title,
             'slug' => $slug,
             'content' => $rssItem->content ?: $rssItem->summary ?: '',
-            'excerpt' => $rssItem->summary,
             'source_type' => 'rss',
             'status' => 'draft',
             'is_selected_for_publication' => true,

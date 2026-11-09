@@ -150,7 +150,6 @@ class SuperblogPreviewTest extends TestCase
             'title' => 'Published home preview article',
             'slug' => 'published-home-preview-article',
             'content' => 'Live article content.',
-            'excerpt' => 'Live article summary.',
             'source_type' => 'manual',
             'status' => 'published',
             'is_selected_for_publication' => true,
@@ -168,7 +167,6 @@ class SuperblogPreviewTest extends TestCase
             ->get(route('admin.superblogs.preview', $superblog))
             ->assertOk()
             ->assertSee('Published home preview article')
-            ->assertDontSee('Live article summary.')
             ->assertSee(route('public.superblogs.articles.show', [$superblog, $published]), false)
             ->assertDontSee('Draft must stay hidden')
             ->assertDontSee('Här visas din första artikel');

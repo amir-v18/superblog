@@ -27,6 +27,7 @@ class ManualArticleCreationTest extends TestCase
         $this->get(route('admin.superblogs.articles.create', $superblog))
             ->assertOk()
             ->assertSee('New manual article')
+            ->assertDontSee('Excerpt')
             ->assertSee(route('admin.superblogs.articles.store', $superblog), false);
     }
 
@@ -38,7 +39,6 @@ class ManualArticleCreationTest extends TestCase
         $response = $this->actingAs($staff)->post(route('admin.superblogs.articles.store', $superblog), [
             'title' => 'A manual story',
             'slug' => 'A Manual Story',
-            'excerpt' => 'A short summary',
             'content' => 'The article body.',
             // These fields are deliberately forged: the server owns publication and source state.
             'superblog_id' => $otherSuperblog->id,

@@ -26,7 +26,7 @@ class ClassicFrontPageTest extends TestCase
         [$admin, $superblog] = $this->classicMagazine('published');
         // Story 1 is the newest. Each one is a minute older than the one before.
         foreach (range(1, 7) as $number) {
-            $this->makeArticle($superblog, "Story {$number}", Carbon::parse('2026-11-09 14:00')->subMinutes($number), excerpt: "Ingress {$number}");
+            $this->makeArticle($superblog, "Story {$number}", Carbon::parse('2026-11-09 14:00')->subMinutes($number));
         }
         $this->makeArticle($superblog, 'Unselected story', now(), selected: false);
 
@@ -36,15 +36,11 @@ class ClassicFrontPageTest extends TestCase
         $row = $this->part($html, '<section aria-labelledby="more-heading"');
 
         $this->assertStringContainsString('Story 1<', $lead);
-        $this->assertStringNotContainsString('Ingress 1', $lead);
         $this->assertTrue($this->inOrder($news, ['Story 2<', 'Story 3<']));
-        $this->assertStringNotContainsString('Ingress', $news);
         $this->assertTrue($this->inOrder($row, ['Story 4<', 'Story 5<', 'Story 6<', 'Story 7<']));
         // Exactly seven articles fill the first row, so no extra row follows.
         $this->assertSame(1, substr_count($row, 'grid grid-cols-4'));
         $this->assertSame(4, substr_count($row, '<article'));
-        // The row shows headlines and dates only.
-        $this->assertStringNotContainsString('Ingress 4', $row);
         $this->assertStringContainsString('>9 november 2026</time>', $lead);
 
         // Every slot is taken, so no stand-ins are left, and the "Mest lästa" list is full as well.
@@ -197,13 +193,12 @@ class ClassicFrontPageTest extends TestCase
         return [$admin, $superblog];
     }
 
-    private function makeArticle(Superblog $superblog, string $title, ?Carbon $publishedAt, ?string $excerpt = null, string $status = 'published', bool $selected = true, string $source = 'manual'): Article
+    private function makeArticle(Superblog $superblog, string $title, ?Carbon $publishedAt, string $status = 'published', bool $selected = true, string $source = 'manual'): Article
     {
         return $superblog->articles()->create([
             'title' => $title,
             'slug' => str($title)->slug(),
             'content' => "<p>{$title} content.</p>",
-            'excerpt' => $excerpt,
             'source_type' => $source,
             'status' => $status,
             'is_selected_for_publication' => $selected,
