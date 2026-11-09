@@ -1,5 +1,5 @@
 @php
-    // The hidden _form field tells this modal apart from the page's own forms. Old input is shared by every
+    // The _form field, which is not shown, tells this modal apart from the page's own forms. Old input is shared by every
     // form on the page, so errors and typed values are only used here when this modal was the one submitted.
     $reopen = $errors->any() && old('_form') === 'create-superblog';
     // $defaultTemplate (an id or null) comes from the component class, which reads it from the template registry.

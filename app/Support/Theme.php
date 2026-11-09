@@ -54,8 +54,9 @@ class Theme
     }
 
     /**
-     * The thumbnail theme for a template, read from config/templates.php by slug, or null for the grey fallback.
-     * A slug missing there (or a renamed one) falls back instead of breaking. Goes through name(), so a theme
+     * A template's own theme, read from config/templates.php by slug, or null when it has none. It draws the
+     * template's thumbnail (grey without one), starts a new magazine's theme and stands in while a magazine
+     * has no saved theme. A slug missing there (or a renamed one) falls back instead of breaking. Goes through name(), so a theme
      * that is later removed from NAMES also falls back instead of reaching data-theme.
      */
     public static function forTemplate(Template $template): ?string

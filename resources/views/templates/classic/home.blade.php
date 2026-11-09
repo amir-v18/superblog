@@ -117,8 +117,8 @@
             <section aria-labelledby="more-heading" class="mt-[18px] border-t-4 border-double border-line pt-3">
                 <x-classic.ornament id="more-heading">Ur dagens tidning</x-classic.ornament>
                 {{-- Four in a row, two by two on narrower sheets (the third one then starts a new row without a rule
-                     on its left), and one under the other on phones with a rule below each. Each row is its own grid,
-                     so the first and third in every row get those same rules. --}}
+                     on its left), and one under the other on phones with a rule below each. Every set of four is laid
+                     out on its own, so the first and third in each set get those same rules. --}}
                 @foreach ($rows as $index => $row)
                     <div class="grid grid-cols-4 @max-[1000px]:grid-cols-2 @max-[1000px]:gap-y-4 @max-[640px]:grid-cols-1 {{ $index > 0 ? 'mt-4' : '' }}">
                         @foreach ($index === 0 ? range(0, 3) : $row->keys() as $slot)

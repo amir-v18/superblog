@@ -3,8 +3,8 @@
 /*
  * The templates the code knows about, keyed on the template's slug in the database.
  *
- * Only what the code needs lives here: which template is preselected, which theme draws its
- * thumbnail and which views render its site. Name and description stay in the database, where
+ * Only what the code needs lives here: which template is preselected, which theme belongs to it
+ * and which views render its site. Name and description stay in the database, where
  * admins can edit them; the texts below are only used when TemplateSeeder creates a missing row.
  *
  * The order of 'list' is the order of the cards in the "Nytt magasin" modal.
@@ -20,7 +20,8 @@ return [
         'modern' => [
             'name' => 'Modern magasin',
             'description' => 'Stor huvudartikel med bild, mest läst och ljusa kort. Lugnt och luftigt.',
-            // A name from Theme::NAMES, or null for the grey thumbnail.
+            // A name from Theme::NAMES, or null for none. It draws the template's thumbnail, is saved as a new
+            // magazine's starting theme and is shown for a magazine that has no saved theme.
             'theme' => 'bondebladet',
             // The folder of the site's views (home.blade.php and so on). Not the same thing as the
             // database column "layout", which is the older generic page layout and does not pick the site.
