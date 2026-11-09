@@ -12,7 +12,8 @@ class PublicSuperblogController extends Controller
     {
         abort_unless($superblog->status === 'published', 404);
 
-        return view('templates.news.home', [
+        // The same site as the builder's preview, so the published page looks like what was previewed.
+        return view($homeContent->siteFor($superblog).'.home', [
             'superblog' => $superblog,
             ...$homeContent->for($superblog),
             'isPreview' => false,
