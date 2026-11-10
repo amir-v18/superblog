@@ -12,6 +12,7 @@ use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Auth\GoogleAuthenticationController;
 use App\Http\Controllers\PublicArticleController;
 use App\Http\Controllers\PublicSuperblogController;
+use App\Http\Controllers\StudioModeController;
 use App\Http\Middleware\AllowPasswordLoginInDevelopment;
 use App\Support\DemoArticle;
 use App\Support\Theme;
@@ -51,6 +52,10 @@ if (app()->environment('local')) {
         ]);
     })->name('demo.news.article');
 }
+
+// The admin's chosen color mode. Outside the auth and guest groups on purpose: guests on the login page,
+// editors and admins can all switch.
+Route::post('/studio-mode', StudioModeController::class)->name('studio-mode.update');
 
 Route::middleware('guest')->group(function () {
     Route::get('/login', [AuthenticatedSessionController::class, 'create'])->name('login');
