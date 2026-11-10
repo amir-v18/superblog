@@ -8,7 +8,7 @@
     <p class="mt-2 text-studio-muted">Review staff accounts, approval status, and Superblog assignments.</p>
 
     @if ($errors->any())
-        <div role="alert" class="mt-6 rounded-lg border border-studio-bad/40 bg-[#43261c] p-4 text-studio-bad">
+        <div role="alert" class="mt-6 rounded-lg border border-studio-bad/40 bg-studio-bad-bg p-4 text-studio-bad">
             @foreach ($errors->all() as $error)
                 <p>{{ $error }}</p>
             @endforeach
@@ -24,7 +24,7 @@
                         <div class="min-w-0">
                             <h3 class="font-medium">{{ $member->name }} @if (auth()->user()->is($member)) <span class="text-sm text-studio-muted">(you)</span> @endif</h3>
                             <p class="break-all text-sm text-studio-muted">{{ $member->email }}</p>
-                            <p class="mt-1 text-sm font-medium {{ $member->approval_status === 'pending' ? 'text-[#f0b255]' : ($member->approval_status === 'approved' ? 'text-studio-ok' : 'text-studio-bad') }}">{{ ucfirst($member->approval_status) }}</p>
+                            <p class="mt-1 text-sm font-medium {{ $member->approval_status === 'pending' ? 'text-studio-pending' : ($member->approval_status === 'approved' ? 'text-studio-ok' : 'text-studio-bad') }}">{{ ucfirst($member->approval_status) }}</p>
                         </div>
                         @unless (auth()->user()->is($member) || $member->is_super_admin)
                             <div class="flex w-full flex-wrap items-center justify-start gap-2">
@@ -32,7 +32,7 @@
                                     <form method="POST" action="{{ route('admin.staff.update', $member) }}" class="w-36">
                                         @csrf
                                         <input type="hidden" name="action" value="approve">
-                                        <button type="submit" class="inline-flex h-10 w-full items-center justify-center rounded-lg bg-studio-brand px-3 text-sm font-medium text-studio-side hover:bg-[#ff9068] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-studio-brand">Approve</button>
+                                        <button type="submit" class="inline-flex h-10 w-full items-center justify-center rounded-lg bg-studio-brand px-3 text-sm font-medium text-studio-side hover:bg-studio-brand-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-studio-brand">Approve</button>
                                     </form>
                                 @else
                                     <span aria-hidden="true" class="h-10 w-36"></span>
@@ -41,14 +41,14 @@
                                     <form method="POST" action="{{ route('admin.staff.update', $member) }}" class="w-36">
                                         @csrf
                                         <input type="hidden" name="action" value="reject">
-                                        <button type="submit" class="inline-flex h-10 w-full items-center justify-center rounded-lg border border-studio-bad/40 px-3 text-sm font-medium text-studio-bad hover:bg-[#43261c] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-studio-brand">Reject</button>
+                                        <button type="submit" class="inline-flex h-10 w-full items-center justify-center rounded-lg border border-studio-bad/40 px-3 text-sm font-medium text-studio-bad hover:bg-studio-bad-bg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-studio-brand">Reject</button>
                                     </form>
                                 @else
                                     <span aria-hidden="true" class="h-10 w-36"></span>
                                 @endif
                                 @if ($member->superblogs_count === 0)
                                     <a href="{{ route('admin.staff.confirm-delete', $member) }}" aria-label="Delete {{ $member->name }}"
-                                        class="inline-flex h-10 w-36 items-center justify-center gap-2 rounded-lg border border-studio-bad/50 px-3 text-sm font-medium text-studio-bad hover:bg-[#43261c] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-studio-brand">
+                                        class="inline-flex h-10 w-36 items-center justify-center gap-2 rounded-lg border border-studio-bad/50 px-3 text-sm font-medium text-studio-bad hover:bg-studio-bad-bg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-studio-brand">
                                         <svg aria-hidden="true" class="h-5 w-5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
                                             <path d="M3 6h18M8 6V4h8v2m3 0-1 14H6L5 6m4 4v6m6-6v6" />
                                         </svg>
@@ -86,7 +86,7 @@
                                     @foreach ($superblogs as $superblog)
                                         <input type="hidden" name="assignments[]" value="{{ $superblog->id }}">
                                     @endforeach
-                                    <button type="submit" class="rounded-lg border border-studio-line bg-studio-panel px-3 py-2 text-sm font-medium hover:border-[#5a5d69] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-studio-brand">Assign all Superblogs</button>
+                                    <button type="submit" class="rounded-lg border border-studio-line bg-studio-panel px-3 py-2 text-sm font-medium hover:border-studio-line-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-studio-brand">Assign all Superblogs</button>
                                 </form>
                                 <form method="POST" action="{{ route('admin.staff.update', $member) }}" class="mt-3">
                                     @csrf
@@ -102,7 +102,7 @@
                                             @endforeach
                                         </div>
                                     </fieldset>
-                                    <button type="submit" class="mt-4 rounded-lg bg-studio-brand px-3 py-2 text-sm font-medium text-studio-side hover:bg-[#ff9068] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-studio-brand">Save assignments</button>
+                                    <button type="submit" class="mt-4 rounded-lg bg-studio-brand px-3 py-2 text-sm font-medium text-studio-side hover:bg-studio-brand-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-studio-brand">Save assignments</button>
                                 </form>
                             @endif
                         </div>

@@ -97,7 +97,7 @@
                             <div role="alert" class="mt-4 rounded-lg border border-studio-bad/40 bg-studio-bad-bg p-4 text-studio-bad">{{ session('error') }}</div>
                         @endif
 
-                        <form method="POST" action="{{ route('admin.superblogs.rss-sources.store', $superblog) }}" class="mt-4 flex flex-col gap-2 rounded-[10px] border border-dashed border-[#50525d] p-3">
+                        <form method="POST" action="{{ route('admin.superblogs.rss-sources.store', $superblog) }}" class="mt-4 flex flex-col gap-2 rounded-[10px] border border-dashed border-studio-line-dash p-3">
                             @csrf
                             {{-- fran brings the user back to this tab; without it the controller goes to the RSS list. --}}
                             <input type="hidden" name="fran" value="byggaren">
@@ -134,7 +134,7 @@
                                                 <input type="hidden" name="name" value="{{ $rssSource->name }}">
                                                 <input type="hidden" name="url" value="{{ $rssSource->url }}">
                                                 <input type="hidden" name="is_active" value="{{ $rssSource->is_active ? 0 : 1 }}">
-                                                <button type="submit" role="switch" aria-checked="{{ $rssSource->is_active ? 'true' : 'false' }}" aria-label="Aktivt flöde: {{ $rssSource->name }}" @class(['relative h-5 w-[34px] rounded-full transition-colors after:absolute after:top-0.5 after:left-0.5 after:size-4 after:rounded-full after:bg-white after:transition-transform studio-focus-ring', 'bg-studio-brand after:translate-x-3.5' => $rssSource->is_active, 'bg-[#484a55]' => ! $rssSource->is_active])></button>
+                                                <button type="submit" role="switch" aria-checked="{{ $rssSource->is_active ? 'true' : 'false' }}" aria-label="Aktivt flöde: {{ $rssSource->name }}" @class(['relative h-5 w-[34px] rounded-full transition-colors after:absolute after:top-0.5 after:left-0.5 after:size-4 after:rounded-full after:bg-white after:transition-transform studio-focus-ring', 'bg-studio-brand after:translate-x-3.5' => $rssSource->is_active, 'bg-studio-switch-off' => ! $rssSource->is_active])></button>
                                             </form>
                                         </div>
                                         @if ($rssSource->is_active)
@@ -153,10 +153,10 @@
                                             <div class="flex items-center justify-end gap-3">
                                                 @if ($rssSource->is_active)
                                                     {{-- form= ties this button to its own form, so Enter in a text field still saves. --}}
-                                                    <button type="submit" form="fetch-{{ $rssSource->id }}" data-pending-text="Hämtar…" class="mr-auto rounded-lg border border-studio-line px-3 py-1.5 text-[13px] font-semibold hover:border-[#5a5d69] studio-focus-ring disabled:opacity-60">↻ Hämta nu</button>
+                                                    <button type="submit" form="fetch-{{ $rssSource->id }}" data-pending-text="Hämtar…" class="mr-auto rounded-lg border border-studio-line px-3 py-1.5 text-[13px] font-semibold hover:border-studio-line-hover studio-focus-ring disabled:opacity-60">↻ Hämta nu</button>
                                                 @endif
                                                 <a href="{{ route('admin.superblogs.rss-sources.delete', [$superblog, $rssSource, 'fran' => 'byggaren']) }}" class="text-[13px] font-semibold text-studio-bad underline underline-offset-4 studio-focus-ring">Ta bort</a>
-                                                <button type="submit" class="rounded-lg border border-studio-line px-3 py-1.5 text-[13px] font-semibold hover:border-[#5a5d69] studio-focus-ring">Spara</button>
+                                                <button type="submit" class="rounded-lg border border-studio-line px-3 py-1.5 text-[13px] font-semibold hover:border-studio-line-hover studio-focus-ring">Spara</button>
                                             </div>
                                         </form>
                                         {{-- The count is stored RSS items, not published articles. --}}
@@ -296,9 +296,9 @@
         </section>
 
         {{-- Stacks below the builder on small screens and shares the remaining grid width on desktop. --}}
-        <section aria-label="Förhandsvisning" class="flex h-[70vh] min-w-0 flex-col bg-[#121317] lg:h-auto lg:min-h-0">
+        <section aria-label="Förhandsvisning" class="flex h-[70vh] min-w-0 flex-col bg-studio-preview-bg lg:h-auto lg:min-h-0">
             <div class="flex flex-wrap items-center gap-3 border-b border-studio-line bg-studio-side px-4 py-2.25 text-xs text-studio-muted">
-                <span aria-hidden="true" class="tracking-[2px] text-[#b5b3ab]">●●●</span>
+                <span aria-hidden="true" class="tracking-[2px] text-studio-preview-dots">●●●</span>
                 <code class="min-w-0 flex-1 truncate rounded-md bg-studio-bg px-2.5 py-1 text-studio-ink">{{ $superblog->domain ? 'https://'.$superblog->domain : 'Ingen webbadress än' }}</code>
                 <span data-preview-label>Dator</span>
                 {{-- Hidden until app.js runs, so the controls only appear when switching the preview works. --}}
@@ -325,7 +325,7 @@
                     </div>
                 @endif
                 {{-- Without JS the frame fills the pane unscaled. app.js sizes it per device; overflow-hidden clips the space the scaled iframe still takes up. --}}
-                <div data-preview-frame class="mx-auto min-h-0 w-full flex-1 overflow-hidden bg-white shadow-[0_14px_50px_#17181c30]">
+                <div data-preview-frame class="mx-auto min-h-0 w-full flex-1 overflow-hidden bg-white shadow-[0_14px_50px_var(--color-studio-preview-shadow)]">
                     {{-- A real page in an iframe, so the preview uses the public theme CSS without mixing it into the admin. It reloads with the builder on save and tab change. --}}
                     <iframe src="{{ route('admin.superblogs.preview', $superblog) }}" title="Förhandsvisning av {{ $superblog->name }}" class="block h-full w-full origin-top-left"></iframe>
                 </div>

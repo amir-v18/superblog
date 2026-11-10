@@ -16,7 +16,7 @@
 
 <div class="flex h-full flex-col">
     @if ($canEdit)
-        <a href="{{ route('admin.superblogs.edit', $superblog) }}" class="{{ $cardClasses }} flex-1 transition hover:-translate-y-0.5 hover:shadow-[0_10px_28px_#0006] studio-focus-ring">
+        <a href="{{ route('admin.superblogs.edit', $superblog) }}" class="{{ $cardClasses }} flex-1 transition hover:-translate-y-0.5 hover:shadow-[0_10px_28px_var(--color-studio-card-shadow)] studio-focus-ring">
     @else
         <div class="{{ $cardClasses }} flex-1">
     @endif

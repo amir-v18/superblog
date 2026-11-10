@@ -34,6 +34,28 @@
     /* The color that stands out most against the studio background: the selected menu item, and the base of the
        translucent highlights and dividers. White here; a light mode replaces it with a dark value. */
     --color-studio-contrast: #fff;
+
+    /* Notice shown when no template exists (create page and the new-magazine dialog). */
+    --color-studio-warn-bg: #2c2a24;
+    --color-studio-warn-line: #4a4430;
+    --color-studio-warn-ink: #e2d6a8;
+    /* Status text for staff accounts awaiting approval. */
+    --color-studio-pending: #f0b255;
+    /* Lines: a stronger edge on pointer-over, a brighter one for the cancel button in dialogs, and the dashed
+       outline of the add-feed form. */
+    --color-studio-line-hover: #5a5d69;
+    --color-studio-line-bright: #b9b7af;
+    --color-studio-line-dash: #50525d;
+    /* Track of a feed switch that is turned off. */
+    --color-studio-switch-off: #484a55;
+    /* Field placeholder text in the domain input. */
+    --color-studio-placeholder: #70727c;
+    /* Builder preview pane: its background, the three window dots and the drop shadow under the page. */
+    --color-studio-preview-bg: #121317;
+    --color-studio-preview-dots: #b5b3ab;
+    --color-studio-preview-shadow: #17181c30;
+    /* Drop shadow under a magazine card on pointer-over. */
+    --color-studio-card-shadow: #0006;
 }
 
 /* Admin focus ring: shown on keyboard focus only (:focus-visible), never on a mouse click. Public pages use outline-primary instead. */

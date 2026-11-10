@@ -5,18 +5,18 @@
 @section('content')
     <a href="{{ route('admin.dashboard') }}" class="text-sm underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-studio-brand">Back to dashboard</a>
     @if (session('error'))
-        <div role="alert" class="mt-4 rounded-lg border border-studio-bad/40 bg-[#43261c] p-4 text-studio-bad">{{ session('error') }}</div>
+        <div role="alert" class="mt-4 rounded-lg border border-studio-bad/40 bg-studio-bad-bg p-4 text-studio-bad">{{ session('error') }}</div>
     @endif
     <div class="mt-4 flex flex-wrap items-center justify-between gap-4">
         <div>
             <h1 class="text-3xl font-semibold tracking-tight">RSS sources</h1>
             <p class="mt-2 text-studio-muted">{{ $superblog->name }}</p>
         </div>
-        <a href="{{ route('admin.superblogs.rss-sources.create', $superblog) }}" class="rounded-lg bg-studio-brand px-4 py-2 text-sm font-medium text-studio-side hover:bg-[#ff9068] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-studio-brand">Add RSS source</a>
+        <a href="{{ route('admin.superblogs.rss-sources.create', $superblog) }}" class="rounded-lg bg-studio-brand px-4 py-2 text-sm font-medium text-studio-side hover:bg-studio-brand-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-studio-brand">Add RSS source</a>
     </div>
 
     @if ($errors->any())
-        <div role="alert" class="mt-6 rounded-lg border border-studio-bad/40 bg-[#43261c] p-4 text-studio-bad">
+        <div role="alert" class="mt-6 rounded-lg border border-studio-bad/40 bg-studio-bad-bg p-4 text-studio-bad">
             @foreach ($errors->all() as $error)
                 <p>{{ $error }}</p>
             @endforeach

@@ -46,7 +46,7 @@
                             <form method="POST" action="{{ route('admin.superblogs.articles.destroy', [$superblog, $article, 'flik' => 'innehall', 'manual_page' => $manualPage, 'rss_page' => $rssPage]) }}" data-article-delete-form class="mt-5 flex flex-wrap items-center justify-end gap-3">
                                 @csrf
                                 @method('DELETE')
-                                <button type="button" data-close-dialog class="rounded-lg border border-studio-line px-3.5 py-2 text-sm font-medium hover:border-[#b9b7af] studio-focus-ring">Avbryt</button>
+                                <button type="button" data-close-dialog class="rounded-lg border border-studio-line px-3.5 py-2 text-sm font-medium hover:border-studio-line-bright studio-focus-ring">Avbryt</button>
                                 <button type="submit" class="rounded-lg bg-studio-bad px-3.5 py-2 text-sm font-semibold text-studio-side hover:bg-studio-bad/85 studio-focus-ring">Ta bort permanent</button>
                             </form>
                         </div>
