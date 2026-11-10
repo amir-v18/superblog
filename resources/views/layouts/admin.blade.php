@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 {{-- Fixed to Swedish: the admin text is Swedish, while APP_LOCALE stays English so validation messages do not change.
      The mode attribute is only written for the light choice (cookie set by StudioModeController); without it the
-     tag is exactly as it was before this feature, and the default look applies. Only this layout ever writes it. --}}
+     tag is exactly as it was without this feature, and the default look applies. Only this layout ever writes it. --}}
 <html lang="sv"@if (request()->cookie(App\Http\Controllers\StudioModeController::COOKIE) === 'light') data-studio-mode="light"@endif>
 <head>
     <meta charset="utf-8">

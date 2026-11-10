@@ -48,7 +48,7 @@
     --color-studio-line-dash: #50525d;
     /* Track of a feed switch that is turned off. */
     --color-studio-switch-off: #484a55;
-    /* Hint text shown in the empty domain field. */
+    /* Hint text shown in the domain field until something is typed. */
     --color-studio-placeholder: #70727c;
     /* Builder preview pane: its background, the three window dots and the soft halo beneath the page. */
     --color-studio-preview-bg: #121317;
