@@ -24,6 +24,16 @@
     --color-studio-bad-bg: #43261c;
     --color-studio-pill: #343640;
     --color-studio-live: #1e3a2b;
+
+    /* Sidebar text shades and its colored markers (the dot of a magazine without a theme, the dashed outline). */
+    --color-studio-side-ink: #e9e7e1;
+    --color-studio-side-nav: #c9c8c2;
+    --color-studio-side-muted: #9a9ca4;
+    --color-studio-side-label: #7d7f87;
+    --color-studio-side-mark: #5b5d66;
+    /* The color that stands out most against the studio background: the selected menu item, and the base of the
+       translucent highlights and dividers. White here; a light mode replaces it with a dark value. */
+    --color-studio-contrast: #fff;
 }
 
 /* Admin focus ring: shown on keyboard focus only (:focus-visible), never on a mouse click. Public pages use outline-primary instead. */

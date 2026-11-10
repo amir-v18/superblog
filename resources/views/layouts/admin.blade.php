@@ -17,20 +17,20 @@
         // A route with {superblog} (builder, RSS pages) marks that magazine as active in the menu.
         $currentSuperblog = request()->route('superblog');
         $currentSuperblogId = $currentSuperblog instanceof App\Models\Superblog ? $currentSuperblog->getKey() : $currentSuperblog;
-        $navItemClasses = 'flex items-center gap-2.5 rounded-[7px] px-2.5 py-2.25 text-sm text-[#c9c8c2] hover:bg-white/7 aria-[current=page]:bg-white/12 aria-[current=page]:font-semibold aria-[current=page]:text-white studio-focus-ring';
-        $navLabelClasses = 'px-2.5 pt-4 pb-1.5 text-[10px] tracking-[.14em] text-[#7d7f87]';
+        $navItemClasses = 'flex items-center gap-2.5 rounded-[7px] px-2.5 py-2.25 text-sm text-studio-side-nav hover:bg-studio-contrast/7 aria-[current=page]:bg-studio-contrast/12 aria-[current=page]:font-semibold aria-[current=page]:text-studio-contrast studio-focus-ring';
+        $navLabelClasses = 'px-2.5 pt-4 pb-1.5 text-[10px] tracking-[.14em] text-studio-side-label';
     @endphp
 
     {{-- Hidden until focused, so keyboard users can skip the magazine list in the sidebar. --}}
     <a href="#main" class="sr-only rounded-lg bg-studio-brand px-4 py-2 text-sm font-semibold text-studio-side focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-50">Hoppa till innehållet</a>
 
     {{-- Stacks above the content on small screens and becomes a fixed-height sidebar from lg, so no JS toggle is needed. --}}
-    <aside class="flex flex-col gap-5.5 border-white/6 bg-studio-side px-3.5 py-5.5 text-[#e9e7e1] lg:sticky lg:top-0 lg:h-screen lg:w-60 lg:shrink-0 lg:border-r">
+    <aside class="flex flex-col gap-5.5 border-studio-contrast/6 bg-studio-side px-3.5 py-5.5 text-studio-side-ink lg:sticky lg:top-0 lg:h-screen lg:w-60 lg:shrink-0 lg:border-r">
         <a href="{{ route('admin.dashboard') }}" class="flex items-center gap-2.75 px-2 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-studio-brand">
             <span aria-hidden="true" class="text-[26px] text-studio-brand">▙</span>
             <span>
                 <b class="block text-base tracking-tight">Pressverket</b>
-                <small class="text-[11px] text-[#9a9ca4]">Magasinstudio</small>
+                <small class="text-[11px] text-studio-side-muted">Magasinstudio</small>
             </span>
         </a>
 
@@ -50,7 +50,7 @@
                             @if ($themeName)
                                 <i data-theme="{{ $themeName }}" aria-hidden="true" class="size-2.5 shrink-0 rounded-[3px] bg-primary"></i>
                             @else
-                                <i aria-hidden="true" class="size-2.5 shrink-0 rounded-[3px] bg-[#5b5d66]"></i>
+                                <i aria-hidden="true" class="size-2.5 shrink-0 rounded-[3px] bg-studio-side-mark"></i>
                             @endif
                             <span class="truncate">{{ $superblog->name }}</span>
                         </a>
@@ -66,7 +66,7 @@
                         @if ($themeName)
                             <i data-theme="{{ $themeName }}" aria-hidden="true" class="size-2.5 shrink-0 rounded-[3px] bg-primary"></i>
                         @else
-                            <i aria-hidden="true" class="size-2.5 shrink-0 rounded-[3px] bg-[#5b5d66]"></i>
+                            <i aria-hidden="true" class="size-2.5 shrink-0 rounded-[3px] bg-studio-side-mark"></i>
                         @endif
                         <span class="truncate">{{ $superblog->name }}</span>
                     </a>
@@ -76,7 +76,7 @@
                     {{-- Opens the modal at the end of this layout; without JS it is a normal link to the fallback page. --}}
                     <a href="{{ route('admin.superblogs.create') }}" data-open-dialog="create-superblog"
                        @if (request()->routeIs('admin.superblogs.create')) aria-current="page" @endif
-                       class="{{ $navItemClasses }} mt-2 justify-center border border-dashed border-[#5b5d66] text-[#e9e7e1]">
+                       class="{{ $navItemClasses }} mt-2 justify-center border border-dashed border-studio-side-mark text-studio-side-ink">
                         + Nytt magasin
                     </a>
                 @endcan
@@ -89,17 +89,17 @@
                     ->map(fn (string $word): string => mb_strtoupper(mb_substr($word, 0, 1)))
                     ->implode('');
             @endphp
-            <div class="flex flex-col gap-2.5 border-t border-white/12 px-2 pt-2.5">
+            <div class="flex flex-col gap-2.5 border-t border-studio-contrast/12 px-2 pt-2.5">
                 <div class="flex min-w-0 items-center gap-2.5">
                     <span aria-hidden="true" class="grid size-8 shrink-0 place-items-center rounded-full bg-studio-brand text-xs font-bold text-studio-side">{{ $initials }}</span>
                     <div class="min-w-0">
                         <b class="block truncate text-[13px]">{{ auth()->user()->name }}</b>
-                        <small class="text-[11px] text-[#9a9ca4]">{{ auth()->user()->is_super_admin ? 'Administratör' : 'Redaktör' }}</small>
+                        <small class="text-[11px] text-studio-side-muted">{{ auth()->user()->is_super_admin ? 'Administratör' : 'Redaktör' }}</small>
                     </div>
                 </div>
                 <form method="POST" action="{{ route('logout') }}">
                     @csrf
-                    <button type="submit" class="flex w-full items-center justify-center gap-2 rounded-lg border border-white/18 px-3 py-2.25 text-[13px] font-semibold text-studio-ink transition hover:border-studio-brand hover:bg-studio-brand/13 hover:text-white studio-focus-ring">
+                    <button type="submit" class="flex w-full items-center justify-center gap-2 rounded-lg border border-studio-contrast/18 px-3 py-2.25 text-[13px] font-semibold text-studio-ink transition hover:border-studio-brand hover:bg-studio-brand/13 hover:text-studio-contrast studio-focus-ring">
                         <span aria-hidden="true">⎋</span> Logga ut
                     </button>
                 </form>
