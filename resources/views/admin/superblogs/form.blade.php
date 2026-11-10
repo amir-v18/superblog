@@ -50,7 +50,7 @@
             <textarea id="description" name="description" rows="5" class="mt-2 w-full rounded-lg border border-studio-line bg-studio-bg p-3 focus-visible:outline-2 focus-visible:outline-studio-brand">{{ old('description', $superblog->description) }}</textarea>
         </div>
         <div class="flex items-center gap-4">
-            <button type="submit" @disabled($templates->isEmpty()) class="rounded-lg bg-studio-brand px-4 py-2 font-medium text-studio-side hover:bg-studio-brand-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-studio-brand disabled:cursor-not-allowed disabled:opacity-50">Save Superblog</button>
+            <button type="submit" @disabled($templates->isEmpty()) class="rounded-lg bg-studio-brand px-4 py-2 font-medium text-studio-on-brand hover:bg-studio-brand-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-studio-brand disabled:cursor-not-allowed disabled:opacity-50">Save Superblog</button>
             <a href="{{ route('admin.dashboard') }}" class="text-sm underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-studio-brand">Cancel</a>
         </div>
     </form>

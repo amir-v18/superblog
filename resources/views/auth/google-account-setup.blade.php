@@ -19,7 +19,7 @@
         <p class="text-xs text-studio-muted">The subject is an account identifier, not a password or sign-in token. Share it only with the Superblog operator through a trusted channel.</p>
         <form method="POST" action="{{ route('auth.google.create-account') }}">
             @csrf
-            <button type="submit" class="w-full rounded-lg bg-studio-brand px-4 py-3 text-sm font-semibold text-studio-side hover:bg-studio-brand-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-studio-brand">Create pending staff account</button>
+            <button type="submit" class="w-full rounded-lg bg-studio-brand px-4 py-3 text-sm font-semibold text-studio-on-brand hover:bg-studio-brand-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-studio-brand">Create pending staff account</button>
         </form>
         <a href="{{ route('login') }}" class="inline-flex text-sm font-medium text-studio-muted underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-studio-brand">Cancel</a>
     </section>

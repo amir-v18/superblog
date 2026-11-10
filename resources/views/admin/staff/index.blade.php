@@ -32,7 +32,7 @@
                                     <form method="POST" action="{{ route('admin.staff.update', $member) }}" class="w-36">
                                         @csrf
                                         <input type="hidden" name="action" value="approve">
-                                        <button type="submit" class="inline-flex h-10 w-full items-center justify-center rounded-lg bg-studio-brand px-3 text-sm font-medium text-studio-side hover:bg-studio-brand-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-studio-brand">Approve</button>
+                                        <button type="submit" class="inline-flex h-10 w-full items-center justify-center rounded-lg bg-studio-brand px-3 text-sm font-medium text-studio-on-brand hover:bg-studio-brand-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-studio-brand">Approve</button>
                                     </form>
                                 @else
                                     <span aria-hidden="true" class="h-10 w-36"></span>
@@ -102,7 +102,7 @@
                                             @endforeach
                                         </div>
                                     </fieldset>
-                                    <button type="submit" class="mt-4 rounded-lg bg-studio-brand px-3 py-2 text-sm font-medium text-studio-side hover:bg-studio-brand-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-studio-brand">Save assignments</button>
+                                    <button type="submit" class="mt-4 rounded-lg bg-studio-brand px-3 py-2 text-sm font-medium text-studio-on-brand hover:bg-studio-brand-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-studio-brand">Save assignments</button>
                                 </form>
                             @endif
                         </div>

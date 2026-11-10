@@ -22,12 +22,12 @@
     @endphp
 
     {{-- Hidden until focused, so keyboard users can skip the magazine list in the sidebar. --}}
-    <a href="#main" class="sr-only rounded-lg bg-studio-brand px-4 py-2 text-sm font-semibold text-studio-side focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-50">Hoppa till innehållet</a>
+    <a href="#main" class="sr-only rounded-lg bg-studio-brand px-4 py-2 text-sm font-semibold text-studio-on-brand focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-50">Hoppa till innehållet</a>
 
     {{-- Stacks above the content on small screens and becomes a fixed-height sidebar from lg, so no JS toggle is needed. --}}
     <aside class="flex flex-col gap-5.5 border-studio-contrast/6 bg-studio-side px-3.5 py-5.5 text-studio-side-ink lg:sticky lg:top-0 lg:h-screen lg:w-60 lg:shrink-0 lg:border-r">
         <a href="{{ route('admin.dashboard') }}" class="flex items-center gap-2.75 px-2 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-studio-brand">
-            <span aria-hidden="true" class="text-[26px] text-studio-brand">▙</span>
+            <span aria-hidden="true" class="text-[26px] text-studio-brand-text">▙</span>
             <span>
                 <b class="block text-base tracking-tight">Pressverket</b>
                 <small class="text-[11px] text-studio-side-muted">Magasinstudio</small>
@@ -91,7 +91,7 @@
             @endphp
             <div class="flex flex-col gap-2.5 border-t border-studio-contrast/12 px-2 pt-2.5">
                 <div class="flex min-w-0 items-center gap-2.5">
-                    <span aria-hidden="true" class="grid size-8 shrink-0 place-items-center rounded-full bg-studio-brand text-xs font-bold text-studio-side">{{ $initials }}</span>
+                    <span aria-hidden="true" class="grid size-8 shrink-0 place-items-center rounded-full bg-studio-brand text-xs font-bold text-studio-on-brand">{{ $initials }}</span>
                     <div class="min-w-0">
                         <b class="block truncate text-[13px]">{{ auth()->user()->name }}</b>
                         <small class="text-[11px] text-studio-side-muted">{{ auth()->user()->is_super_admin ? 'Administratör' : 'Redaktör' }}</small>

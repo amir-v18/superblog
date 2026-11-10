@@ -13,7 +13,7 @@
         $publicationTab = $superblog->status === 'published' ? '6 Avpublicera' : '6 Publicera';
         $tabs = ['grund' => '1 Grund', 'utseende' => '2 Utseende', 'floden' => '3 Flöden', 'innehall' => '4 Innehåll', 'skriv-artikel' => '5 Skriv artikel', 'publicera' => $publicationTab];
         $tab = in_array(request()->query('flik'), array_keys($tabs), true) ? request()->query('flik') : 'grund';
-        $tabClasses = 'block whitespace-nowrap border-b-2 border-transparent px-2 py-[13px] text-center text-xs font-semibold text-studio-muted hover:text-studio-ink aria-[current=page]:border-studio-brand aria-[current=page]:text-studio-brand focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-studio-brand';
+        $tabClasses = 'block whitespace-nowrap border-b-2 border-transparent px-2 py-[13px] text-center text-xs font-semibold text-studio-muted hover:text-studio-ink aria-[current=page]:border-studio-brand aria-[current=page]:text-studio-brand-text focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-studio-brand';
         // The layout's "Nytt magasin" modal posts name, domain and template_id too, and old input is shared by
         // every form on the page. After a failed modal submit, its errors and values belong to the modal only.
         $fromCreateModal = old('_form') === 'create-superblog';
@@ -183,7 +183,7 @@
                     <section aria-labelledby="write-article-heading">
                         <h2 id="write-article-heading" class="text-lg font-semibold">Skriv artikel</h2>
                         <p class="mt-1 text-sm text-studio-muted">Skapa en manuell artikel som sparas som utkast. Den publiceras inte automatiskt.</p>
-                        <a href="{{ route('admin.superblogs.articles.create', $superblog) }}" class="mt-4 inline-flex rounded-lg bg-studio-brand px-4 py-2 text-sm font-medium text-studio-side hover:bg-studio-brand-hover studio-focus-ring">Skapa artikel</a>
+                        <a href="{{ route('admin.superblogs.articles.create', $superblog) }}" class="mt-4 inline-flex rounded-lg bg-studio-brand px-4 py-2 text-sm font-medium text-studio-on-brand hover:bg-studio-brand-hover studio-focus-ring">Skapa artikel</a>
                         <p class="mt-5 text-sm text-studio-muted">Redigera befintliga artiklar under <a href="{{ route('admin.superblogs.edit', [$superblog, 'flik' => 'innehall']) }}" class="font-medium text-studio-ink underline underline-offset-4 studio-focus-ring">Innehåll</a>. Där visas manuella artiklar tillsammans med RSS-artiklar.</p>
                     </section>
                 @elseif ($tab === 'publicera')
@@ -237,7 +237,7 @@
 
                             <form method="POST" action="{{ route('admin.superblogs.articles.publish-selected', $superblog) }}" class="mt-5">
                                 @csrf
-                                <button type="submit" @disabled($publicationErrors !== []) class="rounded-lg bg-studio-brand px-4 py-2 text-sm font-semibold text-studio-side hover:bg-studio-brand-hover studio-focus-ring disabled:cursor-not-allowed disabled:opacity-50">Publicera</button>
+                                <button type="submit" @disabled($publicationErrors !== []) class="rounded-lg bg-studio-brand px-4 py-2 text-sm font-semibold text-studio-on-brand hover:bg-studio-brand-hover studio-focus-ring disabled:cursor-not-allowed disabled:opacity-50">Publicera</button>
                             </form>
                         @endif
                     </section>
@@ -303,8 +303,8 @@
                 <span data-preview-label>Dator</span>
                 {{-- Hidden until app.js runs, so the controls only appear when switching the preview works. --}}
                 <div role="group" aria-label="Förhandsvisning" hidden data-preview-devices class="inline-flex shrink-0 rounded-lg bg-studio-panel p-0.75">
-                    <button type="button" data-preview-device="desktop" aria-pressed="true" class="rounded-md px-3.5 py-1.5 text-xs font-semibold text-studio-muted hover:text-studio-ink aria-pressed:bg-studio-brand aria-pressed:text-studio-side studio-focus-ring">Dator</button>
-                    <button type="button" data-preview-device="mobile" aria-pressed="false" class="rounded-md px-3.5 py-1.5 text-xs font-semibold text-studio-muted hover:text-studio-ink aria-pressed:bg-studio-brand aria-pressed:text-studio-side studio-focus-ring">Mobil</button>
+                    <button type="button" data-preview-device="desktop" aria-pressed="true" class="rounded-md px-3.5 py-1.5 text-xs font-semibold text-studio-muted hover:text-studio-ink aria-pressed:bg-studio-brand aria-pressed:text-studio-on-brand studio-focus-ring">Dator</button>
+                    <button type="button" data-preview-device="mobile" aria-pressed="false" class="rounded-md px-3.5 py-1.5 text-xs font-semibold text-studio-muted hover:text-studio-ink aria-pressed:bg-studio-brand aria-pressed:text-studio-on-brand studio-focus-ring">Mobil</button>
                 </div>
             </div>
             <div data-preview-pane class="flex flex-1 flex-col overflow-auto p-5">
@@ -321,7 +321,7 @@
                         @else
                             {{ $feedCount }} {{ $feedCount === 1 ? 'flöde' : 'flöden' }} · {{ $itemCount }} {{ $itemCount === 1 ? 'hämtad post' : 'hämtade poster' }} · 0 publicerade artiklar. Platshållarna fylls när artiklar publiceras.
                         @endif
-                        <a href="{{ route('admin.superblogs.edit', [$superblog, 'flik' => 'floden']) }}" class="ml-1.5 font-bold text-studio-brand studio-focus-ring">Lägg till flöde →</a>
+                        <a href="{{ route('admin.superblogs.edit', [$superblog, 'flik' => 'floden']) }}" class="ml-1.5 font-bold text-studio-brand-text studio-focus-ring">Lägg till flöde →</a>
                     </div>
                 @endif
                 {{-- Without JS the frame fills the pane unscaled. app.js sizes it per device; overflow-hidden clips the space the scaled iframe still takes up. --}}

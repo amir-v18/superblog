@@ -25,14 +25,14 @@
     --color-studio-pill: #343640;
     --color-studio-live: #1e3a2b;
 
-    /* Sidebar text shades and its colored markers (the dot of a magazine without a theme, the dashed outline). */
+    /* Sidebar text shades and its colored markers (the dot of a magazine without a theme, the dashed frame of the new-magazine link). */
     --color-studio-side-ink: #e9e7e1;
     --color-studio-side-nav: #c9c8c2;
     --color-studio-side-muted: #9a9ca4;
     --color-studio-side-label: #7d7f87;
     --color-studio-side-mark: #5b5d66;
     /* The color that stands out most against the studio background: the selected menu item, and the base of the
-       translucent highlights and dividers. White here; a light mode replaces it with a dark value. */
+       translucent highlights and dividers. White here; a light mode replaces it with a near-black value. */
     --color-studio-contrast: #fff;
 
     /* Notice shown when no template exists (create page and the new-magazine dialog). */
@@ -42,20 +42,28 @@
     /* Status text for staff accounts awaiting approval. */
     --color-studio-pending: #f0b255;
     /* Lines: a stronger edge on pointer-over, a brighter one for the cancel button in dialogs, and the dashed
-       outline of the add-feed form. */
+       frame of the add-feed form. */
     --color-studio-line-hover: #5a5d69;
     --color-studio-line-bright: #b9b7af;
     --color-studio-line-dash: #50525d;
     /* Track of a feed switch that is turned off. */
     --color-studio-switch-off: #484a55;
-    /* Field placeholder text in the domain input. */
+    /* Hint text shown in the empty domain field. */
     --color-studio-placeholder: #70727c;
-    /* Builder preview pane: its background, the three window dots and the drop shadow under the page. */
+    /* Builder preview pane: its background, the three window dots and the soft halo beneath the page. */
     --color-studio-preview-bg: #121317;
     --color-studio-preview-dots: #b5b3ab;
     --color-studio-preview-shadow: #17181c30;
-    /* Drop shadow under a magazine card on pointer-over. */
+    /* Soft halo beneath a magazine card on pointer-over. */
     --color-studio-card-shadow: #0006;
+
+    /* Text placed on an orange or a red button, and the orange used as a text color (the selected tab, links).
+       Separate from the sidebar and brand colors so a light mode can give each its own value. */
+    --color-studio-on-brand: #17181c;
+    --color-studio-on-bad: #17181c;
+    --color-studio-brand-text: #ff7a4d;
+    /* The step numbers on orange in the new-magazine dialog. */
+    --color-studio-on-brand-step: #fff;
 }
 
 /* Admin focus ring: shown on keyboard focus only (:focus-visible), never on a mouse click. Public pages use outline-primary instead. */

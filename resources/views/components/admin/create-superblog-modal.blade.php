@@ -35,7 +35,7 @@
                  readers hear only the title. --}}
             <div class="mt-1.5 flex flex-col gap-4">
                 <label for="create-name" class="flex items-center gap-2.5">
-                    <span aria-hidden="true" class="grid size-6 shrink-0 place-items-center rounded-full bg-studio-brand text-xs font-bold text-studio-contrast">1</span>
+                    <span aria-hidden="true" class="grid size-6 shrink-0 place-items-center rounded-full bg-studio-brand text-xs font-bold text-studio-on-brand-step">1</span>
                     <span class="text-sm font-bold">Namn</span>
                 </label>
                 <x-admin.input id="create-name" name="name" value="{{ $reopen ? old('name') : '' }}" required maxlength="255" autofocus data-domain-source
@@ -49,7 +49,7 @@
             <fieldset class="mt-1.5 min-w-0" @if ($templateError) aria-describedby="create-template-error" @endif>
                 <legend class="mb-4">
                     <span class="flex items-center gap-2.5">
-                        <span aria-hidden="true" class="grid size-6 shrink-0 place-items-center rounded-full bg-studio-brand text-xs font-bold text-studio-contrast">2</span>
+                        <span aria-hidden="true" class="grid size-6 shrink-0 place-items-center rounded-full bg-studio-brand text-xs font-bold text-studio-on-brand-step">2</span>
                         <span class="text-sm font-bold">Mall</span>
                         <small class="text-[12.5px] text-studio-muted">Styr layouten på hela sajten</small>
                     </span>
@@ -78,7 +78,7 @@
                 <x-admin.domain-input id="create-domain" :value="$reopen ? old('domain') : null" :error="$domainError" data-domain-target
                                       help="Du kopplar domänen med DNS-inställningar i sista steget innan publicering. Har du ingen domän än kan du ändra adressen senare.">
                     <span class="flex items-center gap-2.5">
-                        <span aria-hidden="true" class="grid size-6 shrink-0 place-items-center rounded-full bg-studio-brand text-xs font-bold text-studio-contrast">3</span>
+                        <span aria-hidden="true" class="grid size-6 shrink-0 place-items-center rounded-full bg-studio-brand text-xs font-bold text-studio-on-brand-step">3</span>
                         <span class="font-bold">Webbadress</span>
                         <small class="text-[12.5px] font-normal text-studio-muted">Adressen där sajten publiceras (valfri)</small>
                     </span>

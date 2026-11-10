@@ -39,7 +39,7 @@
             </label>
         </div>
         <div class="flex items-center gap-4">
-            <button type="submit" class="rounded-lg bg-studio-brand px-4 py-2 font-medium text-studio-side hover:bg-studio-brand-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-studio-brand">Save RSS source</button>
+            <button type="submit" class="rounded-lg bg-studio-brand px-4 py-2 font-medium text-studio-on-brand hover:bg-studio-brand-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-studio-brand">Save RSS source</button>
             <a href="{{ route('admin.superblogs.rss-sources.index', $superblog) }}" class="text-sm underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-studio-brand">Cancel</a>
         </div>
     </form>

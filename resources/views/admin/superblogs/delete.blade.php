@@ -18,7 +18,7 @@
         <form method="POST" action="{{ route('admin.superblogs.destroy', $superblog) }}" class="mt-6 flex items-center gap-4">
             @csrf
             @method('DELETE')
-            <button type="submit" class="rounded-lg bg-studio-bad px-4 py-2 font-medium text-studio-side hover:bg-studio-bad/85 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-studio-brand">Ta bort permanent</button>
+            <button type="submit" class="rounded-lg bg-studio-bad px-4 py-2 font-medium text-studio-on-bad hover:bg-studio-bad/85 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-studio-brand">Ta bort permanent</button>
             <a href="{{ route('admin.superblogs.edit', $superblog) }}" class="text-sm underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-studio-brand">Avbryt</a>
         </form>
     </div>
