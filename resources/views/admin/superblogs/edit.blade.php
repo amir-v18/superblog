@@ -6,9 +6,6 @@
 {{-- Full width and, from lg, exactly the window height, so the panel and the preview scroll separately. --}}
 @section('main-class', 'flex w-full flex-col lg:h-screen')
 
-{{-- The mode switch sits in a row of its own above the preview on wide screens; see the preview section below. --}}
-@section('mode-toggle-in-page', '1')
-
 @section('content')
     @php
         // Tabs are plain links with ?flik=..., so only the active tab is rendered and no JS is needed.
@@ -21,10 +18,13 @@
         // every form on the page. After a failed modal submit, its errors and values belong to the modal only.
         $fromCreateModal = old('_form') === 'create-superblog';
         $old = fn (string $key, mixed $default = null): mixed => $fromCreateModal ? $default : old($key, $default);
+        // On wide screens the header starts at the very top, next to the layout's mode switch in the page corner
+        // (about 90 px from the right edge). The header keeps 100 px free on the right there, so a long magazine
+        // name is cut short ahead of the switch. On narrow screens the sidebar sits above the header.
         $selectedTemplate = $old('template_id', $superblog->template_id);
     @endphp
 
-    <header class="flex flex-wrap items-center gap-4 border-b border-studio-line bg-studio-side px-5 py-3">
+    <header class="flex flex-wrap items-center gap-4 border-b border-studio-line bg-studio-side px-5 py-3 lg:pr-25">
         <a href="{{ route('admin.dashboard') }}" class="rounded-lg px-3.5 py-2 text-[13px] font-semibold text-studio-muted hover:text-studio-ink studio-focus-ring"><span aria-hidden="true">←</span> Alla magasin</a>
         <div class="flex min-w-0 flex-1 items-center gap-2.5">
             <h1 class="truncate text-lg font-semibold">{{ $superblog->name }}</h1>
@@ -300,11 +300,6 @@
 
         {{-- Stacks below the builder on small screens and shares the remaining grid width on desktop. --}}
         <section aria-label="Förhandsvisning" class="flex h-[70vh] min-w-0 flex-col bg-studio-preview-bg lg:h-auto lg:min-h-0">
-            {{-- Wide screens only: the switch gets its own 40 px row so the address field next to Dator/Mobil keeps
-                 its width. On narrow screens this column sits below the form, and the layout's corner switch is used. --}}
-            <div class="hidden justify-end border-b border-studio-line bg-studio-side px-4 py-1.5 lg:flex">
-                <x-admin.mode-toggle />
-            </div>
             <div class="flex flex-wrap items-center gap-3 border-b border-studio-line bg-studio-side px-4 py-2.25 text-xs text-studio-muted">
                 <span aria-hidden="true" class="tracking-[2px] text-studio-preview-dots">●●●</span>
                 <code class="min-w-0 flex-1 truncate rounded-md bg-studio-bg px-2.5 py-1 text-studio-ink">{{ $superblog->domain ? 'https://'.$superblog->domain : 'Ingen webbadress än' }}</code>

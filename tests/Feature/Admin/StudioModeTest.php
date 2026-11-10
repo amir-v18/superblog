@@ -143,19 +143,24 @@ class StudioModeTest extends TestCase
         }
     }
 
-    public function test_the_builder_has_the_corner_switch_and_one_above_the_preview(): void
+    public function test_the_builder_has_exactly_the_corner_switch_on_every_width_like_other_pages(): void
     {
         $admin = $this->makeUser(approved: true, superAdmin: true);
         $superblog = $this->makeSuperblog($admin);
+        $this->actingAs($admin);
 
-        $html = $this->actingAs($admin)->get(route('admin.superblogs.edit', $superblog))->assertOk()->getContent();
+        $corner = 'data-studio-mode-form class="absolute top-1 right-4 z-10">';
 
-        // One for narrow screens from the layout, one in the preview column for wide screens.
-        $this->assertSame(2, substr_count($html, 'data-studio-mode-form'));
-        $this->assertSame(1, substr_count(Str::after($html, '<section aria-label="Förhandsvisning"'), 'data-studio-mode-form'));
+        foreach (['grund', 'utseende', 'floden', 'innehall', 'skriv-artikel', 'publicera'] as $tab) {
+            $html = $this->get(route('admin.superblogs.edit', [$superblog, 'flik' => $tab]))->assertOk()->getContent();
 
-        // Every other admin page shows the corner switch only.
-        $this->assertSame(1, substr_count($this->get(route('admin.dashboard'))->getContent(), 'data-studio-mode-form'));
+            // One switch, the corner one, with no width condition on its classes; none in the preview column.
+            $this->assertSame(1, substr_count($html, 'data-studio-mode-form'), "flik $tab");
+            $this->assertStringContainsString($corner, $html, "flik $tab");
+            $this->assertStringNotContainsString('data-studio-mode-form', Str::after($html, '<section aria-label="Förhandsvisning"'), "flik $tab");
+        }
+
+        $this->assertSame(1, substr_count($this->get(route('admin.dashboard'))->getContent(), $corner));
     }
 
     public function test_the_preview_and_the_public_site_have_no_switch(): void
