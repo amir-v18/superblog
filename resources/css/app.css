@@ -125,6 +125,14 @@
 }
 
 /*
+ * Extra classes for the few admin spots whose default look uses set palette colors instead of studio variables.
+ * They are added next to the existing classes and only apply under data-studio-mode="light", so the default look
+ * keeps exactly the classes it had. The attribute is one level more specific than a single class, so these win
+ * whatever their order in the file. The magazines and the builder preview never carry the attribute.
+ */
+@custom-variant studio-light ([data-studio-mode='light'] &);
+
+/*
  * Theme system: a theme is a set of raw values selected by data-theme on <html>.
  * The @theme inline block below maps them to Tailwind utilities (bg-paper, text-ink, font-display, ...).
  * "inline" makes utilities reference var(--paper) directly, so the value resolves from the active theme.

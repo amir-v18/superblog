@@ -202,7 +202,7 @@
 
                             <form method="POST" action="{{ route('admin.superblogs.unpublish', $superblog) }}" class="mt-5">
                                 @csrf
-                                <button type="submit" class="rounded-lg border border-red-300 px-4 py-2 text-sm font-semibold text-red-700 hover:bg-red-50 studio-focus-ring">Avpublicera</button>
+                                <button type="submit" class="rounded-lg border border-red-300 px-4 py-2 text-sm font-semibold text-red-700 hover:bg-red-50 studio-focus-ring studio-light:border-studio-bad">Avpublicera</button>
                             </form>
                         @else
                             <h2 id="publish-heading" class="text-lg font-semibold">Publicera innehåll</h2>
