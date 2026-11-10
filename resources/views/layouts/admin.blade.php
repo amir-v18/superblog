@@ -109,6 +109,15 @@
         @endauth
     </aside>
 
+    {{-- Mode switch in the top right corner of the page. It takes no room, so nothing else moves; 4 px from the top
+         leaves 8 px above the top row of the dashboard. A page with its own switch (the builder, on wide screens)
+         sets the section mode-toggle-in-page, and this one then only shows on narrow screens. --}}
+    @hasSection('mode-toggle-in-page')
+        <x-admin.mode-toggle class="absolute top-1 right-4 z-10 lg:hidden" />
+    @else
+        <x-admin.mode-toggle class="absolute top-1 right-4 z-10" />
+    @endif
+
     {{-- Pages can replace the width and padding via @section('main-class'); the default keeps the old layout. --}}
     <main id="main" class="@yield('main-class', 'mx-auto w-full max-w-5xl px-6 py-12') lg:min-w-0">
         @if (session('status'))

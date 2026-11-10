@@ -329,3 +329,69 @@ if (previewIframe) {
     themeRadios.forEach((radio) => radio.addEventListener('change', sync));
     sync();
 }
+
+// Admin color mode: switch in place and save in the background, so unsaved fields (e.g. in the builder) survive.
+// Only pages rendered by layouts.admin have the switch; the preview iframe and the magazines load this file too
+// but have no switch, so nothing here runs there.
+const modeForms = document.querySelectorAll('[data-studio-mode-form]');
+
+if (modeForms.length > 0) {
+    const MODE_TEXT = {
+        light: { label: 'Ljust', aria: 'Byt till ljust läge' },
+        dark: { label: 'Mörkt', aria: 'Byt till mörkt läge' },
+    };
+
+    // Shows the page in the given mode and makes every switch offer the other one.
+    const applyMode = (mode) => {
+        if (mode === 'light') {
+            document.documentElement.dataset.studioMode = 'light';
+        } else {
+            delete document.documentElement.dataset.studioMode;
+        }
+
+        const next = mode === 'light' ? 'dark' : 'light';
+        modeForms.forEach((form) => {
+            form.querySelector('[data-studio-mode-next]').value = next;
+            form.querySelector('[data-studio-mode-label]').textContent = MODE_TEXT[next].label;
+            form.querySelector('button').setAttribute('aria-label', MODE_TEXT[next].aria);
+            form.querySelectorAll('[data-studio-mode-icon]').forEach((icon) => {
+                icon.toggleAttribute('hidden', icon.dataset.studioModeIcon !== next);
+            });
+        });
+    };
+
+    const showModeError = () => {
+        const notice = document.createElement('div');
+        notice.setAttribute('role', 'alert');
+        notice.className = 'fixed top-4 right-4 left-4 z-50 mx-auto max-w-md rounded-lg border border-studio-bad/40 bg-studio-bad-bg p-3 text-sm text-studio-bad shadow-xl';
+        notice.textContent = 'Valet kunde inte sparas. Läget gäller tills sidan laddas om.';
+        document.body.append(notice);
+        setTimeout(() => notice.remove(), 6000);
+    };
+
+    document.addEventListener('submit', async (event) => {
+        const form = event.target instanceof HTMLFormElement ? event.target : null;
+        if (!form?.matches('[data-studio-mode-form]')) {
+            return;
+        }
+
+        event.preventDefault();
+        // Taken ahead of applyMode, which rewrites the mode field to the next choice.
+        const body = new FormData(form);
+        applyMode(body.get('mode'));
+
+        try {
+            const response = await fetch(form.action, {
+                method: 'POST',
+                headers: { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+                body,
+            });
+
+            if (!response.ok) {
+                showModeError();
+            }
+        } catch {
+            showModeError();
+        }
+    });
+}

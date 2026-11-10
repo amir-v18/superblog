@@ -5,6 +5,7 @@ namespace Tests\Feature\Admin;
 use App\Http\Controllers\StudioModeController;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Str;
 use Tests\Concerns\CreatesSuperblogs;
 use Tests\TestCase;
 
@@ -22,11 +23,11 @@ class StudioModeTest extends TestCase
 
         $this->get(route('login'))->assertOk()
             ->assertSee(self::PLAIN_TAG, false)
-            ->assertDontSee('data-studio-mode', false);
+            ->assertDontSee('data-studio-mode="', false);
 
         $this->actingAs($admin)->get(route('admin.dashboard'))->assertOk()
             ->assertSee(self::PLAIN_TAG, false)
-            ->assertDontSee('data-studio-mode', false);
+            ->assertDontSee('data-studio-mode="', false);
     }
 
     public function test_a_dark_or_unknown_cookie_writes_no_attribute(): void
@@ -35,7 +36,7 @@ class StudioModeTest extends TestCase
             $this->withCookie(StudioModeController::COOKIE, $value)
                 ->get(route('login'))
                 ->assertSee(self::PLAIN_TAG, false)
-                ->assertDontSee('data-studio-mode', false);
+                ->assertDontSee('data-studio-mode="', false);
         }
     }
 
@@ -118,6 +119,91 @@ class StudioModeTest extends TestCase
             ->actingAs($admin)->get(route('admin.dashboard'))
             ->assertSee(self::LIGHT_TAG, false)
             ->assertSee('<meta name="robots" content="noindex, nofollow">', false);
+    }
+
+    public function test_the_switch_offers_light_mode_to_a_guest_an_editor_and_a_super_admin(): void
+    {
+        $this->assertSwitch($this->get(route('login'))->assertOk()->getContent(), 'light');
+
+        $editor = $this->makeUser(approved: true);
+        $this->assertSwitch($this->actingAs($editor)->get(route('admin.dashboard'))->assertOk()->getContent(), 'light');
+
+        $admin = $this->makeUser(approved: true, superAdmin: true);
+        $this->assertSwitch($this->actingAs($admin)->get(route('admin.dashboard'))->assertOk()->getContent(), 'light');
+    }
+
+    public function test_in_light_mode_the_switch_offers_dark_mode_to_every_role(): void
+    {
+        $this->assertSwitch($this->withCookie(StudioModeController::COOKIE, 'light')
+            ->get(route('login'))->assertOk()->getContent(), 'dark');
+
+        foreach ([$this->makeUser(approved: true), $this->makeUser(approved: true, superAdmin: true)] as $user) {
+            $this->assertSwitch($this->withCookie(StudioModeController::COOKIE, 'light')
+                ->actingAs($user)->get(route('admin.dashboard'))->assertOk()->getContent(), 'dark');
+        }
+    }
+
+    public function test_the_builder_has_the_corner_switch_and_one_above_the_preview(): void
+    {
+        $admin = $this->makeUser(approved: true, superAdmin: true);
+        $superblog = $this->makeSuperblog($admin);
+
+        $html = $this->actingAs($admin)->get(route('admin.superblogs.edit', $superblog))->assertOk()->getContent();
+
+        // One for narrow screens from the layout, one in the preview column for wide screens.
+        $this->assertSame(2, substr_count($html, 'data-studio-mode-form'));
+        $this->assertSame(1, substr_count(Str::after($html, '<section aria-label="Förhandsvisning"'), 'data-studio-mode-form'));
+
+        // Every other admin page shows the corner switch only.
+        $this->assertSame(1, substr_count($this->get(route('admin.dashboard'))->getContent(), 'data-studio-mode-form'));
+    }
+
+    public function test_the_preview_and_the_public_site_have_no_switch(): void
+    {
+        $admin = $this->makeUser(approved: true, superAdmin: true);
+        $superblog = $this->makeSuperblog($admin);
+        $superblog->update(['status' => 'published', 'settings' => ['theme' => 'bondebladet']]);
+
+        $this->withCookie(StudioModeController::COOKIE, 'light')
+            ->actingAs($admin)->get(route('admin.superblogs.preview', $superblog))->assertOk()
+            ->assertDontSee('data-studio-mode-form', false)
+            ->assertDontSee(route('studio-mode.update'), false);
+
+        $this->withCookie(StudioModeController::COOKIE, 'light')
+            ->get(route('public.superblogs.show', $superblog))->assertOk()
+            ->assertDontSee('data-studio-mode-form', false)
+            ->assertDontSee(route('studio-mode.update'), false);
+    }
+
+    public function test_a_request_from_the_switch_script_gets_no_content_but_the_cookie(): void
+    {
+        $this->postJson(route('studio-mode.update'), ['mode' => 'light'])
+            ->assertNoContent()
+            ->assertCookie(StudioModeController::COOKIE, 'light');
+
+        $this->postJson(route('studio-mode.update'), ['mode' => 'blue'])
+            ->assertUnprocessable()
+            ->assertCookieMissing(StudioModeController::COOKIE);
+    }
+
+    /**
+     * The switch offers $next: its label, its aria-label, the field it posts, and only the matching icon shown.
+     */
+    private function assertSwitch(string $html, string $next): void
+    {
+        [$label, $aria] = $next === 'light' ? ['Ljust', 'Byt till ljust läge'] : ['Mörkt', 'Byt till mörkt läge'];
+        $other = $next === 'light' ? 'dark' : 'light';
+
+        $this->assertSame(1, substr_count($html, 'data-studio-mode-form'));
+        $this->assertStringContainsString('action="'.route('studio-mode.update').'"', $html);
+        $this->assertStringContainsString('name="mode" value="'.$next.'"', $html);
+        $this->assertStringContainsString('aria-label="'.$aria.'"', $html);
+        $this->assertStringContainsString('<span data-studio-mode-label>'.$label.'</span>', $html);
+
+        preg_match('/<svg data-studio-mode-icon="'.$next.'"([^>]*)>/', $html, $shown);
+        preg_match('/<svg data-studio-mode-icon="'.$other.'"([^>]*)>/', $html, $notShown);
+        $this->assertDoesNotMatchRegularExpression('/\shidden\s/', $shown[1]);
+        $this->assertMatchesRegularExpression('/\shidden\s/', $notShown[1]);
     }
 
     private function assertSaved(?User $user, string $previous): void
