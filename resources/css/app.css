@@ -72,6 +72,59 @@
 }
 
 /*
+ * Light mode of the admin studio. Applies only when layouts.admin writes data-studio-mode="light" on <html>
+ * (from the studio_mode cookie); the magazines, the builder preview and the public pages never get the attribute.
+ * Only the studio color variables change, so every studio utility follows without new classes. Deliberately
+ * outside any cascade layer: Tailwind puts the default values in its theme layer, and a rule outside all layers
+ * always takes precedence over layered rules. The preview halo keeps its default value, which suits both modes.
+ */
+:root[data-studio-mode='light'] {
+    --color-studio-bg: #f6f5f1;
+    --color-studio-panel: #ffffff;
+    --color-studio-line: #d9d7d0;
+    --color-studio-ink: #1d1e24;
+    --color-studio-muted: #5c5e68;
+    --color-studio-brand: #e5562a;
+    --color-studio-side: #ecebe5;
+    --color-studio-ok: #17723f;
+    --color-studio-bad: #b42318;
+    --color-studio-brand-hover: #f07848;
+    --color-studio-bad-bg: #fde8e3;
+    --color-studio-pill: #e6e5df;
+    --color-studio-live: #e3f4ea;
+
+    --color-studio-side-ink: #1d1e24;
+    --color-studio-side-nav: #3d3f48;
+    --color-studio-side-muted: #5c5e68;
+    --color-studio-side-label: #5f616b;
+    --color-studio-side-mark: #80828c;
+    --color-studio-contrast: #1d1e24;
+
+    --color-studio-warn-bg: #fbf3dc;
+    --color-studio-warn-line: #c9ad5c;
+    --color-studio-warn-ink: #5c4300;
+    --color-studio-pending: #8a5300;
+    --color-studio-line-hover: #80828c;
+    --color-studio-line-bright: #6b6d77;
+    --color-studio-line-dash: #b5b3ab;
+    --color-studio-switch-off: #80828c;
+    --color-studio-placeholder: #696b75;
+    --color-studio-preview-bg: #dddcd5;
+    --color-studio-preview-dots: #9fa1aa;
+    --color-studio-card-shadow: #17181c33;
+
+    --color-studio-on-brand: #1d1e24;
+    --color-studio-on-bad: #ffffff;
+    --color-studio-brand-text: #b23c0d;
+    --color-studio-on-brand-step: #1d1e24;
+}
+
+/* Native form controls, scrollbars and dialogs follow the light colors; the body keeps its own setting otherwise. */
+:root[data-studio-mode='light'] body {
+    color-scheme: light;
+}
+
+/*
  * Theme system: a theme is a set of raw values selected by data-theme on <html>.
  * The @theme inline block below maps them to Tailwind utilities (bg-paper, text-ink, font-display, ...).
  * "inline" makes utilities reference var(--paper) directly, so the value resolves from the active theme.
