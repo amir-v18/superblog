@@ -3,7 +3,7 @@
 
 @section('title', $superblog->name)
 
-{{-- Full width and, from lg, exactly the window height, so the panel and the preview scroll separately as in Figma. --}}
+{{-- Full width and, from lg, exactly the window height, so the panel and the preview scroll separately. --}}
 @section('main-class', 'flex w-full flex-col lg:h-screen')
 
 @section('content')
@@ -14,7 +14,11 @@
         $tabs = ['grund' => '1 Grund', 'utseende' => '2 Utseende', 'floden' => '3 Flöden', 'innehall' => '4 Innehåll', 'skriv-artikel' => '5 Skriv artikel', 'publicera' => $publicationTab];
         $tab = in_array(request()->query('flik'), array_keys($tabs), true) ? request()->query('flik') : 'grund';
         $tabClasses = 'block whitespace-nowrap border-b-2 border-transparent px-2 py-[13px] text-center text-xs font-semibold text-studio-muted hover:text-studio-ink aria-[current=page]:border-studio-brand aria-[current=page]:text-studio-brand focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-studio-brand';
-        $selectedTemplate = old('template_id', $superblog->template_id);
+        // The layout's "Nytt magasin" modal posts name, domain and template_id too, and old input is shared by
+        // every form on the page. After a failed modal submit, its errors and values belong to the modal only.
+        $fromCreateModal = old('_form') === 'create-superblog';
+        $old = fn (string $key, mixed $default = null): mixed => $fromCreateModal ? $default : old($key, $default);
+        $selectedTemplate = $old('template_id', $superblog->template_id);
     @endphp
 
     <header class="flex flex-wrap items-center gap-4 border-b border-studio-line bg-studio-side px-5 py-3">
@@ -38,7 +42,7 @@
             </nav>
 
             <div class="flex flex-col gap-3.5 p-5 lg:flex-1 lg:overflow-y-auto">
-                @if ($errors->any())
+                @if ($errors->any() && ! $fromCreateModal)
                     <x-admin.errors />
                 @endif
 
@@ -51,12 +55,12 @@
 
                         <div>
                             <label for="name" class="block text-sm font-medium">Namn</label>
-                            <x-admin.input id="name" name="name" data-live-name-source value="{{ old('name', $superblog->name) }}" required maxlength="255" class="mt-2" />
+                            <x-admin.input id="name" name="name" data-live-name-source value="{{ $old('name', $superblog->name) }}" required maxlength="255" class="mt-2" />
                         </div>
 
                         <div>
                             <label for="slug" class="block text-sm font-medium">Slug</label>
-                            <x-admin.input id="slug" name="slug" value="{{ old('slug', $superblog->slug) }}" required maxlength="255" aria-describedby="slug-help" class="mt-2" />
+                            <x-admin.input id="slug" name="slug" value="{{ $old('slug', $superblog->slug) }}" required maxlength="255" aria-describedby="slug-help" class="mt-2" />
                             <p id="slug-help" class="mt-1 text-sm text-studio-muted">Adressen blir /superblogs/{slug}. Använd små bokstäver och bindestreck. Måste vara unik.</p>
                         </div>
 
@@ -65,7 +69,7 @@
                             @include('admin.superblogs._template-options')
                         </fieldset>
 
-                        <x-admin.domain-input id="domain" :value="old('domain', $superblog->domain)" help="Skriv bara domänen, utan https://.">
+                        <x-admin.domain-input id="domain" :value="$old('domain', $superblog->domain)" help="Skriv bara domänen, utan https://.">
                             Webbadress (valfri)
                         </x-admin.domain-input>
 
@@ -97,12 +101,12 @@
                             @csrf
                             {{-- fran brings the user back to this tab; without it the controller goes to the RSS list. --}}
                             <input type="hidden" name="fran" value="byggaren">
-                            {{-- The backend requires is_active, and Figma adds new feeds as active. --}}
+                            {{-- The backend requires is_active, so new feeds are added as active. --}}
                             <input type="hidden" name="is_active" value="1">
                             <h3 class="text-[13px] font-semibold">Lägg till flöde</h3>
                             {{-- A failed card save also flashes name and url, so andrar keeps that text out of this form. --}}
-                            <x-admin.input name="name" value="{{ old('andrar') ? '' : old('name') }}" required maxlength="255" placeholder="Namn, t.ex. Lokalnytt" aria-label="Flödets namn" class="text-sm" />
-                            <x-admin.input name="url" type="url" value="{{ old('andrar') ? '' : old('url') }}" required maxlength="65535" placeholder="https://exempel.se/rss.xml" aria-label="Flödets adress" class="text-sm" />
+                            <x-admin.input name="name" value="{{ old('andrar') ? '' : $old('name') }}" required maxlength="255" placeholder="Namn, t.ex. Lokalnytt" aria-label="Flödets namn" class="text-sm" />
+                            <x-admin.input name="url" type="url" value="{{ old('andrar') ? '' : $old('url') }}" required maxlength="65535" placeholder="https://exempel.se/rss.xml" aria-label="Flödets adress" class="text-sm" />
                             <x-admin.button class="self-end">Lägg till</x-admin.button>
                         </form>
 
@@ -149,10 +153,10 @@
                                             <div class="flex items-center justify-end gap-3">
                                                 @if ($rssSource->is_active)
                                                     {{-- form= ties this button to its own form, so Enter in a text field still saves. --}}
-                                                    <button type="submit" form="fetch-{{ $rssSource->id }}" data-pending-text="Hämtar…" class="mr-auto rounded-lg border border-studio-line px-3 py-1.5 text-[13px] font-semibold hover:border-[#b9b7af] studio-focus-ring disabled:opacity-60">↻ Hämta nu</button>
+                                                    <button type="submit" form="fetch-{{ $rssSource->id }}" data-pending-text="Hämtar…" class="mr-auto rounded-lg border border-studio-line px-3 py-1.5 text-[13px] font-semibold hover:border-[#5a5d69] studio-focus-ring disabled:opacity-60">↻ Hämta nu</button>
                                                 @endif
                                                 <a href="{{ route('admin.superblogs.rss-sources.delete', [$superblog, $rssSource, 'fran' => 'byggaren']) }}" class="text-[13px] font-semibold text-studio-bad underline underline-offset-4 studio-focus-ring">Ta bort</a>
-                                                <button type="submit" class="rounded-lg border border-studio-line px-3 py-1.5 text-[13px] font-semibold hover:border-[#b9b7af] studio-focus-ring">Spara</button>
+                                                <button type="submit" class="rounded-lg border border-studio-line px-3 py-1.5 text-[13px] font-semibold hover:border-[#5a5d69] studio-focus-ring">Spara</button>
                                             </div>
                                         </form>
                                         {{-- The count is stored RSS items, not published articles. --}}
@@ -304,7 +308,7 @@
                 </div>
             </div>
             <div data-preview-pane class="flex flex-1 flex-col overflow-auto p-5">
-                {{-- Figma's empty hint. Here in the builder, not in the iframe, so it can never end up on the public site. --}}
+                {{-- The empty hint lives in the builder, not in the iframe, so it can never end up on the public site. --}}
                 @if ($publishedArticlesCount === 0)
                     @php
                         $feedCount = $rssSources->count();

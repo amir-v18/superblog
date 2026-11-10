@@ -16,47 +16,20 @@
 
 <div class="flex h-full flex-col">
     @if ($canEdit)
-        {{-- Figma's .mag-card:hover: lifts 2px with a dark shadow. --}}
         <a href="{{ route('admin.superblogs.edit', $superblog) }}" class="{{ $cardClasses }} flex-1 transition hover:-translate-y-0.5 hover:shadow-[0_10px_28px_#0006] studio-focus-ring">
     @else
         <div class="{{ $cardClasses }} flex-1">
     @endif
-        {{-- Decorative thumbnail: the name is repeated in the info below, which is what screen readers get. --}}
-        @if ($themeName)
-            {{-- data-theme scopes the theme's CSS variables to the thumbnail; no color values are written into a style attribute. --}}
-            <div data-theme="{{ $themeName }}" aria-hidden="true">
-                <div class="h-2 bg-primary"></div>
-                <div class="flex h-32 flex-col justify-between bg-paper p-4 text-ink">
-                    <p class="truncate font-display text-2xl font-semibold">{{ $superblog->name }}</p>
-                    <div class="grid h-8 grid-cols-[2fr_1fr_1fr] gap-2">
-                        <span class="rounded-md bg-primary/90"></span>
-                        <span class="rounded-md bg-deep/70"></span>
-                        <span class="rounded-md bg-pale"></span>
-                    </div>
-                </div>
-            </div>
-        @else
-            {{-- Neutral thumbnail until a valid theme is chosen; same shape so cards stay the same height. --}}
-            <div aria-hidden="true">
-                <div class="h-2 bg-studio-line"></div>
-                <div class="flex h-32 flex-col justify-between bg-studio-bg p-4 text-studio-muted">
-                    <p class="truncate text-2xl font-semibold">{{ $superblog->name }}</p>
-                    <div class="grid h-8 grid-cols-[2fr_1fr_1fr] gap-2">
-                        <span class="rounded-md bg-studio-pill"></span>
-                        <span class="rounded-md bg-studio-line"></span>
-                        <span class="rounded-md bg-studio-line"></span>
-                    </div>
-                </div>
-            </div>
-        @endif
+        {{-- Decorative thumbnail in the saved theme, or the grey one until a valid theme is chosen. --}}
+        <x-admin.theme-thumb :theme="$themeName" :name="$superblog->name" />
 
-        {{-- Figma's .mag-info: padding 14/16/16, 6px between rows. --}}
         <div class="flex flex-col gap-1.5 px-4 pt-3.5 pb-4">
+            {{-- A word too long for the card is broken rather than pushing the status out of it. --}}
             <div class="flex items-center justify-between gap-3">
-                <h3 class="text-[17px] font-semibold">{{ $superblog->name }}</h3>
+                <h3 class="min-w-0 text-[17px] font-semibold wrap-anywhere">{{ $superblog->name }}</h3>
                 <x-admin.status-pill :live="$isLive" class="shrink-0" />
             </div>
-            {{-- Figma: live cards show where they are published, drafts show which template they are built on. --}}
+            {{-- Live cards show where they are published, drafts show which template they are built on. --}}
             <p class="break-all text-xs text-studio-muted">{{ $isLive ? ($superblog->domain ?: $superblog->slug) : $superblog->template?->name }}</p>
 
             <div class="mt-1.5 flex flex-wrap gap-x-3.5 gap-y-1 text-xs text-studio-muted">

@@ -156,6 +156,27 @@ class PublicSuperblogTest extends TestCase
         $this->assertSame($publicMain[0], $previewMain[0]);
     }
 
+    public function test_only_the_admin_preview_is_kept_out_of_search_results(): void
+    {
+        $admin = User::factory()->create(['approval_status' => 'approved', 'is_super_admin' => true]);
+        $superblog = $this->makeSuperblog('published', 'indexing-home', $admin);
+        $noindex = '<meta name="robots" content="noindex, nofollow">';
+
+        // The public page is what search engines should find, so it carries neither the tag nor the header,
+        // and none of the preview's hooks for the builder's script.
+        $this->get(route('public.superblogs.show', $superblog))
+            ->assertOk()
+            ->assertDontSee($noindex, false)
+            ->assertHeaderMissing('X-Robots-Tag')
+            ->assertDontSee('data-admin-preview-superblog-id', false);
+
+        $this->actingAs($admin)->get(route('admin.superblogs.preview', $superblog))
+            ->assertOk()
+            ->assertSee($noindex, false)
+            ->assertHeader('X-Robots-Tag', 'noindex, nofollow')
+            ->assertSee('data-admin-preview-superblog-id="'.$superblog->getKey().'"', false);
+    }
+
     public function test_selected_drafts_remain_visible_in_offline_preview_but_not_publicly(): void
     {
         $admin = User::factory()->create(['approval_status' => 'approved', 'is_super_admin' => true]);

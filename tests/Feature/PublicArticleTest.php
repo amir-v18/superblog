@@ -20,7 +20,6 @@ class PublicArticleTest extends TestCase
         $this->get(route('public.superblogs.articles.show', [$superblog, $article]))
             ->assertOk()
             ->assertSee('Database article title')
-            ->assertSee('A real article excerpt')
             ->assertSee('Real paragraph one.')
             ->assertSee('Real paragraph two & more.')
             ->assertSee('2 november 2026')
@@ -28,6 +27,53 @@ class PublicArticleTest extends TestCase
             ->assertDontSee('alert("not rendered")')
             ->assertDontSee('Publish now')
             ->assertDontSee('Fetch now');
+    }
+
+    public function test_article_without_excerpt_uses_its_first_paragraph_as_meta_description(): void
+    {
+        [$superblog, $article] = $this->makeArticle('published', Carbon::parse('2026-11-02 14:30:00'));
+        $article->update([
+            'content' => "<p>First   paragraph&nbsp;with a\nline break &amp; more.</p><p>Second paragraph.</p>",
+        ]);
+
+        $description = 'First paragraph with a line break &amp; more.';
+
+        $this->get(route('public.superblogs.articles.show', [$superblog, $article]))
+            ->assertOk()
+            ->assertSee('<meta name="description" content="'.$description.'">', false)
+            ->assertSee('<meta property="og:description" content="'.$description.'">', false)
+            ->assertSee('"description":"First paragraph with a line break', false)
+            ->assertSee('Second paragraph.');
+    }
+
+    public function test_article_without_paragraph_text_renders_with_an_empty_meta_description(): void
+    {
+        [$superblog, $article] = $this->makeArticle('published', Carbon::parse('2026-11-02 14:30:00'));
+        $article->update(['content' => '<p> </p><script>alert("not rendered")</script>']);
+
+        $this->get(route('public.superblogs.articles.show', [$superblog, $article]))
+            ->assertOk()
+            ->assertSee('Database article title')
+            ->assertSee('<meta name="description" content="">', false)
+            ->assertDontSee('"description":', false);
+    }
+
+    public function test_locked_article_meta_description_never_contains_locked_text(): void
+    {
+        [$superblog, $article] = $this->makeArticle('published', Carbon::parse('2026-11-02 14:30:00'));
+        $article->update([
+            'is_locked' => true,
+            'content' => '<p>'.str_repeat('Open words ', 30).'</p><p>Locked secret paragraph.</p>',
+        ]);
+
+        $response = $this->get(route('public.superblogs.articles.show', [$superblog, $article]))
+            ->assertOk()
+            ->assertDontSee('Locked secret paragraph.');
+
+        preg_match('/<meta name="description" content="([^"]*)">/', $response->getContent(), $match);
+        $this->assertStringStartsWith('Open words Open words', $match[1]);
+        $this->assertStringEndsWith('…', $match[1]);
+        $this->assertLessThanOrEqual(161, mb_strlen($match[1]));
     }
 
     public function test_draft_article_is_not_publicly_accessible(): void
@@ -151,7 +197,6 @@ class PublicArticleTest extends TestCase
             'title' => 'Database article title',
             'slug' => 'database-article',
             'content' => '<p>Real paragraph one.</p><p>Real paragraph two &amp; more.</p><script>alert("not rendered")</script>',
-            'excerpt' => 'A real article excerpt',
             'source_type' => 'rss',
             'status' => $status,
             'is_selected_for_publication' => $status === 'published',

@@ -32,6 +32,21 @@ class SuperblogThemeTest extends TestCase
             ->assertDontSee('Inget tema är valt än.');
     }
 
+    public function test_every_template_can_pick_the_newspaper_theme(): void
+    {
+        $admin = $this->makeUser(approved: true, superAdmin: true);
+        // makeSuperblog's template is not Klassisk tidning, so this shows the theme is not tied to that template.
+        $superblog = $this->makeSuperblog($admin);
+
+        $this->actingAs($admin)->get(route('admin.superblogs.edit', [$superblog, 'flik' => 'utseende']))
+            ->assertSee('value="budbararen"', false);
+
+        $this->put(route('admin.superblogs.theme.update', $superblog), ['theme' => 'budbararen'])
+            ->assertSessionHasNoErrors();
+
+        $this->assertSame('budbararen', $superblog->fresh()->settings['theme']['name']);
+    }
+
     public function test_an_invalid_theme_is_rejected(): void
     {
         $admin = $this->makeUser(approved: true, superAdmin: true);

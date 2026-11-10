@@ -10,7 +10,7 @@
     --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
         'Segoe UI Symbol', 'Noto Color Emoji';
 
-    /* Admin studio colors from the Figma design (.studio). Fixed values: they never follow a magazine theme. */
+    /* Admin studio colors. Fixed values: they never follow a magazine theme. */
     --color-studio-bg: #1d1e24;
     --color-studio-panel: #24262d;
     --color-studio-line: #363842;
@@ -45,8 +45,12 @@
     --deep: #143a2c;
     --line: #dedfd7;
     --pale: #ecf0e8;
+    /* Accent, so far only used by the Modern template's thumbnail in the create modal. */
+    --accent: #589168;
     --display: 'Newsreader Variable', ui-serif, Georgia, serif;
     --body: 'DM Sans Variable', ui-sans-serif, system-ui, sans-serif;
+    /* The magazine name in thumbnails; here the same face as the headings. */
+    --logo: 'Newsreader Variable', ui-serif, Georgia, serif;
 }
 
 [data-theme='techenspraket'] {
@@ -58,8 +62,32 @@
     --deep: #0a1030;
     --line: #dbe1ee;
     --pale: #e8edfa;
+    /* Accent. No template's thumbnail uses this theme any more, so nothing reads it for now; kept so every theme defines the same values. */
+    --accent: #19c3ff;
     --display: 'Space Grotesk Variable', ui-sans-serif, system-ui, sans-serif;
     --body: 'DM Sans Variable', ui-sans-serif, system-ui, sans-serif;
+    --logo: 'Space Grotesk Variable', ui-sans-serif, system-ui, sans-serif;
+}
+
+[data-theme='budbararen'] {
+    --paper: #f8f4e8;
+    --white: #fbf8ee;
+    --ink: #1c1712;
+    --muted: #5b4f3e;
+    --primary: #a8321e;
+    --deep: #862818;
+    /* Dark, unlike the other themes: the newspaper look draws its rules in near-black ink. */
+    --line: #3a3024;
+    --pale: #eee8d6;
+    /* Accent, used by the Klassisk tidning template's thumbnail in the create modal. */
+    --accent: #cf9a2b;
+    /* Extra for this theme, not one of the theme keys: the table color around the paper on wide screens. */
+    --desk: #d6cdb3;
+    --display: 'Playfair Display', 'Bodoni MT', Georgia, serif;
+    --body: 'Old Standard TT', 'Times New Roman', Georgia, serif;
+    --logo: 'UnifrakturMaguntia', 'Old English Text MT', Georgia, serif;
+    /* Extra for this theme: the small capitals used for labels, dates and section headings. */
+    --caps: 'IM Fell English SC', 'Playfair Display', Georgia, serif;
 }
 
 @theme inline {
@@ -72,6 +100,72 @@
     --color-deep: var(--deep);
     --color-line: var(--line);
     --color-pale: var(--pale);
+    --color-accent: var(--accent);
     --font-display: var(--display);
     --font-body: var(--body);
+    --font-logo: var(--logo);
+    /* Only the newspaper theme sets these; under the other themes they fall back to that theme's own values. */
+    --font-caps: var(--caps, var(--display));
+    --color-desk: var(--desk, var(--pale));
+}
+
+/*
+ * The newspaper site. These effects need pseudo-elements or several layered backgrounds,
+ * which would be hard to read as long inline class lists.
+ */
+
+/* Paper: a soft highlight at the top, a warm shade at the bottom and a fine grain of noise. */
+@utility classic-paper {
+    background-color: var(--paper);
+    background-image:
+        radial-gradient(ellipse at 50% 0%, #ffffffcc 0, transparent 60%),
+        radial-gradient(ellipse at 50% 100%, #c9b27a1f 0, transparent 55%),
+        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .35 0 0 0 0 .27 0 0 0 0 .12 0 0 0 .12 0'/%3E%3C/filter%3E%3Crect width='220' height='220' filter='url(%23n)'/%3E%3C/svg%3E");
+    border-color: #b7a578;
+}
+
+/* Section heading set between two double rules that fill the remaining width. */
+@utility classic-ornament {
+    &::before,
+    &::after {
+        content: '';
+        flex: 1;
+        border-top: 3px double var(--line);
+    }
+}
+
+/*
+ * Picture frame. A photo inside is toned old-fashioned, with a warm tint and halftone dots on top;
+ * the tint and dots are only drawn over a photo, so a frame holding a stand-in stays plain.
+ */
+@utility classic-plate {
+    position: relative;
+    border: 1px solid var(--ink);
+    padding: 3px;
+    background-color: var(--pale);
+
+    & img {
+        filter: grayscale(1) sepia(0.55) contrast(1.2) brightness(1.08);
+    }
+
+    &:has(img)::before,
+    &:has(img)::after {
+        content: '';
+        position: absolute;
+        inset: 3px;
+        pointer-events: none;
+        mix-blend-mode: multiply;
+    }
+
+    &:has(img)::before {
+        z-index: 1;
+        background: linear-gradient(180deg, #f8f4e833, #b99a5a44);
+    }
+
+    &:has(img)::after {
+        z-index: 2;
+        background-image: radial-gradient(circle at center, #1c1712a0 0 0.9px, transparent 1.4px);
+        background-size: 4px 4px;
+        opacity: 0.55;
+    }
 }

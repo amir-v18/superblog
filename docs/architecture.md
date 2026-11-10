@@ -42,7 +42,8 @@ A Superblog owns:
 * Articles
 * RSS sources
 * Template selection/configuration
-* Domain/site settings
+* One domain (each Superblog has exactly one domain)
+* Site settings
 * Publishing settings
 
 ### Templates
@@ -120,11 +121,68 @@ The system should automatically handle, where applicable:
 * Required product/service link
 * JSON-LD
 * Open Graph metadata
+* Publication changes (see Publication Changes)
 * Robots directives
 * Sitemap
 * robots.txt
 
 The application validates important requirements rather than trusting AI instructions alone.
+
+### Roles and Permissions
+
+There are two roles: **admin** and **editor**. Super admin and admin are the same role; there is no separate super-admin role.
+
+There can be several admins. An admin can do everything in the central application.
+
+An editor can only:
+
+* Create articles
+* Edit articles
+* Publish articles
+* Delete articles
+* Remove customers who are leaving (the customer's backlinks, see Customer Backlink Removal)
+* See warnings, so they can inform an admin, who resolves them
+
+An editor can only reach the Superblogs they are assigned to.
+
+Status: planned. The current code allows only one super admin, and staff users can do more than an editor.
+
+### Customer Backlink Removal
+
+When a customer ends their agreement, it must be possible to search for the customer's domain and get an overview of every Superblog and article that links to it.
+
+From that overview, the customer's backlinks can be removed without deleting the articles.
+
+V1 identifies a customer by domain only; there is no customers table.
+
+Status: planned, not implemented.
+
+Whether subdomains and www count as the same customer is to be confirmed.
+
+What happens to an article that loses its required brand or product/service link is to be confirmed.
+
+### Warnings
+
+The central application shows warnings so that editors can inform an admin, who resolves them. Editors can see warnings but not resolve the underlying problem.
+
+Warning types include, for example:
+
+* AI processing reaches its token limit
+* An RSS source loses its connection and can no longer be fetched
+
+Status: planned. Today a failed RSS fetch is only shown as a one-off error message and is not stored.
+
+### Publication Changes
+
+Publication changes must be visible to readers on every article and to search engines in the HTML or structured data, where it is most suitable for SEO.
+
+A publication change is a first publication, or a visible change to the title or body after publication.
+
+For example, the article can show "Published 2 November 2026 · Updated 9 November 2026", with a `<time datetime>` element for both dates. The same dates can be exposed as, for example, `datePublished` and `dateModified` in the article's JSON-LD and as Open Graph `article:published_time` and `article:modified_time`.
+
+Whether the first publication date is kept when an article is withdrawn is to be confirmed.
+
+Status: planned. Today only the publication date, `datePublished` and `article:published_time` exist, and withdrawing an article clears `published_at`.
 
 ## 5. Database Model
 
@@ -138,7 +196,12 @@ Key fields:
 * name
 * email
 * password
+* role (planned)
 * timestamps
+
+Every user has one of two roles, admin or editor (see Roles and Permissions).
+
+Status: planned.
 
 ### superblogs
 
@@ -150,12 +213,17 @@ Key fields:
 * user_id
 * template_id
 * name
-* slug
-* domain
+* domain (required, unique)
 * description
 * settings
 * status
 * timestamps
+
+A Superblog is identified by its domain. Only articles have slugs.
+
+Until a Superblog has a live domain, it is previewed in the admin application.
+
+Status: planned. The current code still gives each Superblog a slug that is used in its public URLs, and the domain is optional.
 
 ### templates
 
@@ -219,7 +287,6 @@ Key fields:
 * title
 * slug
 * content
-* excerpt
 * source_type
 * status
 * is_locked
@@ -256,6 +323,8 @@ Expected types:
 
 The validator must be able to verify the required brand and product/service links.
 
+A customer's backlinks are the `article_links` rows whose `url` host is the customer's domain. Public pages render links only from `article_links`, so removing those rows removes the customer's backlinks without deleting the article.
+
 ### media
 
 Stores article media information.
@@ -274,10 +343,12 @@ Key fields:
 
 ```text
 User
-  hasMany Superblogs
+  hasMany Superblogs (owner)
+  belongsToMany Superblogs (assigned)
 
 Superblog
-  belongsTo User
+  belongsTo User (owner)
+  belongsToMany Users (assigned)
   belongsTo Template
   hasMany RSS Sources
   hasMany Articles
@@ -333,7 +404,7 @@ Publish
 ## 8. Manual Content Flow
 
 ```text
-Admin
+Admin or editor
   |
   v
 Manual Article
@@ -387,7 +458,7 @@ This allows the system to trace and audit how published content relates to its s
 Browser / Google
        |
        v
-Laravel route
+Laravel route (resolved by domain)
        |
        v
 Superblog
@@ -405,6 +476,8 @@ Blade
 Server-rendered HTML
 ```
 
+Status: planned. Today the route is resolved by the Superblog slug, not by domain.
+
 Public pages should be crawlable without requiring a JavaScript application to render the primary content.
 
 ## 12. Architectural Boundaries
@@ -416,7 +489,7 @@ Public pages should be crawlable without requiring a JavaScript application to r
 * Templates own presentation and default SEO structure.
 * Articles own final publishable content.
 * Original RSS data is preserved separately from transformed articles.
-* The central admin manages all Superblogs.
+* The central admin application manages all Superblogs.
 * Public Superblogs are rendered with Blade.
 
 ## 13. V1 Scope Discipline

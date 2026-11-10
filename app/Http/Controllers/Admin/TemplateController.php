@@ -24,24 +24,6 @@ class TemplateController extends Controller
         ]);
     }
 
-    public function create(): View
-    {
-        Gate::authorize('create', Template::class);
-
-        return view('admin.templates.form', ['template' => new Template]);
-    }
-
-    public function store(SaveTemplateRequest $request): RedirectResponse
-    {
-        try {
-            Template::create($request->validated());
-        } catch (UniqueConstraintViolationException) {
-            $this->duplicateSlugError();
-        }
-
-        return to_route('admin.templates.index')->with('status', 'Template created.');
-    }
-
     public function edit(Template $template): View
     {
         Gate::authorize('update', $template);

@@ -1,7 +1,8 @@
 @extends($layout ?? 'layouts.public')
 
 @section('title', $article['title'])
-@section('meta_description', $article['excerpt'])
+{{-- A null value here would open a long section that is never closed, so it must always be a string. --}}
+@section('meta_description', $article['description'] ?? '')
 @section('og_type', 'article')
 
 @section('content')
@@ -26,10 +27,13 @@
             '@context' => 'https://schema.org',
             '@type' => 'NewsArticle',
             'headline' => $article['title'],
-            'description' => $article['excerpt'],
             'datePublished' => $article['published_at']->toIso8601String(),
             'isAccessibleForFree' => ! $isLocked,
         ];
+
+        if (! empty($article['description'])) {
+            $jsonLd['description'] = $article['description'];
+        }
 
         if ($hasImage && isset($image['width'], $image['height'])) {
             $jsonLd['image'] = [[
@@ -66,9 +70,6 @@
         <article>
             <header>
                 <h1 class="font-display text-4xl font-semibold tracking-tight">{{ $article['title'] }}</h1>
-                @if (! empty($article['excerpt']))
-                    <p class="mt-4 text-lg text-muted">{{ $article['excerpt'] }}</p>
-                @endif
 
                 <div class="mt-6 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-muted">
                     @if ($author)

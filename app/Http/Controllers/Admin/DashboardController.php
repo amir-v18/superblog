@@ -4,7 +4,6 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Superblog;
-use App\Models\Template;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\View\View;
@@ -22,10 +21,6 @@ class DashboardController extends Controller
             // Everything that is not published counts as under construction, so an unexpected status never hides a Superblog.
             'drafts' => $this->superblogs($request)->where('status', '!=', 'published')
                 ->paginate(20, pageName: 'utkast')->withQueryString(),
-            // Only needed by the create modal, so users who cannot create Superblogs skip the query.
-            'templates' => Gate::allows('create', Superblog::class)
-                ? Template::where('is_active', true)->orderBy('name')->get()
-                : collect(),
         ]);
     }
 
@@ -47,7 +42,7 @@ class DashboardController extends Controller
         return Superblog::accessibleTo($request->user())
             ->with('template')
             ->withCount([
-                // Figma counts only feeds that are switched on.
+                // Only feeds that are switched on are counted.
                 'rssSources' => fn ($query) => $query->where('is_active', true),
                 'articles as published_articles_count' => fn ($query) => $query->where('status', 'published'),
             ])

@@ -35,10 +35,29 @@ class SuperblogHomeContent
         ];
     }
 
+    /**
+     * The folder of the template's site views, from config/templates.php. A template missing there (an old or
+     * hand-made one) gets the default template's site, so every magazine can still be rendered.
+     */
+    public function siteFor(Superblog $superblog): string
+    {
+        // Looked up as array keys, not with dot notation, so the slug is never parsed as a config path.
+        $templates = config('templates.list', []);
+
+        return $templates[(string) $superblog->template?->slug]['site']
+            ?? $templates[config('templates.default')]['site'];
+    }
+
     private function themeFor(Superblog $superblog): string|array
     {
         $theme = $superblog->settings['theme'] ?? null;
 
-        return Theme::name($theme) === null ? Theme::NAMES[0] : $theme;
+        if (Theme::name($theme) !== null) {
+            return $theme;
+        }
+
+        // Without a theme the page would have no colors or fonts. Until one is saved, the template's own theme
+        // from the registry is used, and if it has none, the first theme.
+        return Theme::forTemplate($superblog->template) ?? Theme::NAMES[0];
     }
 }

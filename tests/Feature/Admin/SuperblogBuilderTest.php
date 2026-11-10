@@ -15,19 +15,22 @@ class SuperblogBuilderTest extends TestCase
         $admin = $this->makeUser(approved: true, superAdmin: true);
         $superblog = $this->makeSuperblog($admin);
 
-        $this->actingAs($admin)->get(route('admin.superblogs.edit', $superblog))
+        // The layout's create modal has name, template_id and domain fields too, so the builder's own
+        // fields are matched by id, and template_id is counted: one radio here, one in the modal.
+        $basics = $this->actingAs($admin)->get(route('admin.superblogs.edit', $superblog))
             ->assertOk()
-            ->assertSee('name="name"', false)
-            ->assertSee('name="slug"', false)
-            ->assertSee('name="template_id"', false)
-            ->assertSee('name="domain"', false)
-            ->assertSee('id="slug"', false)
+            ->assertSee('id="name"', false)
+            ->assertSee('id="domain" name="domain"', false)
+            ->assertSee('id="slug" name="slug"', false)
             ->assertDontSee('name="theme"', false);
+        $this->assertSame(2, substr_count($basics->getContent(), 'name="template_id"'));
 
-        $this->get(route('admin.superblogs.edit', [$superblog, 'flik' => 'utseende']))
+        // The only domain field left on this tab is the modal's.
+        $appearance = $this->get(route('admin.superblogs.edit', [$superblog, 'flik' => 'utseende']))
             ->assertOk()
             ->assertSee('name="theme"', false)
-            ->assertDontSee('name="domain"', false);
+            ->assertSee('id="create-domain" name="domain"', false);
+        $this->assertSame(1, substr_count($appearance->getContent(), 'name="domain"'));
     }
 
     public function test_saving_keeps_slug_and_description_and_stays_in_the_builder(): void

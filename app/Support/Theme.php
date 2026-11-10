@@ -3,6 +3,7 @@
 namespace App\Support;
 
 use App\Models\Superblog;
+use App\Models\Template;
 use Illuminate\Support\Facades\Log;
 
 /**
@@ -13,8 +14,11 @@ use Illuminate\Support\Facades\Log;
  */
 class Theme
 {
-    /** Themes defined in resources/css/app.css as [data-theme='...'] blocks. */
-    public const NAMES = ['bondebladet', 'techenspraket'];
+    /**
+     * Themes defined in resources/css/app.css as [data-theme='...'] blocks. The first one is the last-resort
+     * fallback when a magazine is shown without a theme, so new themes go at the end.
+     */
+    public const NAMES = ['bondebladet', 'techenspraket', 'budbararen'];
 
     public const DEFAULT = 'techenspraket';
 
@@ -47,6 +51,25 @@ class Theme
     public static function nameFor(Superblog $superblog): ?string
     {
         return self::name($superblog->settings['theme'] ?? null);
+    }
+
+    /**
+     * A template's own theme, read from config/templates.php by slug, or null when it has none. It draws the
+     * template's thumbnail (grey without one), starts a new magazine's theme and stands in while a magazine
+     * has no saved theme. No template, a slug missing there or a renamed one gives null instead of breaking.
+     * Goes through name(), so a theme that is later removed from NAMES also gives null instead of reaching
+     * data-theme.
+     */
+    public static function forTemplate(?Template $template): ?string
+    {
+        if ($template === null) {
+            return null;
+        }
+
+        // Looked up as an array key, not with dot notation, so the slug is never parsed as a config path.
+        $entry = config('templates.list', [])[(string) $template->slug] ?? [];
+
+        return self::name($entry['theme'] ?? null);
     }
 
     /**

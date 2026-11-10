@@ -20,7 +20,7 @@ class SuperblogPreviewController extends Controller
 
         // The header also covers non-HTML crawlers; the meta tag in the template is a second line of defence.
         return response()
-            ->view('templates.news.home', [
+            ->view($homeContent->siteFor($superblog).'.home', [
                 'superblog' => $superblog,
                 ...$homeContent->for($superblog),
                 'isPreview' => true,

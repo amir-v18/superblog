@@ -32,9 +32,13 @@ class SuperblogController extends Controller
     {
         try {
             $superblog = DB::transaction(function () use ($request) {
+                // A new magazine starts in its template's own theme from config/templates.php, so a newspaper
+                // template opens looking like a newspaper. A template missing there gets the general default.
+                $theme = Theme::forTemplate(Template::find($request->validated('template_id'))) ?? Theme::DEFAULT;
+
                 $superblog = $request->user()->superblogs()->create([
                     ...$request->validated(),
-                    'settings' => ['theme' => ['name' => Theme::DEFAULT]],
+                    'settings' => ['theme' => ['name' => $theme]],
                 ]);
                 // Ownership alone does not grant access: the policy uses staff assignments.
                 $superblog->staff()->attach($request->user()->getKey());

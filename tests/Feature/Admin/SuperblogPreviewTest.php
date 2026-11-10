@@ -3,6 +3,7 @@
 namespace Tests\Feature\Admin;
 
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use InvalidArgumentException;
 use Tests\Concerns\CreatesSuperblogs;
 use Tests\TestCase;
 
@@ -40,6 +41,63 @@ class SuperblogPreviewTest extends TestCase
             ->assertHeader('X-Robots-Tag', 'noindex, nofollow');
     }
 
+    public function test_the_templates_site_from_the_registry_is_shown(): void
+    {
+        $admin = $this->makeUser(approved: true, superAdmin: true);
+        $superblog = $this->makeSuperblog($admin);
+        $superblog->template->update(['slug' => 'classic']);
+        // A folder that does not exist: the error names the view, which shows the registry was read.
+        config(['templates.list.classic.site' => 'templates.registry-check']);
+
+        $this->withoutExceptionHandling();
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('View [templates.registry-check.home] not found.');
+
+        $this->actingAs($admin)->get(route('admin.superblogs.preview', $superblog));
+    }
+
+    public function test_a_template_missing_from_the_registry_gets_the_default_templates_site(): void
+    {
+        $admin = $this->makeUser(approved: true, superAdmin: true);
+        // makeSuperblog's template has the slug "news", which is not in the registry.
+        $superblog = $this->makeSuperblog($admin);
+        config(['templates.list.modern.site' => 'templates.news']);
+
+        $this->actingAs($admin)->get(route('admin.superblogs.preview', $superblog))
+            ->assertOk()
+            ->assertViewIs('templates.news.home');
+
+        $superblog->template->update(['slug' => 'tech']);
+
+        $this->get(route('admin.superblogs.preview', $superblog))
+            ->assertOk()
+            ->assertViewIs('templates.news.home');
+    }
+
+    public function test_classic_gets_its_own_front_page_and_modern_keeps_its_own(): void
+    {
+        $admin = $this->makeUser(approved: true, superAdmin: true);
+        $superblog = $this->makeSuperblog($admin);
+        $superblog->template->update(['slug' => 'classic']);
+
+        // What the page itself contains (one H1, the name in two places, nothing made up) is tested in
+        // ClassicFrontPageTest; this test covers which view the preview picks and how it is kept out of search.
+        $this->actingAs($admin)->get(route('admin.superblogs.preview', $superblog))
+            ->assertOk()
+            ->assertViewIs('templates.classic.home')
+            ->assertHeader('X-Robots-Tag', 'noindex, nofollow')
+            ->assertSee('<meta name="robots" content="noindex, nofollow">', false)
+            // The builder's script finds the preview by this id, to reload it when an article is deleted.
+            ->assertSee('data-admin-preview-superblog-id="'.$superblog->getKey().'"', false)
+            ->assertSee('<span data-live-name>Dagens Budbärare</span>', false);
+
+        $superblog->template->update(['slug' => 'modern']);
+
+        $this->get(route('admin.superblogs.preview', $superblog))
+            ->assertOk()
+            ->assertViewIs('templates.news.home');
+    }
+
     public function test_missing_or_unknown_theme_falls_back_to_the_first_theme(): void
     {
         $admin = $this->makeUser(approved: true, superAdmin: true);
@@ -52,6 +110,24 @@ class SuperblogPreviewTest extends TestCase
 
         $this->get(route('admin.superblogs.preview', $superblog))
             ->assertSee('data-theme="bondebladet"', false);
+    }
+
+    public function test_without_a_saved_theme_the_templates_theme_is_used(): void
+    {
+        $admin = $this->makeUser(approved: true, superAdmin: true);
+        $superblog = $this->makeSuperblog($admin);
+        $superblog->template->update(['slug' => 'classic']);
+
+        $this->actingAs($admin)->get(route('admin.superblogs.preview', $superblog))
+            ->assertSee('data-theme="budbararen"', false)
+            ->assertDontSee('data-theme="bondebladet"', false);
+
+        // A saved theme still wins over the template's theme.
+        $superblog->update(['settings' => ['theme' => ['name' => 'techenspraket']]]);
+
+        $this->get(route('admin.superblogs.preview', $superblog))
+            ->assertSee('data-theme="techenspraket"', false)
+            ->assertDontSee('data-theme="budbararen"', false);
     }
 
     public function test_saved_theme_is_used_in_the_preview(): void
@@ -74,7 +150,6 @@ class SuperblogPreviewTest extends TestCase
             'title' => 'Published home preview article',
             'slug' => 'published-home-preview-article',
             'content' => 'Live article content.',
-            'excerpt' => 'Live article summary.',
             'source_type' => 'manual',
             'status' => 'published',
             'is_selected_for_publication' => true,
@@ -92,7 +167,6 @@ class SuperblogPreviewTest extends TestCase
             ->get(route('admin.superblogs.preview', $superblog))
             ->assertOk()
             ->assertSee('Published home preview article')
-            ->assertSee('Live article summary.')
             ->assertSee(route('public.superblogs.articles.show', [$superblog, $published]), false)
             ->assertDontSee('Draft must stay hidden')
             ->assertDontSee('Här visas din första artikel');
