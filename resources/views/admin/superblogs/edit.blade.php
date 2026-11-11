@@ -44,7 +44,7 @@
                 </ul>
             </nav>
 
-            <div class="flex flex-col gap-3.5 p-5 lg:flex-1 lg:overflow-y-auto">
+            {{-- In the light mode the work area is white, so fields and cards stand out against the grey frame around it. --}}<div class="flex flex-col gap-3.5 p-5 lg:flex-1 lg:overflow-y-auto studio-light:bg-studio-bg">
                 @if ($errors->any() && ! $fromCreateModal)
                     <x-admin.errors />
                 @endif
