@@ -6,7 +6,7 @@
     <section class="mx-auto mt-12 max-w-md space-y-6 rounded-xl border border-studio-line bg-studio-panel p-6 sm:p-8" aria-labelledby="setup-heading">
         <h1 id="setup-heading" class="text-2xl font-semibold tracking-tight">Create a staff account?</h1>
         <p class="text-sm text-studio-muted">This Google account is not linked to an existing Superblog account. You can ask an administrator to map it to an existing account, or create a new staff account that will remain pending until approved.</p>
-        <dl class="space-y-3 rounded-lg bg-studio-bg p-4 text-sm">
+        <dl class="space-y-3 rounded-lg bg-studio-bg p-4 text-sm studio-light:bg-studio-pill">
             <div>
                 <dt class="font-medium text-studio-muted">Verified Google email</dt>
                 <dd class="mt-1 break-all text-studio-ink">{{ $email }}</dd>

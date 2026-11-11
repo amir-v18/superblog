@@ -302,10 +302,10 @@
         <section aria-label="Förhandsvisning" class="flex h-[70vh] min-w-0 flex-col bg-studio-preview-bg lg:h-auto lg:min-h-0">
             <div class="flex flex-wrap items-center gap-3 border-b border-studio-line bg-studio-side px-4 py-2.25 text-xs text-studio-muted">
                 <span aria-hidden="true" class="tracking-[2px] text-studio-preview-dots">●●●</span>
-                <code class="min-w-0 flex-1 truncate rounded-md bg-studio-bg px-2.5 py-1 text-studio-ink">{{ $superblog->domain ? 'https://'.$superblog->domain : 'Ingen webbadress än' }}</code>
+                <code class="min-w-0 flex-1 truncate rounded-md bg-studio-bg px-2.5 py-1 text-studio-ink studio-light:bg-studio-panel">{{ $superblog->domain ? 'https://'.$superblog->domain : 'Ingen webbadress än' }}</code>
                 <span data-preview-label>Dator</span>
                 {{-- Hidden until app.js runs, so the controls only appear when switching the preview works. --}}
-                <div role="group" aria-label="Förhandsvisning" hidden data-preview-devices class="inline-flex shrink-0 rounded-lg bg-studio-panel p-0.75">
+                <div role="group" aria-label="Förhandsvisning" hidden data-preview-devices class="inline-flex shrink-0 rounded-lg bg-studio-panel p-0.75 studio-light:bg-studio-bg">
                     <button type="button" data-preview-device="desktop" aria-pressed="true" class="rounded-md px-3.5 py-1.5 text-xs font-semibold text-studio-muted hover:text-studio-ink aria-pressed:bg-studio-brand aria-pressed:text-studio-on-brand studio-focus-ring">Dator</button>
                     <button type="button" data-preview-device="mobile" aria-pressed="false" class="rounded-md px-3.5 py-1.5 text-xs font-semibold text-studio-muted hover:text-studio-ink aria-pressed:bg-studio-brand aria-pressed:text-studio-on-brand studio-focus-ring">Mobil</button>
                 </div>
@@ -317,7 +317,7 @@
                         $feedCount = $rssSources->count();
                         $itemCount = $rssSources->sum('rss_items_count');
                     @endphp
-                    <div class="mx-auto mb-3.5 w-full max-w-190 shrink-0 rounded-[10px] border border-studio-line bg-studio-panel px-3.5 py-2.75 text-[13px] leading-[1.45] text-studio-muted">
+                    <div class="mx-auto mb-3.5 w-full max-w-190 shrink-0 rounded-[10px] border border-studio-line bg-studio-panel px-3.5 py-2.75 text-[13px] leading-[1.45] text-studio-muted studio-light:bg-studio-bg">
                         <b class="text-studio-ink">Tomt magasin.</b>
                         @if ($feedCount === 0)
                             Lägg till ett RSS-flöde för att komma igång.

@@ -79,8 +79,8 @@
  * always takes precedence over layered rules. The preview halo keeps its default value, which suits both modes.
  */
 :root[data-studio-mode='light'] {
-    --color-studio-bg: #f6f5f1;
-    --color-studio-panel: #ffffff;
+    --color-studio-bg: #ffffff;
+    --color-studio-panel: #f6f5f1;
     --color-studio-line: #d9d7d0;
     --color-studio-ink: #1d1e24;
     --color-studio-muted: #5c5e68;
