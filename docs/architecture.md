@@ -286,6 +286,8 @@ When a change relies on MySQL behavior (foreign keys, unique nullable indexes, l
 
 Use the existing Laravel test suite, Pint, `git diff --check`, and Vite build as applicable. Do not claim behavior was verified on MySQL, in a browser, or in production unless that environment was actually exercised.
 
+Do not add or run unnecessary tests. Use focused existing tests and lightweight checks appropriate to the change; add tests when explicitly requested or needed to verify meaningful risk.
+
 ## 11. Implementation status snapshot
 
 This snapshot is based on a read-only source inspection on 11 November 2026. It records implementation gaps relative to the agreed target; it does not invalidate intentionally planned or open blueprint sections.
