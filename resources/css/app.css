@@ -96,11 +96,11 @@
     --color-studio-field-line: #80828c;
     --color-studio-ink: #1b1c20;
     --color-studio-muted: #5c5e68;
-    --color-studio-brand: #e5562a;
+    --color-studio-brand: #d0451e;
     --color-studio-side: #ffffff;
     --color-studio-ok: #17723f;
     --color-studio-bad: #b42318;
-    --color-studio-brand-hover: #f07848;
+    --color-studio-brand-hover: #c23d16;
     --color-studio-bad-bg: #fdebe6;
     --color-studio-pill: #ebe9e2;
     --color-studio-live: #dcf1e5;
@@ -126,10 +126,10 @@
     --color-studio-card-shadow: #0000001a;
     --color-studio-soft-shadow: #17181c14;
 
-    --color-studio-on-brand: #1d1e24;
+    --color-studio-on-brand: #ffffff;
     --color-studio-on-bad: #ffffff;
-    --color-studio-brand-text: #b23c0d;
-    --color-studio-on-brand-step: #1d1e24;
+    --color-studio-brand-text: #c3411c;
+    --color-studio-on-brand-step: #ffffff;
 }
 
 /* Native form controls, scrollbars and dialogs follow the light colors; the body keeps its own setting otherwise. */
