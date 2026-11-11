@@ -25,11 +25,11 @@
         @endif
         <div>
             <label for="name" class="block text-sm font-medium">Source name</label>
-            <input id="name" name="name" value="{{ old('name', $rssSource->name) }}" required maxlength="255" class="mt-2 w-full rounded-lg border border-studio-line bg-studio-bg p-3 focus-visible:outline-2 focus-visible:outline-studio-brand">
+            <input id="name" name="name" value="{{ old('name', $rssSource->name) }}" required maxlength="255" class="mt-2 w-full rounded-lg border border-studio-line bg-studio-bg p-3 focus-visible:outline-2 focus-visible:outline-studio-brand studio-light:border-studio-field-line">
         </div>
         <div>
             <label for="url" class="block text-sm font-medium">Feed URL</label>
-            <input id="url" name="url" type="url" value="{{ old('url', $rssSource->url) }}" required maxlength="65535" placeholder="https://example.com/feed.xml" class="mt-2 w-full rounded-lg border border-studio-line bg-studio-bg p-3 focus-visible:outline-2 focus-visible:outline-studio-brand">
+            <input id="url" name="url" type="url" value="{{ old('url', $rssSource->url) }}" required maxlength="65535" placeholder="https://example.com/feed.xml" class="mt-2 w-full rounded-lg border border-studio-line bg-studio-bg p-3 focus-visible:outline-2 focus-visible:outline-studio-brand studio-light:border-studio-field-line">
         </div>
         <div>
             <input type="hidden" name="is_active" value="0">

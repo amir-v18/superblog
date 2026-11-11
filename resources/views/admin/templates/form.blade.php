@@ -23,20 +23,20 @@
         @method('PUT')
         <div>
             <label for="name" class="block text-sm font-medium">Name</label>
-            <input id="name" name="name" value="{{ old('name', $template->name) }}" required maxlength="255" class="mt-2 w-full rounded-lg border border-studio-line bg-studio-bg p-3 focus-visible:outline-2 focus-visible:outline-studio-brand">
+            <input id="name" name="name" value="{{ old('name', $template->name) }}" required maxlength="255" class="mt-2 w-full rounded-lg border border-studio-line bg-studio-bg p-3 focus-visible:outline-2 focus-visible:outline-studio-brand studio-light:border-studio-field-line">
         </div>
         <div>
             <label for="slug" class="block text-sm font-medium">Slug</label>
-            <input id="slug" name="slug" value="{{ old('slug', $template->slug) }}" maxlength="255" aria-describedby="slug-help" class="mt-2 w-full rounded-lg border border-studio-line bg-studio-bg p-3 focus-visible:outline-2 focus-visible:outline-studio-brand">
+            <input id="slug" name="slug" value="{{ old('slug', $template->slug) }}" maxlength="255" aria-describedby="slug-help" class="mt-2 w-full rounded-lg border border-studio-line bg-studio-bg p-3 focus-visible:outline-2 focus-visible:outline-studio-brand studio-light:border-studio-field-line">
             <p id="slug-help" class="mt-1 text-sm text-studio-muted">Leave blank to generate a slug from the name.</p>
         </div>
         <div>
             <label for="description" class="block text-sm font-medium">Description (optional)</label>
-            <textarea id="description" name="description" rows="4" class="mt-2 w-full rounded-lg border border-studio-line bg-studio-bg p-3 focus-visible:outline-2 focus-visible:outline-studio-brand">{{ old('description', $template->description) }}</textarea>
+            <textarea id="description" name="description" rows="4" class="mt-2 w-full rounded-lg border border-studio-line bg-studio-bg p-3 focus-visible:outline-2 focus-visible:outline-studio-brand studio-light:border-studio-field-line">{{ old('description', $template->description) }}</textarea>
         </div>
         <div>
             <label for="layout" class="block text-sm font-medium">Public layout</label>
-            <select id="layout" name="layout" required class="mt-2 w-full rounded-lg border border-studio-line bg-studio-bg p-3 focus-visible:outline-2 focus-visible:outline-studio-brand">
+            <select id="layout" name="layout" required class="mt-2 w-full rounded-lg border border-studio-line bg-studio-bg p-3 focus-visible:outline-2 focus-visible:outline-studio-brand studio-light:border-studio-field-line">
                 @foreach (App\Models\Template::availableLayouts() as $layout => $label)
                     <option value="{{ $layout }}" @selected(old('layout', $template->layout ?: 'layouts.public') === $layout)>{{ $label }}</option>
                 @endforeach

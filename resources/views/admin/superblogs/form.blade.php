@@ -24,21 +24,21 @@
         @csrf
         <div>
             <label for="name" class="block text-sm font-medium">Name</label>
-            <input id="name" name="name" value="{{ old('name', $superblog->name) }}" required maxlength="255" class="mt-2 w-full rounded-lg border border-studio-line bg-studio-bg p-3 focus-visible:outline-2 focus-visible:outline-studio-brand">
+            <input id="name" name="name" value="{{ old('name', $superblog->name) }}" required maxlength="255" class="mt-2 w-full rounded-lg border border-studio-line bg-studio-bg p-3 focus-visible:outline-2 focus-visible:outline-studio-brand studio-light:border-studio-field-line">
         </div>
         <div>
             <label for="slug" class="block text-sm font-medium">Slug</label>
-            <input id="slug" name="slug" value="{{ old('slug', $superblog->slug) }}" maxlength="255" aria-describedby="slug-help" class="mt-2 w-full rounded-lg border border-studio-line bg-studio-bg p-3 focus-visible:outline-2 focus-visible:outline-studio-brand">
+            <input id="slug" name="slug" value="{{ old('slug', $superblog->slug) }}" maxlength="255" aria-describedby="slug-help" class="mt-2 w-full rounded-lg border border-studio-line bg-studio-bg p-3 focus-visible:outline-2 focus-visible:outline-studio-brand studio-light:border-studio-field-line">
             <p id="slug-help" class="mt-1 text-sm text-studio-muted">Use lowercase words separated by hyphens. Leave blank to generate from the name. Must be unique across all Superblogs.</p>
         </div>
         <div>
             <label for="domain" class="block text-sm font-medium">Domain (optional)</label>
-            <input id="domain" name="domain" value="{{ old('domain', $superblog->domain) }}" maxlength="253" placeholder="blog.example.com" aria-describedby="domain-help" class="mt-2 w-full rounded-lg border border-studio-line bg-studio-bg p-3 focus-visible:outline-2 focus-visible:outline-studio-brand">
+            <input id="domain" name="domain" value="{{ old('domain', $superblog->domain) }}" maxlength="253" placeholder="blog.example.com" aria-describedby="domain-help" class="mt-2 w-full rounded-lg border border-studio-line bg-studio-bg p-3 focus-visible:outline-2 focus-visible:outline-studio-brand studio-light:border-studio-field-line">
             <p id="domain-help" class="mt-1 text-sm text-studio-muted">Enter a hostname without https://, a port, or a path. Use punycode for international domains.</p>
         </div>
         <div>
             <label for="template_id" class="block text-sm font-medium">Template</label>
-            <select id="template_id" name="template_id" required @disabled($templates->isEmpty()) class="mt-2 w-full rounded-lg border border-studio-line bg-studio-bg p-3 focus-visible:outline-2 focus-visible:outline-studio-brand">
+            <select id="template_id" name="template_id" required @disabled($templates->isEmpty()) class="mt-2 w-full rounded-lg border border-studio-line bg-studio-bg p-3 focus-visible:outline-2 focus-visible:outline-studio-brand studio-light:border-studio-field-line">
                 <option value="">Select a template</option>
                 @foreach ($templates as $template)
                     <option value="{{ $template->id }}" @selected((string) old('template_id', $superblog->template_id) === (string) $template->id)>{{ $template->name }}{{ $template->is_active ? '' : ' (inactive)' }}</option>
@@ -47,7 +47,7 @@
         </div>
         <div>
             <label for="description" class="block text-sm font-medium">Description (optional)</label>
-            <textarea id="description" name="description" rows="5" class="mt-2 w-full rounded-lg border border-studio-line bg-studio-bg p-3 focus-visible:outline-2 focus-visible:outline-studio-brand">{{ old('description', $superblog->description) }}</textarea>
+            <textarea id="description" name="description" rows="5" class="mt-2 w-full rounded-lg border border-studio-line bg-studio-bg p-3 focus-visible:outline-2 focus-visible:outline-studio-brand studio-light:border-studio-field-line">{{ old('description', $superblog->description) }}</textarea>
         </div>
         <div class="flex items-center gap-4">
             <button type="submit" @disabled($templates->isEmpty()) class="rounded-lg bg-studio-brand px-4 py-2 font-medium text-studio-on-brand hover:bg-studio-brand-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-studio-brand disabled:cursor-not-allowed disabled:opacity-50">Save Superblog</button>

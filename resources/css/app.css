@@ -14,6 +14,8 @@
     --color-studio-bg: #1d1e24;
     --color-studio-panel: #24262d;
     --color-studio-line: #363842;
+    /* Edge of text fields in the light mode; the default mode keeps the ordinary line color. */
+    --color-studio-field-line: #363842;
     --color-studio-ink: #ecebe6;
     --color-studio-muted: #9fa1aa;
     --color-studio-brand: #ff7a4d;
@@ -82,6 +84,7 @@
     --color-studio-bg: #ffffff;
     --color-studio-panel: #f6f5f1;
     --color-studio-line: #d9d7d0;
+    --color-studio-field-line: #80828c;
     --color-studio-ink: #1d1e24;
     --color-studio-muted: #5c5e68;
     --color-studio-brand: #e5562a;

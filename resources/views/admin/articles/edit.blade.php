@@ -51,16 +51,16 @@
             @endunless
             <div>
                 <label for="title" class="block text-sm font-medium">Title</label>
-                <input id="title" name="title" value="{{ old('title', $article->title) }}" required maxlength="255" class="mt-2 w-full rounded-lg border border-studio-line bg-studio-bg p-3 focus-visible:outline-2 focus-visible:outline-studio-brand">
+                <input id="title" name="title" value="{{ old('title', $article->title) }}" required maxlength="255" class="mt-2 w-full rounded-lg border border-studio-line bg-studio-bg p-3 focus-visible:outline-2 focus-visible:outline-studio-brand studio-light:border-studio-field-line">
             </div>
             <div>
                 <label for="slug" class="block text-sm font-medium">Slug</label>
-                <input id="slug" name="slug" value="{{ old('slug', $article->slug) }}" required maxlength="255" aria-describedby="slug-help" class="mt-2 w-full rounded-lg border border-studio-line bg-studio-bg p-3 focus-visible:outline-2 focus-visible:outline-studio-brand">
+                <input id="slug" name="slug" value="{{ old('slug', $article->slug) }}" required maxlength="255" aria-describedby="slug-help" class="mt-2 w-full rounded-lg border border-studio-line bg-studio-bg p-3 focus-visible:outline-2 focus-visible:outline-studio-brand studio-light:border-studio-field-line">
                 <p id="slug-help" class="mt-1 text-sm text-studio-muted">Use lowercase words separated by hyphens. Must be unique within this Superblog.</p>
             </div>
             <div>
                 <label for="content" class="block text-sm font-medium">Article content</label>
-                <textarea id="content" name="content" rows="18" required class="mt-2 w-full rounded-lg border border-studio-line bg-studio-bg p-3 focus-visible:outline-2 focus-visible:outline-studio-brand">{{ old('content', $article->content) }}</textarea>
+                <textarea id="content" name="content" rows="18" required class="mt-2 w-full rounded-lg border border-studio-line bg-studio-bg p-3 focus-visible:outline-2 focus-visible:outline-studio-brand studio-light:border-studio-field-line">{{ old('content', $article->content) }}</textarea>
             </div>
             <button type="submit" class="rounded-lg bg-studio-brand px-4 py-2 text-sm font-medium text-studio-on-brand hover:bg-studio-brand-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-studio-brand">{{ $article->status === 'draft' ? 'Save draft' : 'Save changes' }}</button>
         </form>
