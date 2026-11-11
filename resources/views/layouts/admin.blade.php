@@ -27,7 +27,7 @@
     <a href="#main" class="sr-only rounded-lg bg-studio-brand px-4 py-2 text-sm font-semibold text-studio-on-brand focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-50">Hoppa till innehållet</a>
 
     {{-- Stacks above the content on small screens and becomes a fixed-height sidebar from lg, so no JS toggle is needed. --}}
-    <aside class="flex flex-col gap-5.5 border-studio-contrast/6 bg-studio-side px-3.5 py-5.5 text-studio-side-ink lg:sticky lg:top-0 lg:h-screen lg:w-60 lg:shrink-0 lg:border-r">
+    <aside class="flex flex-col gap-5.5 border-studio-contrast/6 bg-studio-side px-3.5 py-5.5 text-studio-side-ink lg:sticky lg:top-0 lg:h-screen lg:w-60 lg:shrink-0 lg:border-r studio-light:border-studio-line studio-light:max-lg:border-b">
         <a href="{{ route('admin.dashboard') }}" class="flex items-center gap-2.75 px-2 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-studio-brand">
             <span aria-hidden="true" class="text-[26px] text-studio-brand-text">▙</span>
             <span>

@@ -22,7 +22,7 @@
 
         <ul class="mt-3 flex flex-col gap-2.5">
             @foreach ($group['articles'] as $article)
-                <li class="rounded-lg border border-studio-line bg-studio-panel p-3 studio-light:studio-raised">
+                <li class="rounded-lg border border-studio-line bg-studio-panel p-3">
                     <input form="{{ $selectionFormId }}" type="hidden" name="visible_article_ids[]" value="{{ $article->id }}">
                     <div class="flex items-start gap-3">
                         <button type="button" data-open-dialog="delete-article-{{ $article->id }}" aria-label="Ta bort {{ $article->title }} permanent" class="mt-0.5 inline-flex size-7 shrink-0 items-center justify-center rounded-md text-studio-bad hover:bg-studio-bad/12 studio-focus-ring">

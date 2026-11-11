@@ -90,40 +90,40 @@
  * always takes precedence over layered rules. The preview halo keeps its default value, which suits both modes.
  */
 :root[data-studio-mode='light'] {
-    --color-studio-bg: #ffffff;
-    --color-studio-panel: #f6f5f1;
-    --color-studio-line: #d9d7d0;
+    --color-studio-bg: #f3f2ee;
+    --color-studio-panel: #ffffff;
+    --color-studio-line: #dfddd5;
     --color-studio-field-line: #80828c;
-    --color-studio-ink: #1d1e24;
+    --color-studio-ink: #1b1c20;
     --color-studio-muted: #5c5e68;
     --color-studio-brand: #e5562a;
-    --color-studio-side: #ecebe5;
+    --color-studio-side: #ffffff;
     --color-studio-ok: #17723f;
     --color-studio-bad: #b42318;
     --color-studio-brand-hover: #f07848;
-    --color-studio-bad-bg: #fde8e3;
-    --color-studio-pill: #e6e5df;
-    --color-studio-live: #e3f4ea;
+    --color-studio-bad-bg: #fdebe6;
+    --color-studio-pill: #ebe9e2;
+    --color-studio-live: #dcf1e5;
 
     --color-studio-side-ink: #1d1e24;
-    --color-studio-side-nav: #3d3f48;
+    --color-studio-side-nav: #4a4d55;
     --color-studio-side-muted: #5c5e68;
     --color-studio-side-label: #5f616b;
     --color-studio-side-mark: #80828c;
     --color-studio-contrast: #1d1e24;
 
-    --color-studio-warn-bg: #fbf3dc;
-    --color-studio-warn-line: #c9ad5c;
-    --color-studio-warn-ink: #5c4300;
+    --color-studio-warn-bg: #fbf4dc;
+    --color-studio-warn-line: #ead9a0;
+    --color-studio-warn-ink: #6b5712;
     --color-studio-pending: #8a5300;
     --color-studio-line-hover: #80828c;
     --color-studio-line-bright: #6b6d77;
     --color-studio-line-dash: #b5b3ab;
     --color-studio-switch-off: #80828c;
     --color-studio-placeholder: #696b75;
-    --color-studio-preview-bg: #dddcd5;
-    --color-studio-preview-dots: #9fa1aa;
-    --color-studio-card-shadow: #17181c33;
+    --color-studio-preview-bg: #e8e6df;
+    --color-studio-preview-dots: #b5b3ab;
+    --color-studio-card-shadow: #0000001a;
     --color-studio-soft-shadow: #17181c14;
 
     --color-studio-on-brand: #1d1e24;
