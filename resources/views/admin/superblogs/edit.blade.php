@@ -80,7 +80,7 @@
                             <x-admin.button>Spara</x-admin.button>
                         </div>
                     </form>
-                    <section aria-labelledby="delete-superblog-heading" class="rounded-lg border border-studio-bad/35 bg-studio-panel p-4">
+                    <section aria-labelledby="delete-superblog-heading" class="rounded-lg border border-studio-bad/35 bg-studio-panel p-4 studio-light:studio-raised">
                         <h3 id="delete-superblog-heading" class="font-semibold text-studio-bad">Ta bort Superblog</h3>
                         <p class="mt-1 text-sm text-studio-muted">Tar permanent bort sajten och dess innehåll.</p>
                         <a href="{{ route('admin.superblogs.delete', $superblog) }}" class="mt-3 inline-flex rounded-lg border border-studio-bad/50 px-3.5 py-2 text-sm font-semibold text-studio-bad hover:bg-studio-bad/10 studio-focus-ring">Ta bort Superblog permanent</a>
@@ -126,7 +126,7 @@
                                     @php
                                         $isEditing = (string) old('andrar') === (string) $rssSource->id;
                                     @endphp
-                                    <li @class(['flex flex-col gap-2 rounded-[10px] border border-studio-line p-[11px]', 'opacity-60' => ! $rssSource->is_active])>
+                                    <li @class(['flex flex-col gap-2 rounded-[10px] border border-studio-line p-[11px] studio-light:studio-raised', 'opacity-60' => ! $rssSource->is_active])>
                                         <div class="flex items-center gap-2.5">
                                             <x-admin.input form="feed-{{ $rssSource->id }}" name="name" value="{{ $isEditing ? old('name') : $rssSource->name }}" required maxlength="255" aria-label="Flödets namn" class="min-w-0 text-sm font-semibold" />
                                             {{-- A separate form sending the saved values: Enter in a text field saves instead of toggling, and unsaved text is never saved by the toggle. --}}
@@ -191,7 +191,7 @@
                     </section>
                 @elseif ($tab === 'publicera')
                     <section aria-labelledby="publish-heading">
-                        <aside aria-label="Tillfällig information om publiceringsinställningar" class="mb-5 rounded-lg border border-studio-line bg-studio-panel p-4">
+                        <aside aria-label="Tillfällig information om publiceringsinställningar" class="mb-5 rounded-lg border border-studio-line bg-studio-panel p-4 studio-light:studio-raised">
                             <h2 class="text-sm font-semibold">Slutlig publiceringskonfiguration återstår</h2>
                             <p class="mt-1 text-sm text-studio-muted">Domän, DNS och hosting konfigureras när vi har fått de uppgifter som behövs. Den här delen av inställningarna är tillfällig och ännu inte färdigställd.</p>
                         </aside>
@@ -224,15 +224,15 @@
                             @endif
 
                             <dl class="mt-5 grid grid-cols-1 gap-2" aria-label="Publiceringsöversikt">
-                                <div class="rounded-lg border border-studio-line bg-studio-panel p-3">
+                                <div class="rounded-lg border border-studio-line bg-studio-panel p-3 studio-light:studio-raised">
                                     <dt class="text-xs text-studio-muted">Valda artiklar</dt>
                                     <dd class="mt-1 text-xl font-semibold">{{ $publicationSummary['selected'] }}</dd>
                                 </div>
-                                <div class="rounded-lg border border-studio-line bg-studio-panel p-3">
+                                <div class="rounded-lg border border-studio-line bg-studio-panel p-3 studio-light:studio-raised">
                                     <dt class="text-xs text-studio-muted">Publiceras nu</dt>
                                     <dd class="mt-1 text-xl font-semibold">{{ $publicationSummary['to_publish'] }}</dd>
                                 </div>
-                                <div class="rounded-lg border border-studio-line bg-studio-panel p-3">
+                                <div class="rounded-lg border border-studio-line bg-studio-panel p-3 studio-light:studio-raised">
                                     <dt class="text-xs text-studio-muted">Dras tillbaka</dt>
                                     <dd class="mt-1 text-xl font-semibold">{{ $publicationSummary['to_withdraw'] }}</dd>
                                 </div>
@@ -270,7 +270,7 @@
                             {{-- One column: the 390 px panel is too narrow for two cards with six swatches each. --}}
                             <div class="grid gap-4">
                                 @foreach (Theme::NAMES as $name)
-                                    <label class="flex cursor-pointer flex-col gap-3 rounded-lg border border-studio-line p-4 has-checked:border-studio-brand has-checked:ring-3 has-checked:ring-studio-brand/20">
+                                    <label class="flex cursor-pointer flex-col gap-3 rounded-lg border border-studio-line p-4 has-checked:border-studio-brand has-checked:ring-3 has-checked:ring-studio-brand/20 studio-light:studio-raised">
                                         <span class="flex items-center gap-3">
                                             <input type="radio" name="theme" value="{{ $name }}" required @checked($selectedTheme === $name)>
                                             <span class="text-sm font-medium">{{ ucfirst($name) }}</span>

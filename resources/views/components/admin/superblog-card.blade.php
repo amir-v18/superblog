@@ -11,12 +11,12 @@
         ? ucfirst(\Illuminate\Support\Carbon::parse($lastFetchedAt)->locale('sv')->diffForHumans())
         : 'Aldrig';
     // The same classes on both tags, so a card without edit access looks identical but is not clickable.
-    $cardClasses = 'block overflow-hidden rounded-xl border border-studio-line bg-studio-panel';
+    $cardClasses = 'block overflow-hidden rounded-xl border border-studio-line bg-studio-panel studio-light:studio-raised';
 @endphp
 
 <div class="flex h-full flex-col">
     @if ($canEdit)
-        <a href="{{ route('admin.superblogs.edit', $superblog) }}" class="{{ $cardClasses }} flex-1 transition hover:-translate-y-0.5 hover:shadow-[0_10px_28px_var(--color-studio-card-shadow)] studio-focus-ring">
+        <a href="{{ route('admin.superblogs.edit', $superblog) }}" class="{{ $cardClasses }} flex-1 transition hover:-translate-y-0.5 hover:shadow-[0_10px_28px_var(--color-studio-card-shadow)] studio-focus-ring studio-light:hover:shadow-[0_10px_28px_var(--color-studio-card-shadow)]">
     @else
         <div class="{{ $cardClasses }} flex-1">
     @endif

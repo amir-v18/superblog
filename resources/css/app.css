@@ -73,6 +73,15 @@
     @apply focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-studio-brand;
 }
 
+/* Soft halo beneath cards and panels in the light mode. It fills the same variable as the framework's halo
+   utilities, so a selected card keeps its colored frame around it. */
+@utility studio-raised {
+    --tw-shadow: 0 1px 2px var(--color-studio-soft-shadow), 0 4px 14px var(--color-studio-soft-shadow);
+    box-shadow:
+        var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow),
+        var(--tw-shadow);
+}
+
 /*
  * Light mode of the admin studio. Applies only when layouts.admin writes data-studio-mode="light" on <html>
  * (from the studio_mode cookie); the magazines, the builder preview and the public pages never get the attribute.
@@ -115,6 +124,7 @@
     --color-studio-preview-bg: #dddcd5;
     --color-studio-preview-dots: #9fa1aa;
     --color-studio-card-shadow: #17181c33;
+    --color-studio-soft-shadow: #17181c14;
 
     --color-studio-on-brand: #1d1e24;
     --color-studio-on-bad: #ffffff;
