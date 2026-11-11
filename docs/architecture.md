@@ -32,9 +32,9 @@ AI is a processing mechanism, never an article source type. Valid article source
 * `rss`
 * `manual`
 
-An RSS-derived article must remain traceable through `Article → RSS Item → RSS Source → Original URL`. Each RSS item can create at most one article. An article created from RSS keeps the RSS item relationship; a manual article has no RSS item.
+An RSS-derived article originates from an RSS item and can be traced through `Article → RSS Item → RSS Source → Original URL` while those source records exist. Each RSS item can create at most one article. A manual article has no RSS item. Deleting an RSS item or source may remove that traceability; preserving it is not required for now.
 
-The original RSS item is an immutable first-seen snapshot. AI processing and staff edits change the article, never the original RSS record. Do not introduce an `ai` source type or generate articles without an underlying RSS item.
+The original RSS item is an immutable first-seen snapshot while it exists. AI processing and staff edits change the article, never the original RSS record. Deleting an RSS item or source must preserve the linked article, but may detach it from the deleted source record. Do not introduce an `ai` source type or create RSS-derived articles without an RSS item.
 
 ## 4. Main product domains
 
@@ -134,15 +134,15 @@ New Google identities may create only ordinary pending staff accounts. Existing 
 
 ### Customer backlink removal
 
-When a customer leaves, the application searches article links by the exact URL host. `www` and subdomains are different hosts. There is no customer table in V1.
+When a customer leaves, the application searches stored article links and links in article body content by the exact URL host. `www` and subdomains are different hosts. There is no customer table in V1.
 
-Removing a customer's brand/product/service link records removes those links, not the articles. Articles remain published and continue as generic content. Create a warning only when the remaining text appears to direct readers to the removed link, using a conservative check for the removed saved anchor text and a small agreed list of phrases (for example, “click here” or “read more”). Do not automatically unpublish the article.
+Remove matching customer/product/service links, not the article. When a product link is embedded in article text, remove the entire sentence containing that saved product-link anchor. Remove other matching link markup while retaining its surrounding sentence. After cleanup, check whether any saved customer/product anchor text remains in the article text. If none remains, leave the article's publication state and selection unchanged. If anchor text remains, cleanup failed: set the article to draft, clear its publication selection to prevent a later Innehåll save from republishing it, preserve its first `published_at` value, and create a warning visible to admins and editors. Do not unpublish solely because a customer or product is mentioned in generic text when no saved anchor text remains.
 
 Status: planned; the exact-host rule and article behavior are confirmed.
 
 ### Warnings
 
-Warnings are persistent application records, not just one-off flash messages. Editors can see them and inform an admin; editors cannot resolve them. Admins resolve the underlying problem. Examples include an RSS connection failure, an AI rewrite/image failure, or an article that still refers to a removed link. Avoid duplicate active warnings for the same underlying issue where practical.
+Warnings are persistent application records, not just one-off flash messages. Admins and editors can see them; editors can inform an admin but cannot resolve them. Admins resolve the underlying problem. Examples include an RSS connection failure, an AI rewrite/image failure, or saved customer/product anchor text that remains after backlink cleanup. Avoid duplicate active warnings for the same underlying issue where practical.
 
 Status: planned; roles and warning conditions are confirmed.
 
@@ -311,7 +311,6 @@ These notes should be refreshed when major workflow milestones ship. The target 
 * Hosting provider and the actual central admin hostname remain open.
 * Define how items skipped because a feed reached its daily cap are recorded, so repeated scheduled runs do not accidentally create a backlog.
 * Confirm the default template choice when the template registry/default is next changed; keep the default code-controlled.
-* Agree the exact conservative phrase list used to warn about prose left behind after a customer link is removed.
 
 ## 13. Architectural boundaries
 

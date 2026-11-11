@@ -12,7 +12,7 @@ Laravel Boost is already configured. Do not reinstall or reinitialize it.
 
 ## Testing and safety
 
-Do not add or run unnecessary tests. Use focused existing tests and lightweight checks appropriate to the change; add tests when requested or needed to verify meaningful risk. Report checks accurately, distinguishing SQLite from MySQL and local/browser behavior from production.
+Do not add or run unnecessary tests. Use focused existing tests and lightweight checks appropriate to the change; add tests when requested or needed to verify meaningful risk. Report checks accurately, distinguishing SQLite from MySQL and local/browser behavior from production. preserve relevant existing tests.
 
 Never run destructive database commands or alter existing data unless explicitly authorized. Do not run migrations or seeders against a real/shared database without explicit approval. Do not modify credentials or secrets unless requested.
 
