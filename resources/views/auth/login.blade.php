@@ -8,7 +8,7 @@
         <p class="mt-2 text-sm text-studio-muted">Sign in with Google. New staff accounts remain pending until approved.</p>
 
         @if (session('error'))
-            <p role="alert" class="mt-5 rounded-lg bg-studio-brand p-3 text-sm text-red-800 studio-light:bg-studio-bad-bg studio-light:text-studio-bad">{{ session('error') }}</p>
+            <p role="alert" class="mt-5 rounded-lg bg-studio-brand p-3 text-sm text-red-800 studio-light:bg-studio-bad-bg studio-light:text-studio-bad studio-light:border studio-light:border-studio-bad/30">{{ session('error') }}</p>
         @endif
 
         <a href="{{ route('auth.google.redirect') }}" class="mt-8 flex w-full items-center justify-center rounded-lg border border-studio-line bg-studio-brand px-4 py-3 text-sm font-semibold text-slate-900 hover:bg-studio-brand-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900 studio-light:text-studio-on-brand">

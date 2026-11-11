@@ -19,7 +19,7 @@
         // A route with {superblog} (builder, RSS pages) marks that magazine as active in the menu.
         $currentSuperblog = request()->route('superblog');
         $currentSuperblogId = $currentSuperblog instanceof App\Models\Superblog ? $currentSuperblog->getKey() : $currentSuperblog;
-        $navItemClasses = 'flex items-center gap-2.5 rounded-[7px] px-2.5 py-2.25 text-sm text-studio-side-nav hover:bg-studio-contrast/7 aria-[current=page]:bg-studio-contrast/12 aria-[current=page]:font-semibold aria-[current=page]:text-studio-contrast studio-focus-ring';
+        $navItemClasses = 'flex items-center gap-2.5 rounded-[7px] px-2.5 py-2.25 text-sm text-studio-side-nav hover:bg-studio-contrast/7 aria-[current=page]:bg-studio-contrast/12 aria-[current=page]:font-semibold aria-[current=page]:text-studio-contrast studio-focus-ring studio-light:aria-[current=page]:bg-studio-brand/8';
         $navLabelClasses = 'px-2.5 pt-4 pb-1.5 text-[10px] tracking-[.14em] text-studio-side-label';
     @endphp
 

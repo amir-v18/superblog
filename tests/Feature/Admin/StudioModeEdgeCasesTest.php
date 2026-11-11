@@ -16,7 +16,7 @@ class StudioModeEdgeCasesTest extends TestCase
 
     public function test_the_login_error_keeps_its_classes_and_gets_light_error_colors(): void
     {
-        $classes = 'mt-5 rounded-lg bg-studio-brand p-3 text-sm text-red-800 studio-light:bg-studio-bad-bg studio-light:text-studio-bad';
+        $classes = 'mt-5 rounded-lg bg-studio-brand p-3 text-sm text-red-800 studio-light:bg-studio-bad-bg studio-light:text-studio-bad studio-light:border studio-light:border-studio-bad/30';
 
         // Same markup in both modes: the extra classes only take effect under the light attribute.
         foreach ([null, 'light'] as $mode) {
