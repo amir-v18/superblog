@@ -52,7 +52,7 @@ Status: host-based public routing and central-host-only admin routing are confir
 
 ### Templates
 
-Templates are a fixed code-backed catalog. Admins cannot create or delete templates. A super-admin may rename an existing template and change its active checkbox. The name is unique. Inactive templates are not offered to new Superblogs, but existing Superblogs keep their selected template and remain editable.
+Templates are a fixed code-backed catalog. Admins cannot create or delete templates. An admin may rename an existing template and change its active checkbox. The name is unique. Inactive templates are not offered to new Superblogs, but existing Superblogs keep their selected template and remain editable.
 
 Each template has an immutable internal key that is not displayed or editable in the admin UI. Code uses this key to select the homepage view, article view, theme defaults, and seed record. The editable name must never identify implementation behavior.
 
@@ -85,7 +85,7 @@ Article slugs identify individual articles. An editor may change a slug after pu
 
 Excerpts are removed for now. The public meta description is generated automatically from the first paragraph of the article body; it is not an independently edited excerpt or SEO-description field.
 
-The editor should be a basic visual editor, not Markdown and not a full-featured rich-text suite. Its essential controls are headings, bold, italic, links, and ordered/unordered lists. It does not need tables, embeds, color, or font controls. Manual article images are handled separately from the text editor. Public HTML must be safely sanitized and rendered semantically; the exact stored content representation should be chosen as part of the editor implementation.
+The editor should be a basic visual editor, not Markdown and not a full-featured rich-text suite. Its essential controls are headings, bold, italic, links, text size and ordered/unordered lists. It does not need tables, embeds, color, or font controls. Manual article images are handled separately from the text editor. Public HTML must be safely sanitized and rendered semantically; the exact stored content representation should be chosen as part of the editor implementation.
 
 Only the current article version is stored. For RSS articles, the original first-seen RSS item remains available separately; there is no general article revision-history system in V1.
 
@@ -93,11 +93,11 @@ Status: the excerpt removal is implemented. The basic visual editor and media wo
 
 ### RSS and AI processing
 
-Scheduled RSS fetching is configurable by a super-admin from the admin UI. The interval has safe presets and a custom value constrained to 15 minutes through 24 hours. The daily article cap is per RSS source and resets on the Europe/Stockholm calendar day. If a feed has more eligible new items than its cap, newest eligible items use the available slots; items beyond the cap are skipped rather than queued as a backlog.
+Scheduled RSS fetching is configurable by an admin from the admin UI. The interval has safe presets and a custom value constrained to 15 minutes through 24 hours. The daily article cap is per RSS source and resets on the Europe/Stockholm calendar day. If a feed has more eligible new items than its cap, newest eligible items use the available slots; items beyond the cap are skipped rather than queued as a backlog.
 
 RSS fetching and AI/image work use Laravel background jobs so external requests do not block admin requests and failures can be retried. The existing database queue is the simplest initial queue backend. A scheduled task dispatches feed work at the configured interval. The item cap is applied per source even when the scheduler runs multiple times in a day.
 
-The Superblog-wide Auto publish setting controls only RSS-derived AI articles. Super-admins and assigned editors may change this setting. Other Superblog settings, appearance, and RSS source management remain unavailable to editors. With Auto publish off, AI output is an unchecked draft for human review. With it on, the article is published only after rewriting, image generation, and required validation all succeed. If processing or validation fails, the item remains a draft and creates a warning; one failed item does not publish partial output.
+The Superblog-wide Auto publish setting controls only RSS-derived AI articles. Admins and assigned editors may change this setting. Other Superblog settings, appearance, and RSS source management remain unavailable to editors. With Auto publish off, AI output is an unchecked draft for human review. With it on, the article is published only after rewriting, image generation, and required validation all succeed. If processing or validation fails, the item remains a draft and creates a warning; one failed item does not publish partial output.
 
 The daily cap must not silently turn into a backlog across repeated scheduled fetches. During implementation, persist enough identity/state to ensure over-cap items are not accidentally processed as though the cap had never been reached. The provider for text rewriting and image generation remains open; do not add real credentials to source control.
 
@@ -115,7 +115,7 @@ Status: automatic SEO metadata exists in part; the agreed publication validation
 
 ### Roles and permissions
 
-There is exactly one super-admin account. Other approved staff are editors. The application and supported CLI workflows must refuse to create or promote a second super-admin. Super-admin privileges are never granted through Google email matching or ordinary staff actions.
+There may be multiple admin accounts, and all admins have the same privileges. Other approved staff are editors. The application must allow an operator to explicitly provision additional admins; it must not enforce a one-admin limit. Google email matching and automatic account creation must never grant admin access.
 
 An editor can only access explicitly assigned Superblogs. Ownership/creator `user_id` does not grant access. The legacy `has_all_superblogs_access` flag must not grant ordinary editors access and should be retired after existing data is safely reviewed.
 
@@ -123,12 +123,12 @@ Editors may:
 
 * Create, edit, publish, and delete articles in assigned Superblogs.
 * Remove a departing customer's backlinks.
-* See warnings and inform a super-admin, who resolves them.
+* See warnings and inform an admin, who resolves them.
 * Change the assigned Superblog's Auto publish setting (the explicit exception for this workflow).
 
 Editors may not manage staff, templates, RSS sources, Superblog Grund settings, or appearance. The last permission follows the product decision to keep editor permissions limited to the documented list, with only the Auto publish exception above.
 
-Super-admins manage the central application, staff approval/assignments, templates, RSS settings, site settings, and the global fetch interval. Approval applies even to the super-admin; pending and rejected accounts cannot use admin functionality.
+Admins manage the central application, staff approval/assignments, templates, RSS settings, site settings, and the global fetch interval. Approval applies to admins as well; pending and rejected accounts cannot use admin functionality. Admins share these privileges rather than forming a hierarchy among themselves.
 
 New Google identities may create only ordinary pending staff accounts. Existing accounts are associated by an operator-controlled mapping using Google's stable subject identifier, never silently by email. Existing approval, flags, user IDs, and Superblog assignments are preserved when an identity is mapped.
 
@@ -142,7 +142,7 @@ Status: planned; the exact-host rule and article behavior are confirmed.
 
 ### Warnings
 
-Warnings are persistent application records, not just one-off flash messages. Editors can see them and inform a super-admin; editors cannot resolve them. Super-admins resolve the underlying problem. Examples include an RSS connection failure, an AI rewrite/image failure, or an article that still refers to a removed link. Avoid duplicate active warnings for the same underlying issue where practical.
+Warnings are persistent application records, not just one-off flash messages. Editors can see them and inform an admin; editors cannot resolve them. Admins resolve the underlying problem. Examples include an RSS connection failure, an AI rewrite/image failure, or an article that still refers to a removed link. Avoid duplicate active warnings for the same underlying issue where practical.
 
 Status: planned; roles and warning conditions are confirmed.
 
@@ -156,7 +156,7 @@ Status: current locked-article rendering must be changed to match this target be
 
 ### Users
 
-The current identity/access model uses an ID, name, unique email, password hash retained for local/testing support, nullable unique Google subject, approval status, super-admin flag, and timestamps. A separate generic role column is not required for the current super-admin/editor rules. Pending and rejected accounts remain blocked from admin features.
+The current identity/access model uses an ID, name, unique email, password hash retained for local/testing support, nullable unique Google subject, approval status, admin privilege flag, and timestamps. A separate generic role column is not required for the current admin/editor rules. Pending and rejected accounts remain blocked from admin features. Admin accounts are not limited to one.
 
 ### Superblogs
 
@@ -242,7 +242,7 @@ AI cannot invent unrelated articles, source facts, or citations. Preserve origin
 ```text
 Assigned editor creates article
     ↓
-Basic visual editor (headings, bold/italic, links, lists)
+Basic visual editor (headings, bold/italic, links, text size, lists)
     ↓
 Optional article image with alt text
     ↓
@@ -280,7 +280,7 @@ Different sources may describe the same underlying story. Cross-source similarit
 
 ## 10. Testing and verification approach
 
-The project uses PHPUnit feature tests with SQLite in memory and mocks Google OAuth. Tests should cover authorization, public host/domain resolution, article selection/status/date filters, migration/backfill retries, publication transactions, deletion cascades, RSS duplicate handling and job idempotency.
+The project uses PHPUnit feature tests with SQLite in memory and mocks Google OAuth. Tests should cover authorization, public host/domain resolution, article selection/status/date filters, migration/backfill retries, publication transactions, the distinct deletion rules for articles, RSS data, and Superblogs, RSS duplicate handling, and job idempotency.
 
 When a change relies on MySQL behavior (foreign keys, unique nullable indexes, locking, or DDL), run a separate disposable MySQL 8.4 verification. Do not run seeders or migrations against a developer's existing database unless explicitly requested.
 
@@ -288,16 +288,16 @@ Use the existing Laravel test suite, Pint, `git diff --check`, and Vite build as
 
 ## 11. Implementation status snapshot
 
-This snapshot is based on a read-only inspection on 10 November 2026. It records implementation gaps relative to the agreed target; it does not invalidate intentionally planned or open blueprint sections.
+This snapshot is based on a read-only source inspection on 11 November 2026. It records implementation gaps relative to the agreed target; it does not invalidate intentionally planned or open blueprint sections.
 
 * Current public Superblog routes use `/superblogs/{slug}`; host/domain dispatch and central-host-only admin routing are not implemented.
 * Current Superblog schema still has a slug and nullable domain.
-* Current template rows include editable slug/description/layout/active fields; the stable-key migration and rename/active-only admin workflow are not complete. The code currently has Modern and Classic home templates, but all public article pages use the Modern article view.
+* Current template rows include editable slug/description/layout/active fields; the stable-key migration and rename/active-only admin workflow are not complete. The code currently has Modern and Classic home templates, but all public article pages use the Modern article view. The current admin route/controller also permits deletion when a template is unused, contrary to the fixed-catalog rule.
 * Current approved editors can manage settings and RSS sources and can receive all-Superblog access through a legacy flag; the confirmed editor scope is narrower.
 * Article bodies are currently plain text in a textarea. The agreed basic visual editor, media upload/rendering, and template-specific article views remain to be implemented.
 * Excerpt has been removed. Public meta description is derived from the first paragraph.
 * Current withdrawal logic clears `published_at`; the agreed first-publication and separate “Senast ändrad” behavior is not yet implemented.
-* The `articles.rss_item_id` foreign key uses `nullOnDelete()`, so deleting an RSS item or source preserves its article and detaches the source reference, as intended. The RSS item deletion/clear success messages incorrectly say the associated articles were deleted; those messages should be corrected in application code. Verify that article publication data and timeline position remain unchanged when this workflow is updated.
+* The initial articles migration used `nullOnDelete()` for `articles.rss_item_id`, but the later one-article-per-RSS-item migration replaces it with `cascadeOnDelete()`. The effective migrated schema therefore deletes a linked article when its RSS item is deleted, contrary to the preservation rule above. Correct this with a forward migration before RSS item/source deletion is used; changing the original migration alone will not repair databases where migrations already ran. The RSS deletion/clear messages also claim linked articles were deleted. Verify preservation of article content, selection, publication dates, and timeline order.
 * RSS fetching is currently manual. Database queue infrastructure exists, but scheduled fetches, quotas, AI/image jobs, persistent warnings, and Auto publish do not.
 * Paywall rendering currently exists, but reader authentication/subscriptions do not. The agreed public behavior is full article access until reader access is designed.
 
@@ -307,7 +307,6 @@ These notes should be refreshed when major workflow milestones ship. The target 
 
 * AI text/image provider selection remains open.
 * Hosting provider and the actual central admin hostname remain open.
-* The structured storage representation for the basic visual article editor must be chosen before implementing it and must be sanitized on the server.
 * Define how items skipped because a feed reached its daily cap are recorded, so repeated scheduled runs do not accidentally create a backlog.
 * Confirm the default template choice when the template registry/default is next changed; keep the default code-controlled.
 * Agree the exact conservative phrase list used to warn about prose left behind after a customer link is removed.
