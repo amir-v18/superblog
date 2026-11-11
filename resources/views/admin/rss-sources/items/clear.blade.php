@@ -7,7 +7,7 @@
     <h1 class="mt-4 text-3xl font-semibold tracking-tight">Clear all downloaded items?</h1>
     <p class="mt-2 text-studio-muted">{{ $rssSource->name }} · {{ $superblog->name }}</p>
     <div class="mt-6 rounded-xl border border-studio-bad/40 bg-studio-panel p-6">
-        <p>This permanently deletes every RSS item stored for this source and any articles associated with those items. The RSS source remains.</p>
+        <p>This permanently deletes every RSS item stored for this source. Any articles created from them will be kept. The RSS source remains.</p>
         <form method="POST" action="{{ route('admin.superblogs.rss-sources.items.clear.destroy', [$superblog, $rssSource]) }}" class="mt-6 flex items-center gap-4">
             @csrf
             @method('DELETE')

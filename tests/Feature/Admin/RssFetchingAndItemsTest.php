@@ -151,7 +151,7 @@ class RssFetchingAndItemsTest extends TestCase
         $this->assertDatabaseHas('rss_items', ['id' => $item->getKey()]);
     }
 
-    public function test_item_page_displays_safe_links_and_item_deletion_cascades_to_related_article(): void
+    public function test_item_deletion_preserves_published_article_and_only_detaches_the_rss_item(): void
     {
         $staff = $this->makeUser();
         $superblog = $this->makeSuperblog($staff, 'items-blog');
@@ -168,7 +168,11 @@ class RssFetchingAndItemsTest extends TestCase
             'slug' => 'article-title',
             'content' => 'Transformed article',
             'source_type' => 'rss',
+            'status' => 'published',
+            'is_selected_for_publication' => true,
+            'published_at' => now()->subDay(),
         ]);
+        $originalAttributes = $article->fresh()->getAttributes();
 
         $this->actingAs($staff)
             ->get(route('admin.superblogs.rss-sources.items.index', [$superblog, $source]))
@@ -178,15 +182,20 @@ class RssFetchingAndItemsTest extends TestCase
             ->assertSee('rel="noopener noreferrer"', false)
             ->assertSee('Story summary');
 
+        $this->get(route('admin.superblogs.rss-sources.items.delete', [$superblog, $source, $item]))
+            ->assertOk()
+            ->assertSee('Any article created from it will be kept.');
+
         $this->delete(route('admin.superblogs.rss-sources.items.destroy', [$superblog, $source, $item]))
-            ->assertRedirect(route('admin.superblogs.rss-sources.items.index', [$superblog, $source]));
+            ->assertRedirect(route('admin.superblogs.rss-sources.items.index', [$superblog, $source]))
+            ->assertSessionHas('status', 'RSS item deleted. Any article created from it was kept.');
 
         $this->assertDatabaseMissing('rss_items', ['id' => $item->getKey()]);
-        $this->assertDatabaseMissing('articles', ['id' => $article->getKey()]);
+        $this->assertArticleWasOnlyDetached($article, $originalAttributes);
         $this->assertDatabaseHas('rss_sources', ['id' => $source->getKey()]);
     }
 
-    public function test_clear_all_items_only_deletes_items_for_selected_source(): void
+    public function test_clearing_items_preserves_published_articles_and_other_source_data(): void
     {
         $staff = $this->makeUser();
         $superblog = $this->makeSuperblog($staff, 'clear-items-blog');
@@ -201,20 +210,45 @@ class RssFetchingAndItemsTest extends TestCase
             'slug' => 'derived-article',
             'content' => 'Article content',
             'source_type' => 'rss',
+            'status' => 'published',
+            'is_selected_for_publication' => true,
+            'published_at' => now()->subDay(),
+        ]);
+        $originalAttributes = $article->fresh()->getAttributes();
+        $otherArticle = $superblog->articles()->create([
+            'rss_item_id' => $otherItem->getKey(),
+            'title' => 'Other article',
+            'slug' => 'other-article',
+            'content' => 'Other article content',
+            'source_type' => 'rss',
+            'status' => 'published',
+            'is_selected_for_publication' => true,
+            'published_at' => now()->subDays(2),
         ]);
 
         $this->actingAs($staff)
             ->get(route('admin.superblogs.rss-sources.items.clear', [$superblog, $source]))
             ->assertOk()
-            ->assertSee('permanently deletes every RSS item');
+            ->assertSee('permanently deletes every RSS item')
+            ->assertSee('Any articles created from them will be kept.');
 
         $this->delete(route('admin.superblogs.rss-sources.items.clear.destroy', [$superblog, $source]))
-            ->assertRedirect(route('admin.superblogs.rss-sources.items.index', [$superblog, $source]));
+            ->assertRedirect(route('admin.superblogs.rss-sources.items.index', [$superblog, $source]))
+            ->assertSessionHas('status', 'Deleted 1 RSS item. Any associated articles were kept.');
 
         $this->assertDatabaseMissing('rss_items', ['id' => $item->getKey()]);
         $this->assertDatabaseHas('rss_items', ['id' => $otherItem->getKey()]);
         $this->assertDatabaseHas('rss_sources', ['id' => $source->getKey()]);
-        $this->assertDatabaseMissing('articles', ['id' => $article->getKey()]);
+        $this->assertArticleWasOnlyDetached($article, $originalAttributes);
+        $this->assertDatabaseHas('articles', ['id' => $otherArticle->getKey(), 'rss_item_id' => $otherItem->getKey()]);
+    }
+
+    private function assertArticleWasOnlyDetached(Article $article, array $originalAttributes): void
+    {
+        $expectedAttributes = $originalAttributes;
+        $expectedAttributes['rss_item_id'] = null;
+
+        $this->assertSame($expectedAttributes, $article->fresh()->getAttributes());
     }
 
     private function allowPublicFeedHost(): void

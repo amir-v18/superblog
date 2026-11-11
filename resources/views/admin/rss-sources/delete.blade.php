@@ -15,7 +15,7 @@
     <h1 class="mt-4 text-3xl font-semibold tracking-tight">Delete {{ $rssSource->name }}?</h1>
     <p class="mt-2 text-studio-muted">{{ $superblog->name }}</p>
     <div class="mt-6 rounded-xl border border-studio-bad/40 bg-studio-panel p-6">
-        <p>Deleting this source permanently deletes its stored RSS items and any articles associated with those items.</p>
+        <p>Deleting this source permanently deletes its stored RSS items. Any articles created from them will be kept.</p>
         <form method="POST" action="{{ route('admin.superblogs.rss-sources.destroy', [$superblog, $rssSource]) }}" class="mt-6 flex items-center gap-4">
             @csrf
             @method('DELETE')
