@@ -336,12 +336,7 @@ if (previewIframe) {
 const modeForms = document.querySelectorAll('[data-studio-mode-form]');
 
 if (modeForms.length > 0) {
-    const MODE_TEXT = {
-        light: { label: 'Ljust', aria: 'Byt till ljust läge' },
-        dark: { label: 'Mörkt', aria: 'Byt till mörkt läge' },
-    };
-
-    // Shows the page in the given mode and makes every switch offer the other one.
+    // Shows the page in the given mode and marks that mode's button as pressed in every switch.
     const applyMode = (mode) => {
         if (mode === 'light') {
             document.documentElement.dataset.studioMode = 'light';
@@ -349,14 +344,8 @@ if (modeForms.length > 0) {
             delete document.documentElement.dataset.studioMode;
         }
 
-        const next = mode === 'light' ? 'dark' : 'light';
-        modeForms.forEach((form) => {
-            form.querySelector('[data-studio-mode-next]').value = next;
-            form.querySelector('[data-studio-mode-label]').textContent = MODE_TEXT[next].label;
-            form.querySelector('button').setAttribute('aria-label', MODE_TEXT[next].aria);
-            form.querySelectorAll('[data-studio-mode-icon]').forEach((icon) => {
-                icon.toggleAttribute('hidden', icon.dataset.studioModeIcon !== next);
-            });
+        document.querySelectorAll('[data-studio-mode-option]').forEach((button) => {
+            button.setAttribute('aria-pressed', button.value === mode ? 'true' : 'false');
         });
     };
 
@@ -375,10 +364,17 @@ if (modeForms.length > 0) {
             return;
         }
 
+        // The pressed button carries the mode. Without a known mode the form posts the normal way.
+        const mode = event.submitter?.value;
+        if (mode !== 'light' && mode !== 'dark') {
+            return;
+        }
+
         event.preventDefault();
-        // Taken ahead of applyMode, which rewrites the mode field to the next choice.
+        // FormData leaves out the submitting button, so its value is added by hand.
         const body = new FormData(form);
-        applyMode(body.get('mode'));
+        body.set('mode', mode);
+        applyMode(mode);
 
         try {
             const response = await fetch(form.action, {

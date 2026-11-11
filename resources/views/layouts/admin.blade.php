@@ -110,8 +110,9 @@
     </aside>
 
     {{-- Mode switch in the top right corner of every page, the builder included, at every width. It takes no room,
-         so nothing else moves; 4 px from the top leaves 8 px above the top row of the dashboard. --}}
-    <x-admin.mode-toggle class="absolute top-1 right-4 z-10" />
+         so nothing else moves; 8 px from the page edge and 28 px tall, it ends 4 px above the opening row of the
+         dashboard. --}}
+    <x-admin.mode-toggle class="absolute top-2 right-4 z-10" />
 
     {{-- Pages can replace the width and padding via @section('main-class'); the default keeps the old layout. --}}
     <main id="main" class="@yield('main-class', 'mx-auto w-full max-w-5xl px-6 py-12') lg:min-w-0">

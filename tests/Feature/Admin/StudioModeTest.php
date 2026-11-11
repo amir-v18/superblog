@@ -149,7 +149,7 @@ class StudioModeTest extends TestCase
         $superblog = $this->makeSuperblog($admin);
         $this->actingAs($admin);
 
-        $corner = 'data-studio-mode-form class="absolute top-1 right-4 z-10">';
+        $corner = 'data-studio-mode-form class="absolute top-2 right-4 z-10">';
 
         foreach (['grund', 'utseende', 'floden', 'innehall', 'skriv-artikel', 'publicera'] as $tab) {
             $html = $this->get(route('admin.superblogs.edit', [$superblog, 'flik' => $tab]))->assertOk()->getContent();
@@ -192,23 +192,23 @@ class StudioModeTest extends TestCase
     }
 
     /**
-     * The switch offers $next: its label, its aria-label, the field it posts, and only the matching icon shown.
+     * The switch offers $next: both mode buttons are there in one labelled set, each posts its own mode, and just
+     * the button of the current mode, the other one, is marked as pressed.
      */
     private function assertSwitch(string $html, string $next): void
     {
-        [$label, $aria] = $next === 'light' ? ['Ljust', 'Byt till ljust läge'] : ['Mörkt', 'Byt till mörkt läge'];
-        $other = $next === 'light' ? 'dark' : 'light';
+        $current = $next === 'light' ? 'dark' : 'light';
+        $labels = ['dark' => 'Mörkt läge', 'light' => 'Ljust läge'];
 
         $this->assertSame(1, substr_count($html, 'data-studio-mode-form'));
         $this->assertStringContainsString('action="'.route('studio-mode.update').'"', $html);
-        $this->assertStringContainsString('name="mode" value="'.$next.'"', $html);
-        $this->assertStringContainsString('aria-label="'.$aria.'"', $html);
-        $this->assertStringContainsString('<span data-studio-mode-label>'.$label.'</span>', $html);
+        $this->assertStringContainsString('role="group" aria-label="Färgläge"', $html);
+        $this->assertSame(2, substr_count($html, 'data-studio-mode-option'));
 
-        preg_match('/<svg data-studio-mode-icon="'.$next.'"([^>]*)>/', $html, $shown);
-        preg_match('/<svg data-studio-mode-icon="'.$other.'"([^>]*)>/', $html, $notShown);
-        $this->assertDoesNotMatchRegularExpression('/\shidden\s/', $shown[1]);
-        $this->assertMatchesRegularExpression('/\shidden\s/', $notShown[1]);
+        foreach (['dark', 'light'] as $mode) {
+            $pressed = $mode === $current ? 'true' : 'false';
+            $this->assertStringContainsString('name="mode" value="'.$mode.'" aria-label="'.$labels[$mode].'" aria-pressed="'.$pressed.'"', $html);
+        }
     }
 
     private function assertSaved(?User $user, string $previous): void

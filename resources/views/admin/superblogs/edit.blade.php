@@ -19,12 +19,12 @@
         $fromCreateModal = old('_form') === 'create-superblog';
         $old = fn (string $key, mixed $default = null): mixed => $fromCreateModal ? $default : old($key, $default);
         // On wide screens the header starts at the very top, next to the layout's mode switch in the page corner
-        // (about 90 px from the right edge). The header keeps 100 px free on the right there, so a long magazine
+        // (about 160 px from the right edge). The header keeps 176 px free on the right there, so a long magazine
         // name is cut short ahead of the switch. On narrow screens the sidebar sits above the header.
         $selectedTemplate = $old('template_id', $superblog->template_id);
     @endphp
 
-    <header class="flex flex-wrap items-center gap-4 border-b border-studio-line bg-studio-side px-5 py-3 lg:pr-25">
+    <header class="flex flex-wrap items-center gap-4 border-b border-studio-line bg-studio-side px-5 py-3 lg:pr-44">
         <a href="{{ route('admin.dashboard') }}" class="rounded-lg px-3.5 py-2 text-[13px] font-semibold text-studio-muted hover:text-studio-ink studio-focus-ring"><span aria-hidden="true">←</span> Alla magasin</a>
         <div class="flex min-w-0 flex-1 items-center gap-2.5">
             <h1 class="truncate text-lg font-semibold">{{ $superblog->name }}</h1>
