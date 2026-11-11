@@ -43,7 +43,7 @@ class StaffController extends Controller
         $validated = $request->validate($rules);
 
         if ($validated['action'] === 'assign') {
-            if ($user->is_super_admin || $user->has_all_superblogs_access) {
+            if ($user->is_super_admin) {
                 throw ValidationException::withMessages([
                     'assignments' => 'Assignment editing is only available for ordinary staff accounts.',
                 ]);
@@ -54,13 +54,16 @@ class StaffController extends Controller
                 $staff = User::query()->lockForUpdate()->findOrFail($user->getKey());
 
                 // Recheck role flags while locked so assignment edits never alter broader access.
-                if ($staff->is_super_admin || $staff->has_all_superblogs_access) {
+                if ($staff->is_super_admin) {
                     throw ValidationException::withMessages([
                         'assignments' => 'Assignment editing is only available for ordinary staff accounts.',
                     ]);
                 }
 
                 $staff->assignedSuperblogs()->sync($assignmentIds);
+                // Saving an explicit assignment replaces any legacy all-Superblog access for this editor.
+                $staff->has_all_superblogs_access = false;
+                $staff->save();
 
                 return $staff->name;
             });

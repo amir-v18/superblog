@@ -26,15 +26,16 @@ class ArticlePublicationTest extends TestCase
         $response = $this->actingAs($staff)
             ->get(route('admin.superblogs.edit', [$superblog, 'flik' => 'publicera']))
             ->assertOk()
-            ->assertSee('6 Publicera')
+            ->assertSee('3 Publicera')
+            ->assertDontSee('1 Grund')
+            ->assertDontSee('2 Utseende')
+            ->assertDontSee('3 Flöden')
             ->assertSee('grid grid-cols-3', false)
-            ->assertSee('Slutlig publiceringskonfiguration återstår')
-            ->assertSee('Domän, DNS och hosting konfigureras')
             ->assertSee('href="'.route('admin.superblogs.edit', [$superblog, 'flik' => 'publicera']).'"', false)
-            ->assertSee('>Publicera</button>', false)
+            ->assertSee('>Publicera valda artiklar</button>', false)
             ->assertSee('action="'.route('admin.superblogs.articles.publish-selected', $superblog).'"', false)
             ->assertSee('method="POST"', false)
-            ->assertSee('Superblocket markeras som publicerat.');
+            ->assertSee('Superbloggens publiceringsstatus ändras inte här.');
 
         $this->assertSame([
             'selected' => 2,
@@ -43,7 +44,7 @@ class ArticlePublicationTest extends TestCase
         ], $response->viewData('publicationSummary'));
     }
 
-    public function test_publicera_step_changes_to_avpublicera_for_live_superblog(): void
+    public function test_assigned_editor_cannot_unpublish_a_live_superblog_from_the_publicera_step(): void
     {
         [$staff, $superblog] = $this->makeAssignedSuperblog();
         $superblog->update(['status' => 'published']);
@@ -51,17 +52,19 @@ class ArticlePublicationTest extends TestCase
         $this->actingAs($staff)
             ->get(route('admin.superblogs.edit', [$superblog, 'flik' => 'publicera']))
             ->assertOk()
-            ->assertSee('6 Avpublicera')
-            ->assertSee('Slutlig publiceringskonfiguration återstår')
-            ->assertSee('tillfällig och ännu inte färdigställd')
-            ->assertSee('Avpublicera Superblog')
-            ->assertSee('action="'.route('admin.superblogs.unpublish', $superblog).'"', false)
-            ->assertDontSee('Bekräfta och publicera');
+            ->assertSee('3 Publicera')
+            ->assertSee('Publicera artiklar')
+            ->assertSee('Superbloggens publiceringsstatus ändras inte här.')
+            ->assertDontSee('Avpublicera Superblog')
+            ->assertDontSee('action="'.route('admin.superblogs.unpublish', $superblog).'"', false);
+
+        $this->post(route('admin.superblogs.unpublish', $superblog))->assertForbidden();
+        $this->assertSame('published', $superblog->fresh()->status);
     }
 
     public function test_publication_without_a_domain_is_blocked_and_guides_user_to_grund(): void
     {
-        [$staff, $superblog] = $this->makeAssignedSuperblog();
+        [$staff, $superblog] = $this->makeAdminSuperblog();
         $superblog->update(['domain' => null]);
         $article = $this->makeArticle($superblog, 'Still a draft', selected: true);
 
@@ -81,7 +84,7 @@ class ArticlePublicationTest extends TestCase
 
     public function test_valid_placeholder_domain_allows_superblog_publication_without_dns_verification(): void
     {
-        [$staff, $superblog] = $this->makeAssignedSuperblog();
+        [$staff, $superblog] = $this->makeAdminSuperblog();
         $superblog->update(['domain' => 'teknikbyn.se']);
         $article = $this->makeArticle($superblog, 'Ready to publish', selected: true);
 
@@ -97,7 +100,7 @@ class ArticlePublicationTest extends TestCase
 
     public function test_publication_is_blocked_when_other_required_grund_fields_are_invalid(): void
     {
-        [$staff, $superblog] = $this->makeAssignedSuperblog();
+        [$staff, $superblog] = $this->makeAdminSuperblog();
         $superblog->update(['name' => '', 'slug' => 'invalid slug', 'domain' => 'teknikbyn.se']);
 
         $this->actingAs($staff)
@@ -109,7 +112,7 @@ class ArticlePublicationTest extends TestCase
 
     public function test_publication_rejects_a_malformed_domain(): void
     {
-        [$staff, $superblog] = $this->makeAssignedSuperblog();
+        [$staff, $superblog] = $this->makeAdminSuperblog();
         $superblog->update(['domain' => 'https://teknikbyn.se/path']);
 
         $this->actingAs($staff)
@@ -121,7 +124,7 @@ class ArticlePublicationTest extends TestCase
 
     public function test_publishing_does_not_change_existing_appearance_settings(): void
     {
-        [$staff, $superblog] = $this->makeAssignedSuperblog();
+        [$staff, $superblog] = $this->makeAdminSuperblog();
         $settings = ['theme' => ['name' => 'bondebladet', 'primary' => '#123456']];
         $superblog->update(['domain' => 'teknikbyn.se', 'settings' => $settings]);
 
@@ -130,9 +133,9 @@ class ArticlePublicationTest extends TestCase
         $this->assertSame($settings, $superblog->fresh()->settings);
     }
 
-    public function test_unpublishing_takes_the_superblog_offline_without_changing_article_publication(): void
+    public function test_admin_unpublishing_takes_the_superblog_offline_without_changing_article_publication(): void
     {
-        [$staff, $superblog] = $this->makeAssignedSuperblog();
+        [$staff, $superblog] = $this->makeAdminSuperblog();
         $superblog->update(['status' => 'published']);
         $publishedAt = now()->subDays(4)->startOfSecond();
         $article = $this->makeArticle($superblog, 'Still published article', status: 'published', selected: true, publishedAt: $publishedAt);
@@ -152,7 +155,7 @@ class ArticlePublicationTest extends TestCase
         $this->get(route('public.superblogs.articles.show', [$superblog, $article]))
             ->assertNotFound();
 
-        // Site editors keep access to both the builder and a private preview while the public site is offline.
+        // Admins keep access to the builder and a private preview while the public site is offline.
         $this->get(route('admin.superblogs.edit', $superblog))->assertOk();
         $this->get(route('admin.superblogs.preview', $superblog))
             ->assertOk()
@@ -195,7 +198,7 @@ class ArticlePublicationTest extends TestCase
         $this->actingAs($staff)
             ->post(route('admin.superblogs.articles.publish-selected', $superblog))
             ->assertRedirect(route('admin.superblogs.edit', [$superblog, 'flik' => 'publicera']))
-            ->assertSessionHas('status', 'Publicering klar: 1 artikel publicerades och 1 artikel drogs tillbaka. Superblocket publicerades.');
+            ->assertSessionHas('status', 'Artikelpublicering klar: 1 artikel publicerades och 1 artikel drogs tillbaka. Superbloggens status ändrades inte.');
 
         $this->assertSame('published', $selectedDraft->fresh()->status);
         $this->assertNotNull($selectedDraft->fresh()->published_at);
@@ -208,18 +211,13 @@ class ArticlePublicationTest extends TestCase
         $this->assertSame('draft', $otherSelectedDraft->fresh()->status);
         $this->assertSame('published', $otherUnselectedPublished->fresh()->status);
         $this->assertTrue($otherPublishedAt->equalTo($otherUnselectedPublished->fresh()->published_at));
-        $this->assertSame('published', $superblog->fresh()->status);
+        $this->assertSame('draft', $superblog->fresh()->status);
         $this->assertSame('draft', $otherSuperblog->fresh()->status);
-        $this->actingAs($staff)
-            ->get(route('admin.superblogs.published'))
-            ->assertOk()
-            ->assertSee($superblog->name)
-            ->assertDontSee($otherSuperblog->name);
 
         // A repeated submit is safe and does not reset an existing publication date.
         $publishedAtAfterFirstRun = $selectedPublished->fresh()->published_at;
         $this->post(route('admin.superblogs.articles.publish-selected', $superblog))
-            ->assertSessionHas('status', 'Publicering klar: 0 artiklar publicerades och 0 artiklar drogs tillbaka. Superblocket var redan publicerat.');
+            ->assertSessionHas('status', 'Artikelpublicering klar: 0 artiklar publicerades och 0 artiklar drogs tillbaka. Superbloggens status ändrades inte.');
         $this->assertTrue($publishedAtAfterFirstRun->equalTo($selectedPublished->fresh()->published_at));
     }
 
@@ -244,12 +242,12 @@ class ArticlePublicationTest extends TestCase
         $this->assertSame(['selected' => 1, 'to_publish' => 1, 'to_withdraw' => 1], $summary);
 
         $this->post(route('admin.superblogs.articles.publish-selected', $superblog))
-            ->assertSessionHas('status', 'Publicering klar: 1 artikel publicerades och 1 artikel drogs tillbaka. Superblocket publicerades.');
+            ->assertSessionHas('status', 'Artikelpublicering klar: 1 artikel publicerades och 1 artikel drogs tillbaka. Superbloggens status ändrades inte.');
 
         $this->assertSame('published', $selectedDraft->fresh()->status);
         $this->assertSame('draft', $unselectedDraft->fresh()->status);
         $this->assertSame('draft', $unselectedPublished->fresh()->status);
-        $this->assertSame('published', $superblog->fresh()->status);
+        $this->assertSame('draft', $superblog->fresh()->status);
     }
 
     public function test_unauthorized_user_cannot_open_or_run_batch_publication(): void
@@ -272,7 +270,7 @@ class ArticlePublicationTest extends TestCase
 
     public function test_batch_publication_rolls_back_articles_if_publishing_the_superblog_fails(): void
     {
-        [$staff, $superblog] = $this->makeAssignedSuperblog();
+        [$staff, $superblog] = $this->makeAdminSuperblog();
         $selectedDraft = $this->makeArticle($superblog, 'Would publish', selected: true);
         $unselectedPublished = $this->makeArticle($superblog, 'Would withdraw', status: 'published', publishedAt: now()->subDay());
         $failureInjected = false;
@@ -308,6 +306,20 @@ class ArticlePublicationTest extends TestCase
 
         $this->assertSame('published', $selected->fresh()->status);
         $this->assertSame('draft', $withdrawn->fresh()->status);
+        $this->assertSame('draft', $superblog->fresh()->status);
+    }
+
+    public function test_admin_can_publish_the_whole_superblog_with_selected_articles(): void
+    {
+        [$admin, $superblog] = $this->makeAdminSuperblog();
+        $article = $this->makeArticle($superblog, 'Admin selected article', selected: true);
+
+        $this->actingAs($admin)
+            ->post(route('admin.superblogs.articles.publish-selected', $superblog))
+            ->assertSessionHas('status', 'Artikelpublicering klar: 1 artikel publicerades och 0 artiklar drogs tillbaka. Superblocket publicerades.');
+
+        $this->assertSame('published', $article->fresh()->status);
+        $this->assertSame('published', $superblog->fresh()->status);
     }
 
     private function makeAssignedSuperblog(): array
@@ -318,6 +330,14 @@ class ArticlePublicationTest extends TestCase
         $superblog->staff()->attach($staff->getKey());
 
         return [$staff, $superblog];
+    }
+
+    private function makeAdminSuperblog(): array
+    {
+        $admin = $this->makeApprovedUser(superAdmin: true);
+        $superblog = $this->makeSuperblog($admin, 'Admin Publication Superblog');
+
+        return [$admin, $superblog];
     }
 
     private function makeSuperblog(User $owner, string $name): Superblog

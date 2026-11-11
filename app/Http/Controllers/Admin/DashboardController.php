@@ -14,14 +14,24 @@ class DashboardController extends Controller
     {
         Gate::authorize('viewAny', Superblog::class);
 
-        // Each group paginates on its own page parameter so one list can be browsed without resetting the other.
-        return view('admin.dashboard', [
-            'published' => $this->superblogs($request)->where('status', 'published')
-                ->paginate(20, pageName: 'publicerade')->withQueryString(),
-            // Everything that is not published counts as under construction, so an unexpected status never hides a Superblog.
-            'drafts' => $this->superblogs($request)->where('status', '!=', 'published')
-                ->paginate(20, pageName: 'utkast')->withQueryString(),
-        ]);
+        $isAdmin = $request->user()->is_super_admin === true;
+        $dashboard = ['isAdmin' => $isAdmin];
+
+        if ($isAdmin) {
+            // Admins retain separate lists and independent pagination for live and draft sites.
+            $dashboard += [
+                'published' => $this->superblogs($request)->where('status', 'published')
+                    ->paginate(20, pageName: 'publicerade')->withQueryString(),
+                // Everything not live remains visible in the admin's under-construction list.
+                'drafts' => $this->superblogs($request)->where('status', '!=', 'published')
+                    ->paginate(20, pageName: 'utkast')->withQueryString(),
+            ];
+        } else {
+            // Editors use one list so assigned sites are not split by publication state.
+            $dashboard['superblogs'] = $this->superblogs($request)->paginate(20)->withQueryString();
+        }
+
+        return view('admin.dashboard', $dashboard);
     }
 
     public function published(Request $request): View

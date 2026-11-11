@@ -42,7 +42,6 @@ class User extends Authenticatable
         }
 
         return $this->is_super_admin
-            || $this->has_all_superblogs_access
             || $this->assignedSuperblogs()->whereKey($superblog->getKey())->exists();
     }
 
