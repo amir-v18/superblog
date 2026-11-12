@@ -8,7 +8,7 @@
     <p class="mt-2 text-studio-muted">{{ $rssSource->name }} · {{ $superblog->name }}</p>
     <div class="mt-6 rounded-xl border border-studio-bad/40 bg-studio-panel p-6">
         <p><strong>{{ $rssItem->title }}</strong></p>
-        <p class="mt-2">This permanently deletes the downloaded item and its associated article, if one exists.</p>
+        <p class="mt-2">This permanently deletes the downloaded item. Any article created from it will be kept.</p>
         <form method="POST" action="{{ route('admin.superblogs.rss-sources.items.destroy', [$superblog, $rssSource, $rssItem]) }}" class="mt-6 flex items-center gap-4">
             @csrf
             @method('DELETE')

@@ -15,7 +15,7 @@ class SaveArticleRequest extends FormRequest
         $superblog = $this->route('superblog');
         $article = $this->route('article');
 
-        if (! ($superblog instanceof Superblog) || ! $this->user()->can('update', $superblog)) {
+        if (! ($superblog instanceof Superblog) || ! $this->user()->can('manageArticles', $superblog)) {
             return false;
         }
 

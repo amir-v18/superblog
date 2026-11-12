@@ -25,10 +25,15 @@ class SuperblogPolicy
 
     public function update(User $user, Superblog $superblog): bool
     {
-        return $user->canAccessSuperblog($superblog);
+        return $user->canAccessAdmin() && $user->is_super_admin === true;
     }
 
     public function delete(User $user, Superblog $superblog): bool
+    {
+        return $this->update($user, $superblog);
+    }
+
+    public function manageArticles(User $user, Superblog $superblog): bool
     {
         return $user->canAccessSuperblog($superblog);
     }

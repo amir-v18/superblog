@@ -45,7 +45,7 @@ class ArticleController extends Controller
 
     public function create(Superblog $superblog): View
     {
-        Gate::authorize('update', $superblog);
+        Gate::authorize('manageArticles', $superblog);
 
         $article = new Article([
             'status' => 'draft',
@@ -143,12 +143,15 @@ class ArticleController extends Controller
 
     public function publishSelected(Superblog $superblog, SuperblogPublishingReadiness $publishingReadiness): RedirectResponse
     {
-        Gate::authorize('update', $superblog);
+        Gate::authorize('manageArticles', $superblog);
+        $canPublishSuperblog = Gate::allows('update', $superblog);
         $publishedAt = now();
 
-        [$published, $withdrawn, $wasAlreadyPublished] = DB::transaction(function () use ($superblog, $publishedAt, $publishingReadiness): array {
+        [$published, $withdrawn, $wasAlreadyPublished] = DB::transaction(function () use ($superblog, $publishedAt, $publishingReadiness, $canPublishSuperblog): array {
             $lockedSuperblog = Superblog::query()->lockForUpdate()->findOrFail($superblog->getKey());
-            $publishingReadiness->validate($lockedSuperblog);
+            if ($canPublishSuperblog) {
+                $publishingReadiness->validate($lockedSuperblog);
+            }
             $wasAlreadyPublished = $lockedSuperblog->status === 'published';
 
             // Restrict each update to articles whose status actually needs to change; repeated requests are safe.
@@ -177,7 +180,7 @@ class ArticleController extends Controller
                 ]);
             }
 
-            if (! $wasAlreadyPublished) {
+            if ($canPublishSuperblog && ! $wasAlreadyPublished) {
                 $lockedSuperblog->update(['status' => 'published']);
             }
 
@@ -186,15 +189,17 @@ class ArticleController extends Controller
 
         $publishedMessage = $published === 1 ? '1 artikel publicerades' : "{$published} artiklar publicerades";
         $withdrawnMessage = $withdrawn === 1 ? '1 artikel drogs tillbaka' : "{$withdrawn} artiklar drogs tillbaka";
-        $superblogMessage = $wasAlreadyPublished ? 'Superblocket var redan publicerat.' : 'Superblocket publicerades.';
+        $superblogMessage = ! $canPublishSuperblog
+            ? 'Superbloggens status ändrades inte.'
+            : ($wasAlreadyPublished ? 'Superblocket var redan publicerat.' : 'Superblocket publicerades.');
 
         return to_route('admin.superblogs.edit', [$superblog, 'flik' => 'publicera'])
-            ->with('status', "Publicering klar: {$publishedMessage} och {$withdrawnMessage}. {$superblogMessage}");
+            ->with('status', "Artikelpublicering klar: {$publishedMessage} och {$withdrawnMessage}. {$superblogMessage}");
     }
 
     public function createFromRssItem(Superblog $superblog, RssSource $rssSource, RssItem $rssItem): RedirectResponse
     {
-        Gate::authorize('update', $superblog);
+        Gate::authorize('manageArticles', $superblog);
 
         try {
             [$article, $wasExisting] = DB::transaction(function () use ($superblog, $rssSource, $rssItem): array {
@@ -241,7 +246,7 @@ class ArticleController extends Controller
 
     public function edit(Superblog $superblog, Article $article): View
     {
-        Gate::authorize('update', $superblog);
+        Gate::authorize('manageArticles', $superblog);
         $article = $this->articleForSuperblog($superblog, $article);
 
         return view('admin.articles.edit', [
@@ -253,7 +258,7 @@ class ArticleController extends Controller
 
     public function destroy(Request $request, Superblog $superblog, Article $article): RedirectResponse|JsonResponse
     {
-        Gate::authorize('update', $superblog);
+        Gate::authorize('manageArticles', $superblog);
 
         [$sectionKey, $currentPage] = DB::transaction(function () use ($request, $superblog, $article): array {
             $lockedSuperblog = Superblog::query()->lockForUpdate()->findOrFail($superblog->getKey());
@@ -295,7 +300,7 @@ class ArticleController extends Controller
 
     public function publish(Superblog $superblog, Article $article): RedirectResponse
     {
-        Gate::authorize('update', $superblog);
+        Gate::authorize('manageArticles', $superblog);
 
         DB::transaction(function () use ($superblog, $article): void {
             $article = $this->articleForSuperblog($superblog, $article, lock: true);

@@ -91,7 +91,7 @@ class StaffAssignmentTest extends TestCase
 
         $this->actingAs($staff)
             ->get(route('admin.superblogs.edit', $assigned))
-            ->assertOk();
+            ->assertRedirect(route('admin.superblogs.edit', [$assigned, 'flik' => 'innehall']));
         $this->get(route('admin.superblogs.edit', $unassigned))->assertForbidden();
 
         $staff->approval_status = 'pending';
@@ -108,7 +108,7 @@ class StaffAssignmentTest extends TestCase
         $this->assertTrue($owner->fresh()->canAccessSuperblog($unassigned));
     }
 
-    public function test_invalid_superblog_ids_and_broader_access_accounts_cannot_be_assigned(): void
+    public function test_invalid_superblog_ids_are_rejected_and_legacy_all_access_can_be_replaced_by_assignments(): void
     {
         $admin = $this->makeUser(approved: true, superAdmin: true);
         $staff = $this->makeUser(approved: true);
@@ -129,11 +129,25 @@ class StaffAssignmentTest extends TestCase
         $allAccessStaff->has_all_superblogs_access = true;
         $allAccessStaff->save();
 
+        $this->assertFalse($allAccessStaff->canAccessSuperblog($superblog));
+        $this->assertSame([], Superblog::accessibleTo($allAccessStaff)->pluck('id')->all());
+
+        $this->actingAs($admin)
+            ->get(route('admin.staff.index'))
+            ->assertOk()
+            ->assertSee('This account has a legacy all-Superblog flag.')
+            ->assertSee('Save assignments');
+
         $this->post(route('admin.staff.update', $allAccessStaff), [
             'action' => 'assign',
             'assignments' => [$superblog->id],
-        ])->assertSessionHasErrors('assignments');
-        $this->assertDatabaseMissing('superblog_user', ['user_id' => $allAccessStaff->id]);
+        ])->assertRedirect(route('admin.staff.index'));
+        $this->assertDatabaseHas('superblog_user', [
+            'user_id' => $allAccessStaff->id,
+            'superblog_id' => $superblog->id,
+        ]);
+        $this->assertFalse($allAccessStaff->fresh()->has_all_superblogs_access);
+        $this->assertTrue($allAccessStaff->fresh()->canAccessSuperblog($superblog));
 
         $this->post(route('admin.staff.update', $admin), [
             'action' => 'assign',

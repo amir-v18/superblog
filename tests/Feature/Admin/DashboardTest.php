@@ -28,6 +28,11 @@ class DashboardTest extends TestCase
 
         $this->assertSame(['Live Blog'], $response->viewData('published')->pluck('name')->all());
         $this->assertSame(['Draft Blog'], $response->viewData('drafts')->pluck('name')->all());
+        $this->assertTrue($response->viewData('isAdmin'));
+        $response->assertSee('Publicerade sajter')->assertSee('Under uppbyggnad');
+        $adminNavigation = Str::between($response->getContent(), '<nav aria-label="Huvudmeny"', '</nav>');
+        $this->assertStringContainsString('Publicerade', $adminNavigation);
+        $this->assertStringContainsString('UNDER UPPBYGGNAD', $adminNavigation);
 
         $card = $response->viewData('published')->first();
         $this->assertSame(1, $card->rss_sources_count);
@@ -38,14 +43,31 @@ class DashboardTest extends TestCase
     {
         $admin = $this->makeUser(approved: true, superAdmin: true);
         $staff = $this->makeUser(approved: true);
-        $assigned = $this->makeSuperblog($admin, 'Assigned Blog', 'draft');
-        $this->makeSuperblog($admin, 'Other Blog', 'draft');
-        $assigned->staff()->attach($staff);
+        $assignedLive = $this->makeSuperblog($admin, 'Assigned Live Blog', 'published');
+        $assignedDraft = $this->makeSuperblog($admin, 'Assigned Draft Blog', 'draft');
+        $this->makeSuperblog($admin, 'Other Blog', 'published');
+        $assignedLive->staff()->attach($staff);
+        $assignedDraft->staff()->attach($staff);
 
-        $this->actingAs($staff)->get(route('admin.dashboard'))
+        $response = $this->actingAs($staff)->get(route('admin.dashboard'))
             ->assertOk()
-            ->assertSee('Assigned Blog')
-            ->assertDontSee('Other Blog');
+            ->assertSee('Assigned Live Blog')
+            ->assertSee('Assigned Draft Blog')
+            ->assertDontSee('Other Blog')
+            ->assertDontSee('Publicerade sajter')
+            ->assertDontSee('Under uppbyggnad');
+
+        $editorNavigation = Str::between($response->getContent(), '<nav aria-label="Huvudmeny"', '</nav>');
+        $this->assertSame(1, substr_count($editorNavigation, 'href="'.route('admin.dashboard').'"'));
+        $this->assertStringNotContainsString('Publicerade', $editorNavigation);
+        $this->assertStringNotContainsString('UNDER UPPBYGGNAD', $editorNavigation);
+        $this->assertStringNotContainsString('href="'.route('admin.superblogs.published').'"', $editorNavigation);
+
+        $this->assertFalse($response->viewData('isAdmin'));
+        $this->assertEqualsCanonicalizing(
+            ['Assigned Draft Blog', 'Assigned Live Blog'],
+            $response->viewData('superblogs')->pluck('name')->all(),
+        );
     }
 
     public function test_create_modal_is_shown_only_to_users_who_can_create(): void
@@ -156,16 +178,24 @@ class DashboardTest extends TestCase
             ->assertSee('<meta name="robots" content="noindex, nofollow">', false);
     }
 
-    public function test_assigned_editor_sees_the_rss_link_on_the_card(): void
+    public function test_assigned_editor_can_open_the_blog_and_see_the_read_only_rss_content_link(): void
     {
         $admin = $this->makeUser(approved: true, superAdmin: true);
         $editor = $this->makeUser(approved: true);
         $superblog = $this->makeSuperblog($admin, 'Assigned Blog', 'draft');
         $superblog->staff()->attach($editor);
 
-        $this->actingAs($editor)->get(route('admin.dashboard'))
+        $response = $this->actingAs($editor)->get(route('admin.dashboard'))
             ->assertOk()
-            ->assertSee(route('admin.superblogs.rss-sources.index', $superblog), false);
+            ->assertSee(route('admin.superblogs.edit', [$superblog, 'flik' => 'innehall']), false)
+            ->assertSee(route('admin.superblogs.rss-sources.index', $superblog), false)
+            ->assertSee('RSS-innehåll');
+
+        $sidebar = Str::before($response->getContent(), '<main id="main"');
+        $this->assertSame(1, substr_count($sidebar, '>Översikt</a>'));
+        $this->assertStringNotContainsString('Publicerade', $sidebar);
+        $this->assertStringNotContainsString('UPPBYGGNAD', $sidebar);
+        $this->assertStringNotContainsString($superblog->name, $sidebar);
     }
 
     public function test_unapproved_users_cannot_open_the_dashboard(): void

@@ -89,7 +89,7 @@ class RssSourceController extends Controller
         $this->sourceForSuperblog($superblog, $rssSource)->delete();
 
         return $this->redirectAfterAction($request, $superblog)
-            ->with('status', 'RSS source deleted.');
+            ->with('status', 'RSS source deleted. Its items were removed; any associated articles were kept.');
     }
 
     public function fetch(Request $request, Superblog $superblog, RssSource $rssSource, RssFeedFetcher $fetcher): RedirectResponse
@@ -136,7 +136,7 @@ class RssSourceController extends Controller
         $this->itemForSource($rssSource, $rssItem)->delete();
 
         return to_route('admin.superblogs.rss-sources.items.index', [$superblog, $rssSource])
-            ->with('status', 'RSS item and its associated article deleted.');
+            ->with('status', 'RSS item deleted. Any article created from it was kept.');
     }
 
     public function confirmClearItems(Superblog $superblog, RssSource $rssSource): View
@@ -154,7 +154,7 @@ class RssSourceController extends Controller
         $deleted = $rssSource->rssItems()->delete();
 
         return to_route('admin.superblogs.rss-sources.items.index', [$superblog, $rssSource])
-            ->with('status', "Deleted {$deleted} RSS ".str('item')->plural($deleted).' and their associated articles.');
+            ->with('status', "Deleted {$deleted} RSS ".str('item')->plural($deleted).'. Any associated articles were kept.');
     }
 
     // Compares against a fixed value, so a request can never choose its own redirect target.

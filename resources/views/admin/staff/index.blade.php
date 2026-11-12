@@ -63,11 +63,12 @@
 
                     @if ($member->is_super_admin)
                         <p class="mt-4 text-sm text-studio-muted">Super-admin access: all Superblogs.</p>
-                    @elseif ($member->has_all_superblogs_access)
-                        <p class="mt-4 text-sm text-studio-muted">All-Superblogs access is enabled for this account.</p>
                     @else
                         <div class="mt-4 rounded-lg border border-studio-line p-4">
                             <h4 class="font-medium">Superblog assignments</h4>
+                            @if ($member->has_all_superblogs_access)
+                                <p class="mt-2 text-sm text-amber-700">This account has a legacy all-Superblog flag. Saving assignments below replaces that access with the selected Superblogs.</p>
+                            @endif
                             <p class="mt-1 text-sm text-studio-muted">Currently assigned:</p>
                             <ul class="mt-1 list-inside list-disc text-sm text-studio-muted">
                                 @forelse ($member->assignedSuperblogs as $assignedSuperblog)

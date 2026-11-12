@@ -40,15 +40,32 @@
             <nav aria-label="Huvudmeny" class="flex flex-col gap-0.5 overflow-auto lg:flex-1">
                 <a href="{{ route('admin.dashboard') }}" @if (request()->routeIs('admin.dashboard')) aria-current="page" @endif class="{{ $navItemClasses }}">Översikt</a>
 
-                {{-- The section only appears when this user has live Superblogs to open. --}}
-                @if ($sidebarPublished->isNotEmpty())
-                    <a href="{{ route('admin.superblogs.published') }}" @if (request()->routeIs('admin.superblogs.published')) aria-current="page" @endif class="{{ $navItemClasses }}">Publicerade</a>
-                    @foreach ($sidebarPublished as $superblog)
+                @if ($sidebarIsAdmin)
+                    {{-- Admins keep status-based shortcuts; editors open every assignment from Översikt. --}}
+                    @if ($sidebarPublished->isNotEmpty())
+                        <a href="{{ route('admin.superblogs.published') }}" @if (request()->routeIs('admin.superblogs.published')) aria-current="page" @endif class="{{ $navItemClasses }}">Publicerade</a>
+                        @foreach ($sidebarPublished as $superblog)
+                            @php
+                                $themeName = App\Support\Theme::nameFor($superblog);
+                            @endphp
+                            <a href="{{ route('admin.superblogs.edit', $superblog) }}" @if ($superblog->getKey() == $currentSuperblogId) aria-current="page" @endif class="{{ $navItemClasses }} pl-6">
+                                {{-- data-theme scopes the theme's CSS variables to the dot, so bg-primary is the magazine's own color. --}}
+                                @if ($themeName)
+                                    <i data-theme="{{ $themeName }}" aria-hidden="true" class="size-2.5 shrink-0 rounded-[3px] bg-primary"></i>
+                                @else
+                                    <i aria-hidden="true" class="size-2.5 shrink-0 rounded-[3px] bg-studio-side-mark"></i>
+                                @endif
+                                <span class="truncate">{{ $superblog->name }}</span>
+                            </a>
+                        @endforeach
+                    @endif
+
+                    <p class="{{ $navLabelClasses }}">UNDER UPPBYGGNAD</p>
+                    @foreach ($sidebarDrafts as $superblog)
                         @php
-                            $themeName = App\Support\Theme::nameFor($superblog);
+                            $themeName = App\Support\Theme::name($superblog->settings['theme'] ?? null);
                         @endphp
-                        <a href="{{ route('admin.superblogs.edit', $superblog) }}" @if ($superblog->getKey() == $currentSuperblogId) aria-current="page" @endif class="{{ $navItemClasses }} pl-6">
-                            {{-- data-theme scopes the theme's CSS variables to the dot, so bg-primary is the magazine's own color. --}}
+                        <a href="{{ route('admin.superblogs.edit', $superblog) }}" @if ($superblog->getKey() == $currentSuperblogId) aria-current="page" @endif class="{{ $navItemClasses }}">
                             @if ($themeName)
                                 <i data-theme="{{ $themeName }}" aria-hidden="true" class="size-2.5 shrink-0 rounded-[3px] bg-primary"></i>
                             @else
@@ -58,21 +75,6 @@
                         </a>
                     @endforeach
                 @endif
-
-                <p class="{{ $navLabelClasses }}">UNDER UPPBYGGNAD</p>
-                @foreach ($sidebarDrafts as $superblog)
-                    @php
-                        $themeName = App\Support\Theme::name($superblog->settings['theme'] ?? null);
-                    @endphp
-                    <a href="{{ route('admin.superblogs.edit', $superblog) }}" @if ($superblog->getKey() == $currentSuperblogId) aria-current="page" @endif class="{{ $navItemClasses }}">
-                        @if ($themeName)
-                            <i data-theme="{{ $themeName }}" aria-hidden="true" class="size-2.5 shrink-0 rounded-[3px] bg-primary"></i>
-                        @else
-                            <i aria-hidden="true" class="size-2.5 shrink-0 rounded-[3px] bg-studio-side-mark"></i>
-                        @endif
-                        <span class="truncate">{{ $superblog->name }}</span>
-                    </a>
-                @endforeach
 
                 @can('create', App\Models\Superblog::class)
                     {{-- Opens the modal at the end of this layout; without JS it is a normal link to the fallback page. --}}

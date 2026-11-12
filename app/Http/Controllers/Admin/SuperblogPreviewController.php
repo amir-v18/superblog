@@ -16,7 +16,6 @@ class SuperblogPreviewController extends Controller
     public function __invoke(Superblog $superblog, SuperblogHomeContent $homeContent): Response
     {
         Gate::authorize('view', $superblog);
-        Gate::authorize('update', $superblog);
 
         // The header also covers non-HTML crawlers; the meta tag in the template is a second line of defence.
         return response()

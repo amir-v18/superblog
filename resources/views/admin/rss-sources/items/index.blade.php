@@ -41,7 +41,7 @@
                 @if ($rssItem->summary || $rssItem->content)
                     <p class="mt-3 whitespace-pre-line text-sm text-studio-muted">{{ \Illuminate\Support\Str::limit(strip_tags($rssItem->summary ?: $rssItem->content), 500) }}</p>
                 @endif
-                @can('update', $superblog)
+                @can('manageArticles', $superblog)
                     <div class="mt-4 flex flex-wrap items-center gap-4">
                         @if ($rssItem->article)
                             <a href="{{ route('admin.superblogs.articles.edit', [$superblog, $rssItem->article]) }}" class="text-sm font-medium underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-studio-brand">Edit draft article</a>
@@ -51,8 +51,10 @@
                                 <button type="submit" class="rounded-lg bg-studio-brand px-3 py-2 text-sm font-medium text-studio-on-brand hover:bg-studio-brand-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-studio-brand">Create article</button>
                             </form>
                         @endif
-                        <a href="{{ route('admin.superblogs.rss-sources.items.delete', [$superblog, $rssSource, $rssItem]) }}" class="text-sm text-studio-bad underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-studio-brand">Delete item</a>
                     </div>
+                @endcan
+                @can('update', $superblog)
+                    <a href="{{ route('admin.superblogs.rss-sources.items.delete', [$superblog, $rssSource, $rssItem]) }}" class="mt-4 inline-block text-sm text-studio-bad underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-studio-brand">Delete item</a>
                 @endcan
             </article>
         @empty

@@ -2,7 +2,9 @@
 
 @php
     $isLive = $superblog->status === 'published';
-    $canEdit = auth()->user()->can('update', $superblog);
+    $canOpen = auth()->user()->can('view', $superblog);
+    $canManageSettings = auth()->user()->can('update', $superblog);
+    $builderUrl = route('admin.superblogs.edit', $canManageSettings ? $superblog : [$superblog, 'flik' => 'innehall']);
     // settings is already loaded with the row; Theme::nameFor() returns null for a missing or unknown theme.
     $themeName = \App\Support\Theme::nameFor($superblog);
     // withMax returns a raw string, not a cast date. Swedish only here, since the app locale is English.
@@ -10,13 +12,13 @@
     $lastFetched = $lastFetchedAt
         ? ucfirst(\Illuminate\Support\Carbon::parse($lastFetchedAt)->locale('sv')->diffForHumans())
         : 'Aldrig';
-    // The same classes on both tags, so a card without edit access looks identical but is not clickable.
+    // The same classes on both tags, so inaccessible cards look identical but are not clickable.
     $cardClasses = 'block overflow-hidden rounded-xl border border-studio-line bg-studio-panel studio-light:studio-raised';
 @endphp
 
 <div class="flex h-full flex-col">
-    @if ($canEdit)
-        <a href="{{ route('admin.superblogs.edit', $superblog) }}" class="{{ $cardClasses }} flex-1 transition hover:-translate-y-0.5 hover:shadow-[0_10px_28px_var(--color-studio-card-shadow)] studio-focus-ring studio-light:hover:shadow-[0_10px_28px_var(--color-studio-card-shadow)]">
+    @if ($canOpen)
+        <a href="{{ $builderUrl }}" class="{{ $cardClasses }} flex-1 transition hover:-translate-y-0.5 hover:shadow-[0_10px_28px_var(--color-studio-card-shadow)] studio-focus-ring studio-light:hover:shadow-[0_10px_28px_var(--color-studio-card-shadow)]">
     @else
         <div class="{{ $cardClasses }} flex-1">
     @endif
@@ -38,16 +40,18 @@
                 <span>Senast hämtat: {{ $lastFetched }}</span>
             </div>
         </div>
-    @if ($canEdit)
+    @if ($canOpen)
         </a>
     @else
         </div>
     @endif
 
     <div class="mt-2 flex gap-4 text-sm">
-        {{-- Reuses $canEdit: the same update check, without running the policy query again. --}}
-        @if ($canEdit)
+        {{-- RSS source changes are admin-only; assigned editors get a read-only path to source items. --}}
+        @if ($canManageSettings)
             <a href="{{ route('admin.superblogs.rss-sources.index', $superblog) }}" class="underline underline-offset-4 studio-focus-ring" aria-label="RSS-flöden för {{ $superblog->name }}">RSS-flöden</a>
+        @elseif (auth()->user()->can('manageArticles', $superblog))
+            <a href="{{ route('admin.superblogs.rss-sources.index', $superblog) }}" class="underline underline-offset-4 studio-focus-ring" aria-label="RSS-innehåll för {{ $superblog->name }}">RSS-innehåll</a>
         @endif
         @can('delete', $superblog)
             <a href="{{ route('admin.superblogs.delete', $superblog) }}" class="text-studio-bad underline underline-offset-4 studio-focus-ring" aria-label="Ta bort {{ $superblog->name }}">Ta bort</a>
