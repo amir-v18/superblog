@@ -18,7 +18,7 @@ class RssFetchingAndItemsTest extends TestCase
 
     public function test_fetch_imports_original_content_and_repeated_fetch_does_not_duplicate_items(): void
     {
-        $staff = $this->makeUser();
+        $staff = $this->makeUser(isAdmin: true);
         $superblog = $this->makeSuperblog($staff, 'fetch-blog');
         $superblog->staff()->attach($staff->getKey());
         $source = $this->makeSource($superblog);
@@ -56,7 +56,7 @@ class RssFetchingAndItemsTest extends TestCase
 
     public function test_invalid_or_private_feed_targets_are_rejected_without_a_request(): void
     {
-        $staff = $this->makeUser();
+        $staff = $this->makeUser(isAdmin: true);
         $superblog = $this->makeSuperblog($staff, 'private-blog');
         $superblog->staff()->attach($staff->getKey());
         $source = $this->makeSource($superblog, 'http://127.0.0.1/feed.xml');
@@ -84,7 +84,7 @@ class RssFetchingAndItemsTest extends TestCase
 
     public function test_malformed_feed_and_network_failure_show_safe_errors(): void
     {
-        $staff = $this->makeUser();
+        $staff = $this->makeUser(isAdmin: true);
         $superblog = $this->makeSuperblog($staff, 'failure-blog');
         $superblog->staff()->attach($staff->getKey());
         $source = $this->makeSource($superblog);
@@ -104,7 +104,7 @@ class RssFetchingAndItemsTest extends TestCase
 
     public function test_large_and_non_feed_responses_are_rejected(): void
     {
-        $staff = $this->makeUser();
+        $staff = $this->makeUser(isAdmin: true);
         $superblog = $this->makeSuperblog($staff, 'large-feed-blog');
         $superblog->staff()->attach($staff->getKey());
         $source = $this->makeSource($superblog);
@@ -153,7 +153,7 @@ class RssFetchingAndItemsTest extends TestCase
 
     public function test_item_deletion_preserves_published_article_and_only_detaches_the_rss_item(): void
     {
-        $staff = $this->makeUser();
+        $staff = $this->makeUser(isAdmin: true);
         $superblog = $this->makeSuperblog($staff, 'items-blog');
         $superblog->staff()->attach($staff->getKey());
         $source = $this->makeSource($superblog);
@@ -197,7 +197,7 @@ class RssFetchingAndItemsTest extends TestCase
 
     public function test_clearing_items_preserves_published_articles_and_other_source_data(): void
     {
-        $staff = $this->makeUser();
+        $staff = $this->makeUser(isAdmin: true);
         $superblog = $this->makeSuperblog($staff, 'clear-items-blog');
         $superblog->staff()->attach($staff->getKey());
         $source = $this->makeSource($superblog);
@@ -269,11 +269,11 @@ class RssFetchingAndItemsTest extends TestCase
             XML;
     }
 
-    private function makeUser(): User
+    private function makeUser(bool $isAdmin = false): User
     {
         $user = User::factory()->create();
         $user->approval_status = 'approved';
-        $user->is_super_admin = false;
+        $user->is_super_admin = $isAdmin;
         $user->has_all_superblogs_access = false;
         $user->save();
 

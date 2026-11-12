@@ -12,7 +12,9 @@
             <h1 class="text-3xl font-semibold tracking-tight">RSS sources</h1>
             <p class="mt-2 text-studio-muted">{{ $superblog->name }}</p>
         </div>
-        <a href="{{ route('admin.superblogs.rss-sources.create', $superblog) }}" class="rounded-lg bg-studio-brand px-4 py-2 text-sm font-medium text-studio-side hover:bg-[#ff9068] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-studio-brand">Add RSS source</a>
+        @can('update', $superblog)
+            <a href="{{ route('admin.superblogs.rss-sources.create', $superblog) }}" class="rounded-lg bg-studio-brand px-4 py-2 text-sm font-medium text-studio-side hover:bg-[#ff9068] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-studio-brand">Add RSS source</a>
+        @endcan
     </div>
 
     @if ($errors->any())

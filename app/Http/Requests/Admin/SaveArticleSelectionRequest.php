@@ -13,7 +13,7 @@ class SaveArticleSelectionRequest extends FormRequest
         $superblog = $this->route('superblog');
 
         return $superblog instanceof Superblog
-            && $this->user()->can('update', $superblog);
+            && $this->user()->can('manageArticles', $superblog);
     }
 
     public function rules(): array

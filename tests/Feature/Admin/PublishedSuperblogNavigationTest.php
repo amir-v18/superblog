@@ -47,7 +47,7 @@ class PublishedSuperblogNavigationTest extends TestCase
         $response = $this->actingAs($staff)->get(route('admin.superblogs.published'))
             ->assertOk()
             ->assertSee('Assigned live')
-            ->assertSee('href="'.route('admin.superblogs.edit', $accessibleLive).'"', false)
+            ->assertSee('href="'.route('admin.superblogs.edit', [$accessibleLive, 'flik' => 'innehall']).'"', false)
             ->assertDontSee('Unassigned live');
 
         $this->assertSame(['Assigned live'], $response->viewData('superblogs')->pluck('name')->all());
@@ -93,6 +93,31 @@ class PublishedSuperblogNavigationTest extends TestCase
                 ->assertSee('aria-label="Byggarens steg"', false)
                 ->assertDontSee('aria-label="Superblog"', false)
                 ->assertSee('Förhandsvisning av '.$superblog->name);
+        }
+    }
+
+    public function test_assigned_editor_sees_three_renumbered_steps_for_both_draft_and_published_superblogs(): void
+    {
+        $owner = $this->makeUser(superAdmin: true);
+        $editor = $this->makeUser();
+        $draft = $this->makeSuperblog($owner, 'Draft editor view', 'draft');
+        $published = $this->makeSuperblog($owner, 'Live editor view', 'published');
+        $draft->staff()->attach($editor);
+        $published->staff()->attach($editor);
+
+        foreach ([$draft, $published] as $superblog) {
+            $this->actingAs($editor)
+                ->get(route('admin.superblogs.edit', [$superblog, 'flik' => 'innehall']))
+                ->assertOk()
+                ->assertSee('1 Innehåll')
+                ->assertSee('2 Skriv artikel')
+                ->assertSee('3 Publicera')
+                ->assertDontSee('4 Innehåll')
+                ->assertDontSee('5 Skriv artikel')
+                ->assertDontSee('6 Publicera')
+                ->assertDontSee('1 Grund')
+                ->assertDontSee('2 Utseende')
+                ->assertDontSee('3 Flöden');
         }
     }
 

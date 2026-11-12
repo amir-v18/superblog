@@ -143,6 +143,41 @@ class SuperblogBuilderTest extends TestCase
         $this->assertDatabaseHas('superblogs', ['id' => $superblog->id, 'name' => 'Dagens Budbärare']);
     }
 
+    public function test_assigned_editor_gets_only_content_steps_and_cannot_save_settings(): void
+    {
+        $admin = $this->makeUser(approved: true, superAdmin: true);
+        $editor = $this->makeUser(approved: true);
+        $superblog = $this->makeSuperblog($admin);
+        $superblog->staff()->attach($editor->getKey());
+
+        $this->actingAs($editor)
+            ->get(route('admin.superblogs.edit', $superblog))
+            ->assertRedirect(route('admin.superblogs.edit', [$superblog, 'flik' => 'innehall']));
+
+        $this->get(route('admin.superblogs.edit', [$superblog, 'flik' => 'innehall']))
+            ->assertOk()
+            ->assertSee('1 Innehåll')
+            ->assertSee('2 Skriv artikel')
+            ->assertSee('3 Publicera')
+            ->assertDontSee('1 Grund')
+            ->assertDontSee('2 Utseende')
+            ->assertDontSee('3 Flöden');
+
+        $this->get(route('admin.superblogs.edit', [$superblog, 'flik' => 'grund']))
+            ->assertRedirect(route('admin.superblogs.edit', [$superblog, 'flik' => 'innehall']));
+
+        $this->put(route('admin.superblogs.update', $superblog), [
+            'name' => 'Changed by editor',
+            'slug' => 'changed-by-editor',
+            'template_id' => $superblog->template_id,
+        ])->assertForbidden();
+
+        $this->put(route('admin.superblogs.theme.update', $superblog), ['theme' => 'modern'])
+            ->assertForbidden();
+
+        $this->assertSame($superblog->name, $superblog->fresh()->name);
+    }
+
     public function test_empty_magazine_hint_shows_real_counts_until_an_article_is_published(): void
     {
         $admin = $this->makeUser(approved: true, superAdmin: true);

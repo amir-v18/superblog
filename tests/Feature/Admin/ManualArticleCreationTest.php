@@ -20,8 +20,8 @@ class ManualArticleCreationTest extends TestCase
         $this->actingAs($staff)
             ->get(route('admin.superblogs.edit', [$superblog, 'flik' => 'skriv-artikel']))
             ->assertOk()
-            ->assertSee('5 Skriv artikel')
-            ->assertSee('6 Publicera')
+            ->assertSee('2 Skriv artikel')
+            ->assertSee('3 Publicera')
             ->assertSee(route('admin.superblogs.articles.create', $superblog), false);
 
         $this->get(route('admin.superblogs.articles.create', $superblog))

@@ -25,7 +25,7 @@ class CreateSuperblogModalTest extends TestCase
         foreach ([
             route('admin.dashboard'),
             route('admin.templates.index'),
-            route('admin.superblogs.edit', $superblog),
+            route('admin.superblogs.edit', [$superblog, 'flik' => 'innehall']),
             route('admin.superblogs.rss-sources.index', $superblog),
         ] as $url) {
             $this->actingAs($admin)->get($url)
@@ -36,7 +36,7 @@ class CreateSuperblogModalTest extends TestCase
         // Staff may open the same magazine pages, but not create Superblogs.
         foreach ([
             route('admin.dashboard'),
-            route('admin.superblogs.edit', $superblog),
+            route('admin.superblogs.edit', [$superblog, 'flik' => 'innehall']),
             route('admin.superblogs.rss-sources.index', $superblog),
         ] as $url) {
             $this->actingAs($staff)->get($url)

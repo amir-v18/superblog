@@ -12,10 +12,10 @@ class RssSourceManagementTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_assigned_staff_can_list_create_edit_and_delete_rss_sources(): void
+    public function test_admin_can_list_create_edit_and_delete_rss_sources(): void
     {
         $owner = $this->makeUser();
-        $staff = $this->makeUser();
+        $staff = $this->makeUser(isAdmin: true);
         $superblog = $this->makeSuperblog($owner, 'assigned-blog');
         $otherSuperblog = $this->makeSuperblog($owner, 'other-blog');
         $superblog->staff()->attach($staff->getKey());
@@ -112,10 +112,58 @@ class RssSourceManagementTest extends TestCase
         );
     }
 
+    public function test_assigned_editor_can_use_feed_items_for_articles_but_cannot_manage_sources(): void
+    {
+        $owner = $this->makeUser(isAdmin: true);
+        $editor = $this->makeUser();
+        $superblog = $this->makeSuperblog($owner, 'editor-feed-blog');
+        $superblog->staff()->attach($editor->getKey());
+        $source = $superblog->rssSources()->create([
+            'name' => 'Editor feed',
+            'url' => 'https://example.com/editor.xml',
+            'is_active' => true,
+        ]);
+        $item = $source->rssItems()->create([
+            'title' => 'Source article',
+            'url' => 'https://example.com/source-article',
+            'content' => 'Original source content',
+        ]);
+
+        $this->actingAs($editor)
+            ->get(route('admin.superblogs.rss-sources.index', $superblog))
+            ->assertOk()
+            ->assertSee('Editor feed')
+            ->assertDontSee('Add RSS source')
+            ->assertDontSee('Fetch now');
+
+        $this->get(route('admin.superblogs.rss-sources.items.index', [$superblog, $source]))
+            ->assertOk()
+            ->assertSee('Source article')
+            ->assertSee('Create article');
+
+        $this->get(route('admin.superblogs.rss-sources.create', $superblog))->assertForbidden();
+        $this->post(route('admin.superblogs.rss-sources.store', $superblog), [
+            'name' => 'Unauthorized feed',
+            'url' => 'https://example.com/unauthorized.xml',
+            'is_active' => '1',
+        ])->assertForbidden();
+        $this->get(route('admin.superblogs.rss-sources.edit', [$superblog, $source]))->assertForbidden();
+        $this->post(route('admin.superblogs.rss-sources.fetch', [$superblog, $source]))->assertForbidden();
+        $this->delete(route('admin.superblogs.rss-sources.destroy', [$superblog, $source]))->assertForbidden();
+
+        $this->post(route('admin.superblogs.rss-sources.items.article.store', [$superblog, $source, $item]))
+            ->assertRedirect();
+        $this->assertDatabaseHas('articles', [
+            'superblog_id' => $superblog->getKey(),
+            'rss_item_id' => $item->getKey(),
+            'source_type' => 'rss',
+        ]);
+    }
+
     public function test_source_validation_rejects_missing_fields_invalid_urls_and_duplicates_per_superblog(): void
     {
         $owner = $this->makeUser();
-        $staff = $this->makeUser();
+        $staff = $this->makeUser(isAdmin: true);
         $superblog = $this->makeSuperblog($owner, 'validation-blog');
         $otherSuperblog = $this->makeSuperblog($owner, 'validation-other-blog');
         $superblog->staff()->attach($staff->getKey());
@@ -223,11 +271,11 @@ class RssSourceManagementTest extends TestCase
         ]);
     }
 
-    private function makeUser(): User
+    private function makeUser(bool $isAdmin = false): User
     {
         $user = User::factory()->create();
         $user->approval_status = 'approved';
-        $user->is_super_admin = false;
+        $user->is_super_admin = $isAdmin;
         $user->has_all_superblogs_access = false;
         $user->save();
 

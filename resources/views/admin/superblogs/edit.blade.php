@@ -10,9 +10,15 @@
     @php
         // Tabs are plain links with ?flik=..., so only the active tab is rendered and no JS is needed.
         // Each implemented step is a query-string tab with its own content branch below.
-        $publicationTab = $superblog->status === 'published' ? '6 Avpublicera' : '6 Publicera';
-        $tabs = ['grund' => '1 Grund', 'utseende' => '2 Utseende', 'floden' => '3 Flöden', 'innehall' => '4 Innehåll', 'skriv-artikel' => '5 Skriv artikel', 'publicera' => $publicationTab];
-        $tab = in_array(request()->query('flik'), array_keys($tabs), true) ? request()->query('flik') : 'grund';
+        $canManageSettings = $canManageSettings ?? false;
+        $publicationTab = $canManageSettings && $superblog->status === 'published' ? '6 Avpublicera' : ($canManageSettings ? '6 Publicera' : '3 Publicera');
+        $tabs = $canManageSettings
+            ? ['innehall' => '4 Innehåll', 'skriv-artikel' => '5 Skriv artikel', 'publicera' => $publicationTab]
+            : ['innehall' => '1 Innehåll', 'skriv-artikel' => '2 Skriv artikel', 'publicera' => $publicationTab];
+        if ($canManageSettings) {
+            $tabs = ['grund' => '1 Grund', 'utseende' => '2 Utseende', 'floden' => '3 Flöden'] + $tabs;
+        }
+        $tab = in_array(request()->query('flik'), array_keys($tabs), true) ? request()->query('flik') : ($canManageSettings ? 'grund' : 'innehall');
         $tabClasses = 'block whitespace-nowrap border-b-2 border-transparent px-2 py-[13px] text-center text-xs font-semibold text-studio-muted hover:text-studio-ink aria-[current=page]:border-studio-brand aria-[current=page]:text-studio-brand focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-studio-brand';
         // The layout's "Nytt magasin" modal posts name, domain and template_id too, and old input is shared by
         // every form on the page. After a failed modal submit, its errors and values belong to the modal only.
@@ -30,7 +36,7 @@
     </header>
 
     <div class="lg:grid lg:min-h-0 lg:flex-1 lg:grid-cols-[390px_minmax(0,1fr)]">
-        <section aria-label="Inställningar" class="flex flex-col border-studio-line bg-studio-side lg:min-h-0 lg:border-r">
+        <section aria-label="Superblog steps" class="flex flex-col border-studio-line bg-studio-side lg:min-h-0 lg:border-r">
             <nav aria-label="Byggarens steg" class="border-b border-studio-line">
                 <ul class="grid grid-cols-3">
                     @foreach ($tabs as $key => $label)
@@ -188,12 +194,11 @@
                     </section>
                 @elseif ($tab === 'publicera')
                     <section aria-labelledby="publish-heading">
-                        <aside aria-label="Tillfällig information om publiceringsinställningar" class="mb-5 rounded-lg border border-studio-line bg-studio-panel p-4">
-                            <h2 class="text-sm font-semibold">Slutlig publiceringskonfiguration återstår</h2>
-                            <p class="mt-1 text-sm text-studio-muted">Domän, DNS och hosting konfigureras när vi har fått de uppgifter som behövs. Den här delen av inställningarna är tillfällig och ännu inte färdigställd.</p>
-                        </aside>
-
-                        @if ($superblog->status === 'published')
+                        @if ($canManageSettings && $superblog->status === 'published')
+                            <aside aria-label="Tillfällig information om publiceringsinställningar" class="mb-5 rounded-lg border border-studio-line bg-studio-panel p-4">
+                                <h2 class="text-sm font-semibold">Slutlig publiceringskonfiguration återstår</h2>
+                                <p class="mt-1 text-sm text-studio-muted">Domän, DNS och hosting konfigureras när vi har fått de uppgifter som behövs. Den här delen av inställningarna är tillfällig och ännu inte färdigställd.</p>
+                            </aside>
                             <h2 id="publish-heading" class="text-lg font-semibold">Avpublicera Superblog</h2>
                             <p class="mt-1 text-sm text-studio-muted">Detta tar hela Superblocket offline. Artiklarna behåller sin publiceringsstatus och sina publiceringsdatum, och förhandsvisningen finns kvar i byggaren.</p>
 
@@ -202,8 +207,20 @@
                                 <button type="submit" class="rounded-lg border border-red-300 px-4 py-2 text-sm font-semibold text-red-700 hover:bg-red-50 studio-focus-ring">Avpublicera</button>
                             </form>
                         @else
-                            <h2 id="publish-heading" class="text-lg font-semibold">Publicera innehåll</h2>
-                            <p class="mt-1 text-sm text-studio-muted">Publicera tillämpar det sparade urvalet från Innehåll. Spara ändrade kryssrutor där innan du fortsätter. Valda utkast publiceras och publicerade artiklar som inte längre är valda dras tillbaka. Superblocket markeras som publicerat.</p>
+                            @if ($canManageSettings)
+                                <aside aria-label="Tillfällig information om publiceringsinställningar" class="mb-5 rounded-lg border border-studio-line bg-studio-panel p-4">
+                                    <h2 class="text-sm font-semibold">Slutlig publiceringskonfiguration återstår</h2>
+                                    <p class="mt-1 text-sm text-studio-muted">Domän, DNS och hosting konfigureras när vi har fått de uppgifter som behövs. Den här delen av inställningarna är tillfällig och ännu inte färdigställd.</p>
+                                </aside>
+                            @endif
+                            <h2 id="publish-heading" class="text-lg font-semibold">{{ $canManageSettings ? 'Publicera innehåll' : 'Publicera artiklar' }}</h2>
+                            <p class="mt-1 text-sm text-studio-muted">
+                                @if ($canManageSettings)
+                                    Publicera tillämpar det sparade urvalet från Innehåll. Spara ändrade kryssrutor där innan du fortsätter. Valda utkast publiceras och publicerade artiklar som inte längre är valda dras tillbaka. Superblocket markeras som publicerat.
+                                @else
+                                    Publicera tillämpar det sparade urvalet från Innehåll på enskilda artiklar. Superbloggens publiceringsstatus ändras inte här.
+                                @endif
+                            </p>
 
                             @if ($publicationErrors !== [])
                                 @php
@@ -237,7 +254,7 @@
 
                             <form method="POST" action="{{ route('admin.superblogs.articles.publish-selected', $superblog) }}" class="mt-5">
                                 @csrf
-                                <button type="submit" @disabled($publicationErrors !== []) class="rounded-lg bg-studio-brand px-4 py-2 text-sm font-semibold text-studio-side hover:bg-studio-brand-hover studio-focus-ring disabled:cursor-not-allowed disabled:opacity-50">Publicera</button>
+                                <button type="submit" @disabled($publicationErrors !== []) class="rounded-lg bg-studio-brand px-4 py-2 text-sm font-semibold text-studio-side hover:bg-studio-brand-hover studio-focus-ring disabled:cursor-not-allowed disabled:opacity-50">{{ $canManageSettings ? 'Publicera' : 'Publicera valda artiklar' }}</button>
                             </form>
                         @endif
                     </section>

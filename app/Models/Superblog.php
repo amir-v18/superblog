@@ -30,7 +30,7 @@ class Superblog extends Model
             return $query->whereRaw('1 = 0');
         }
 
-        if ($user->is_super_admin || $user->has_all_superblogs_access) {
+        if ($user->is_super_admin) {
             return $query;
         }
 

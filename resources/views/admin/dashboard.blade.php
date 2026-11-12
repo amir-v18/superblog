@@ -10,6 +10,7 @@
         $gridClasses = 'mt-4 grid grid-cols-[repeat(auto-fill,minmax(300px,1fr))] gap-4.5';
     @endphp
 
+    @if ($isAdmin)
     <div class="flex flex-wrap items-start justify-between gap-4">
         <div>
             <p class="text-xs font-semibold uppercase tracking-widest text-studio-muted">Översikt</p>
@@ -61,4 +62,27 @@
             <div class="mt-6">{{ $drafts->links() }}</div>
         @endif
     </section>
+    @else
+        <div>
+            <p class="text-xs font-semibold uppercase tracking-widest text-studio-muted">Översikt</p>
+            <h1 class="mt-1 text-[34px] font-semibold tracking-tight">Dina Superblogs</h1>
+            <p class="mt-2 text-studio-muted">Här ser du alla Superblogs som du är tilldelad, oavsett om de är publicerade eller under uppbyggnad.</p>
+        </div>
+
+        <section class="mt-10" aria-labelledby="assigned-superblogs-heading">
+            <h2 id="assigned-superblogs-heading" class="text-lg font-semibold">Tilldelade Superblogs <span class="font-normal text-studio-muted">({{ $superblogs->total() }})</span></h2>
+            @if ($superblogs->isEmpty())
+                <p class="mt-4 text-sm text-studio-muted">Du har inga tilldelade Superblogs ännu.</p>
+            @else
+                <ul class="{{ $gridClasses }}">
+                    @foreach ($superblogs as $superblog)
+                        <li><x-admin.superblog-card :superblog="$superblog" /></li>
+                    @endforeach
+                </ul>
+            @endif
+            @if ($superblogs->hasPages())
+                <div class="mt-6">{{ $superblogs->links() }}</div>
+            @endif
+        </section>
+    @endif
 @endsection

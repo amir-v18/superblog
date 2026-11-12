@@ -11,6 +11,7 @@ use App\Support\SuperblogPublishingReadiness;
 use App\Support\Theme;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\ValidationException;
@@ -52,15 +53,20 @@ class SuperblogController extends Controller
         return to_route('admin.superblogs.edit', $superblog)->with('status', 'Superblog created.');
     }
 
-    public function edit(Superblog $superblog, SuperblogPublishingReadiness $publishingReadiness): View
+    public function edit(Request $request, Superblog $superblog, SuperblogPublishingReadiness $publishingReadiness): View|RedirectResponse
     {
         Gate::authorize('view', $superblog);
-        Gate::authorize('update', $superblog);
+        $canManageSettings = Gate::allows('update', $superblog);
+        $tab = $request->query('flik');
+
+        if (! $canManageSettings && ! in_array($tab, ['innehall', 'skriv-artikel', 'publicera'], true)) {
+            return to_route('admin.superblogs.edit', [$superblog, 'flik' => 'innehall']);
+        }
 
         $manualArticles = null;
         $rssArticles = null;
 
-        if (request()->query('flik') === 'innehall') {
+        if ($tab === 'innehall') {
             $manualArticles = $superblog->articles()
                 ->where('source_type', 'manual')
                 ->orderByDesc('updated_at')
@@ -89,21 +95,22 @@ class SuperblogController extends Controller
         $publicationSummary = null;
         $publicationErrors = [];
 
-        if (request()->query('flik') === 'publicera') {
+        if ($tab === 'publicera') {
             $articles = Article::query()->where('superblog_id', $superblog->getKey());
             $publicationSummary = [
                 'selected' => (clone $articles)->where('is_selected_for_publication', true)->count(),
                 'to_publish' => (clone $articles)->where('is_selected_for_publication', true)->where('status', 'draft')->count(),
                 'to_withdraw' => (clone $articles)->where('is_selected_for_publication', false)->where('status', 'published')->count(),
             ];
-            $publicationErrors = $publishingReadiness->errorsFor($superblog);
+            $publicationErrors = $canManageSettings ? $publishingReadiness->errorsFor($superblog) : [];
         }
 
         return view('admin.superblogs.edit', [
             'superblog' => $superblog,
-            'templates' => $this->availableTemplates($superblog),
+            'canManageSettings' => $canManageSettings,
+            'templates' => $canManageSettings ? $this->availableTemplates($superblog) : collect(),
             // withCount adds rss_items_count with one query, instead of one count per feed in the view.
-            'rssSources' => $superblog->rssSources()->withCount('rssItems')->orderBy('name')->get(),
+            'rssSources' => $canManageSettings ? $superblog->rssSources()->withCount('rssItems')->orderBy('name')->get() : collect(),
             // Same rule as the dashboard: only published articles count, drafts do not.
             'publishedArticlesCount' => $superblog->articles()->where('status', 'published')->count(),
             'manualArticles' => $manualArticles,
