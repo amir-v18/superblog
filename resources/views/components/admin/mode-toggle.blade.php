@@ -1,9 +1,9 @@
-{{-- Switches the admin between its two color modes. The server reads the same cookie as layouts.admin, so the
-     button of the current mode is marked as pressed; without a cookie that is the default mode. A plain form with
-     one button per mode, so it also works without JS; app.js switches in place. Below 640 px the icons carry the
-     look, and the words stay readable by assistive software. --}}
+{{-- Switches the admin between its two color modes. The server asks App\Support\StudioMode, like layouts.admin, so
+     the button of the current mode is marked as pressed; without a choice that is the default mode. A plain form
+     with one button per mode, so it also works without JS; app.js switches in place. Below 640 px the icons carry
+     the look, and the words stay readable by assistive software. --}}
 @php
-    $isLight = request()->cookie(App\Http\Controllers\StudioModeController::COOKIE) === 'light';
+    $isLight = App\Support\StudioMode::isLight();
     $buttonClasses = 'inline-flex h-5 items-center justify-center gap-1 rounded-md px-2 text-xs font-semibold text-studio-muted hover:text-studio-ink aria-pressed:bg-studio-brand aria-pressed:text-studio-on-brand studio-focus-ring';
 @endphp
 <form method="POST" action="{{ route('studio-mode.update') }}" data-studio-mode-form {{ $attributes }}>
