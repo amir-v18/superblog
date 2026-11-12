@@ -10,15 +10,15 @@ use Illuminate\Validation\Rule;
 class StudioModeController extends Controller
 {
     /**
-     * Name of the cookie that holds the admin's chosen color mode. Read by layouts.admin.
+     * Name of the cookie that holds a guest's chosen color mode. Read by App\Support\StudioMode for guests.
      */
     public const COOKIE = 'studio_mode';
 
     public const MODES = ['light', 'dark'];
 
     /**
-     * Saves the chosen mode for this browser. A cookie rather than a user column, so the choice also works on the
-     * login page and needs no migration; Laravel encrypts it like every other cookie.
+     * Saves the chosen mode: on the account when someone is signed in, otherwise in a cookie for this browser, so the
+     * login page can switch too. Laravel encrypts the cookie like every other cookie.
      */
     public function __invoke(Request $request): RedirectResponse|Response
     {
@@ -26,11 +26,18 @@ class StudioModeController extends Controller
             'mode' => ['required', 'string', Rule::in(self::MODES)],
         ]);
 
-        $cookie = cookie()->forever(self::COOKIE, $validated['mode']);
+        // Signed in, the choice belongs to the account, so the next person in this browser starts from their own.
+        // A guest's choice goes into the cookie instead.
+        $user = $request->user();
+        if ($user) {
+            $user->studio_mode = $validated['mode'];
+            $user->save();
+        }
+        $cookie = $user ? null : cookie()->forever(self::COOKIE, $validated['mode']);
 
-        // app.js switches the page itself and only needs the cookie saved; a redirect to the whole page would be wasted.
+        // app.js switches the page itself and just needs the choice saved; a redirect to the whole page would be wasted.
         if ($request->expectsJson()) {
-            return response()->noContent()->withCookie($cookie);
+            return $cookie ? response()->noContent()->withCookie($cookie) : response()->noContent();
         }
 
         // url()->previous() trusts the Referer header as is, so only a page on this host is used as the target.
@@ -39,6 +46,8 @@ class StudioModeController extends Controller
             ? $previous
             : route('admin.dashboard');
 
-        return redirect()->to($target)->withCookie($cookie);
+        $response = redirect()->to($target);
+
+        return $cookie ? $response->withCookie($cookie) : $response;
     }
 }

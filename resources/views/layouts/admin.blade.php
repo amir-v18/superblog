@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 {{-- Fixed to Swedish: the admin text is Swedish, while APP_LOCALE stays English so validation messages do not change.
-     The mode attribute is written for the light choice alone (App\Support\StudioMode, which reads the browser's
-     cookie); without it the tag is exactly as it was without this feature, and the default look applies. No other
-     layout writes it. --}}
+     The mode attribute is written for the light choice alone (App\Support\StudioMode: the account's choice when
+     signed in, the browser's cookie for a guest); without it the tag is exactly as it was without this feature, and
+     the default look applies. No other layout writes it. --}}
 <html lang="sv"@if (App\Support\StudioMode::isLight()) data-studio-mode="light"@endif>
 <head>
     <meta charset="utf-8">

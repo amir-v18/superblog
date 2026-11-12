@@ -40,16 +40,18 @@ class StudioModeTest extends TestCase
         }
     }
 
-    public function test_the_light_cookie_writes_the_attribute_on_the_dashboard_and_the_login_page(): void
+    public function test_the_light_choice_writes_the_attribute_on_the_dashboard_and_the_login_page(): void
     {
-        $admin = $this->makeUser(approved: true, superAdmin: true);
+        $admin = $this->withMode($this->makeUser(approved: true, superAdmin: true), 'light');
 
-        $this->withCookie(StudioModeController::COOKIE, 'light')
-            ->get(route('login'))->assertOk()
+        // A signed-in choice is the account's, a guest's choice is the cookie. The guest part follows the signed-in part,
+        // since the cookie stays on every later request in a test.
+        $this->actingAs($admin)->get(route('admin.dashboard'))->assertOk()
             ->assertSee(self::LIGHT_TAG, false);
 
+        $this->post(route('logout'));
         $this->withCookie(StudioModeController::COOKIE, 'light')
-            ->actingAs($admin)->get(route('admin.dashboard'))->assertOk()
+            ->get(route('login'))->assertOk()
             ->assertSee(self::LIGHT_TAG, false);
     }
 
@@ -97,28 +99,33 @@ class StudioModeTest extends TestCase
 
     public function test_the_preview_and_the_public_site_never_get_the_attribute(): void
     {
-        $admin = $this->makeUser(approved: true, superAdmin: true);
+        $admin = $this->withMode($this->makeUser(approved: true, superAdmin: true), 'light');
         $superblog = $this->makeSuperblog($admin);
         $superblog->update(['status' => 'published', 'settings' => ['theme' => 'bondebladet']]);
 
         // The builder preview is a page of its own: the magazine's theme on html, robots meta and header intact.
-        $this->withCookie(StudioModeController::COOKIE, 'light')
-            ->actingAs($admin)->get(route('admin.superblogs.preview', $superblog))->assertOk()
+        $this->actingAs($admin)->get(route('admin.superblogs.preview', $superblog))->assertOk()
             ->assertDontSee('data-studio-mode', false)
             ->assertSee('data-theme="bondebladet"', false)
             ->assertSee('<meta name="robots" content="noindex, nofollow">', false)
             ->assertHeader('X-Robots-Tag', 'noindex, nofollow');
 
-        $this->withCookie(StudioModeController::COOKIE, 'light')
-            ->get(route('public.superblogs.show', $superblog))->assertOk()
+        // The signed-in admin with a light choice on the public site.
+        $this->actingAs($admin)->get(route('public.superblogs.show', $superblog))->assertOk()
             ->assertDontSee('data-studio-mode', false)
             ->assertSee('data-theme="bondebladet"', false);
 
         // The admin pages keep their own robots meta in both modes.
-        $this->withCookie(StudioModeController::COOKIE, 'light')
-            ->actingAs($admin)->get(route('admin.dashboard'))
+        $this->actingAs($admin)->get(route('admin.dashboard'))
             ->assertSee(self::LIGHT_TAG, false)
             ->assertSee('<meta name="robots" content="noindex, nofollow">', false);
+
+        // The guest part follows, since the cookie stays on every later request: the light cookie on the public site.
+        $this->post(route('logout'));
+        $this->withCookie(StudioModeController::COOKIE, 'light')
+            ->get(route('public.superblogs.show', $superblog))->assertOk()
+            ->assertDontSee('data-studio-mode', false)
+            ->assertSee('data-theme="bondebladet"', false);
     }
 
     public function test_the_switch_offers_light_mode_to_a_guest_an_editor_and_a_super_admin(): void
@@ -134,13 +141,15 @@ class StudioModeTest extends TestCase
 
     public function test_in_light_mode_the_switch_offers_dark_mode_to_every_role(): void
     {
+        foreach ([$this->makeUser(approved: true), $this->makeUser(approved: true, superAdmin: true)] as $user) {
+            $this->assertSwitch($this->actingAs($this->withMode($user, 'light'))
+                ->get(route('admin.dashboard'))->assertOk()->getContent(), 'dark');
+        }
+
+        // The guest part follows, since the cookie stays on every later request.
+        $this->post(route('logout'));
         $this->assertSwitch($this->withCookie(StudioModeController::COOKIE, 'light')
             ->get(route('login'))->assertOk()->getContent(), 'dark');
-
-        foreach ([$this->makeUser(approved: true), $this->makeUser(approved: true, superAdmin: true)] as $user) {
-            $this->assertSwitch($this->withCookie(StudioModeController::COOKIE, 'light')
-                ->actingAs($user)->get(route('admin.dashboard'))->assertOk()->getContent(), 'dark');
-        }
     }
 
     public function test_the_builder_has_exactly_the_corner_switch_on_every_width_like_other_pages(): void
@@ -165,15 +174,20 @@ class StudioModeTest extends TestCase
 
     public function test_the_preview_and_the_public_site_have_no_switch(): void
     {
-        $admin = $this->makeUser(approved: true, superAdmin: true);
+        $admin = $this->withMode($this->makeUser(approved: true, superAdmin: true), 'light');
         $superblog = $this->makeSuperblog($admin);
         $superblog->update(['status' => 'published', 'settings' => ['theme' => 'bondebladet']]);
 
-        $this->withCookie(StudioModeController::COOKIE, 'light')
-            ->actingAs($admin)->get(route('admin.superblogs.preview', $superblog))->assertOk()
+        $this->actingAs($admin)->get(route('admin.superblogs.preview', $superblog))->assertOk()
             ->assertDontSee('data-studio-mode-form', false)
             ->assertDontSee(route('studio-mode.update'), false);
 
+        $this->actingAs($admin)->get(route('public.superblogs.show', $superblog))->assertOk()
+            ->assertDontSee('data-studio-mode-form', false)
+            ->assertDontSee(route('studio-mode.update'), false);
+
+        // The guest part follows, since the cookie stays on every later request.
+        $this->post(route('logout'));
         $this->withCookie(StudioModeController::COOKIE, 'light')
             ->get(route('public.superblogs.show', $superblog))->assertOk()
             ->assertDontSee('data-studio-mode-form', false)
@@ -189,6 +203,117 @@ class StudioModeTest extends TestCase
         $this->postJson(route('studio-mode.update'), ['mode' => 'blue'])
             ->assertUnprocessable()
             ->assertCookieMissing(StudioModeController::COOKIE);
+    }
+
+    public function test_a_signed_in_choice_is_saved_on_the_account_and_sets_no_cookie(): void
+    {
+        foreach ([$this->makeUser(approved: true), $this->makeUser(approved: true, superAdmin: true)] as $user) {
+            $this->actingAs($user);
+
+            $this->from(route('admin.dashboard'))
+                ->post(route('studio-mode.update'), ['mode' => 'light'])
+                ->assertRedirect(route('admin.dashboard'))
+                ->assertCookieMissing(StudioModeController::COOKIE);
+            $this->assertSame('light', $user->fresh()->studio_mode);
+
+            $html = $this->get(route('admin.dashboard'))->assertOk()->assertSee(self::LIGHT_TAG, false)->getContent();
+            $this->assertSwitch($html, 'dark');
+
+            // The default mode is saved as it is too, so the account shows a choice was made.
+            $this->from(route('admin.dashboard'))
+                ->post(route('studio-mode.update'), ['mode' => 'dark'])
+                ->assertRedirect(route('admin.dashboard'))
+                ->assertCookieMissing(StudioModeController::COOKIE);
+            $this->assertSame('dark', $user->fresh()->studio_mode);
+
+            $this->get(route('admin.dashboard'))->assertOk()
+                ->assertSee(self::PLAIN_TAG, false)
+                ->assertDontSee('data-studio-mode="', false);
+        }
+    }
+
+    public function test_two_users_in_one_browser_each_see_their_own_choice(): void
+    {
+        $admin = $this->withMode($this->makeUser(approved: true, superAdmin: true), 'light');
+        $editor = $this->makeUser(approved: true);
+
+        // The same browser: a light cookie left behind stays on every request.
+        $this->withCookie(StudioModeController::COOKIE, 'light');
+
+        $this->actingAs($admin)->get(route('admin.dashboard'))->assertSee(self::LIGHT_TAG, false);
+
+        $html = $this->actingAs($editor)->get(route('admin.dashboard'))
+            ->assertSee(self::PLAIN_TAG, false)->getContent();
+        $this->assertSwitch($html, 'light');
+
+        $this->actingAs($editor)->post(route('studio-mode.update'), ['mode' => 'light']);
+        $this->actingAs($admin)->post(route('studio-mode.update'), ['mode' => 'dark']);
+
+        $this->actingAs($editor)->get(route('admin.dashboard'))->assertSee(self::LIGHT_TAG, false);
+        $this->actingAs($admin)->get(route('admin.dashboard'))
+            ->assertSee(self::PLAIN_TAG, false)
+            ->assertDontSee('data-studio-mode="', false);
+    }
+
+    public function test_a_signed_in_user_without_a_choice_gets_the_default_whatever_the_cookie(): void
+    {
+        foreach ([$this->makeUser(approved: true), $this->makeUser(approved: true, superAdmin: true)] as $user) {
+            $this->assertNull($user->fresh()->studio_mode);
+
+            $this->withCookie(StudioModeController::COOKIE, 'light')
+                ->actingAs($user)->get(route('admin.dashboard'))->assertOk()
+                ->assertSee(self::PLAIN_TAG, false)
+                ->assertDontSee('data-studio-mode="', false);
+        }
+    }
+
+    public function test_a_guest_uses_the_cookie_and_never_an_account_choice(): void
+    {
+        $admin = $this->withMode($this->makeUser(approved: true, superAdmin: true), 'light');
+
+        $this->actingAs($admin)->get(route('admin.dashboard'))->assertSee(self::LIGHT_TAG, false);
+        $this->post(route('logout'))->assertRedirect();
+        $this->assertGuest();
+
+        // Once signed out, the login page follows the browser's own cookie, never the account's choice.
+        $this->get(route('login'))->assertOk()
+            ->assertSee(self::PLAIN_TAG, false)
+            ->assertDontSee('data-studio-mode="', false);
+
+        $this->withCookie(StudioModeController::COOKIE, 'light')
+            ->get(route('login'))->assertOk()
+            ->assertSee(self::LIGHT_TAG, false);
+    }
+
+    public function test_an_invalid_value_is_rejected_and_the_account_keeps_its_choice(): void
+    {
+        $user = $this->withMode($this->makeUser(approved: true), 'light');
+        $this->actingAs($user);
+
+        foreach ([['mode' => 'blue'], ['mode' => ''], []] as $payload) {
+            $this->from(route('admin.dashboard'))
+                ->post(route('studio-mode.update'), $payload)
+                ->assertRedirect(route('admin.dashboard'))
+                ->assertSessionHasErrors('mode')
+                ->assertCookieMissing(StudioModeController::COOKIE);
+            $this->assertSame('light', $user->fresh()->studio_mode);
+        }
+
+        $this->postJson(route('studio-mode.update'), ['mode' => 'blue'])
+            ->assertUnprocessable()
+            ->assertCookieMissing(StudioModeController::COOKIE);
+        $this->assertSame('light', $user->fresh()->studio_mode);
+    }
+
+    public function test_a_request_from_the_switch_script_saves_a_signed_in_choice_without_a_cookie(): void
+    {
+        $user = $this->makeUser(approved: true);
+
+        $this->actingAs($user)->postJson(route('studio-mode.update'), ['mode' => 'light'])
+            ->assertNoContent()
+            ->assertCookieMissing(StudioModeController::COOKIE);
+
+        $this->assertSame('light', $user->fresh()->studio_mode);
     }
 
     /**
@@ -219,11 +344,30 @@ class StudioModeTest extends TestCase
 
         $response = $this->from($previous)
             ->post(route('studio-mode.update'), ['mode' => 'light'])
-            ->assertRedirect($previous)
-            ->assertCookie(StudioModeController::COOKIE, 'light');
+            ->assertRedirect($previous);
 
-        // Kept for a long time, so the choice survives closing the browser.
+        // Signed in, the choice is saved on the account and no cookie is set.
+        if ($user) {
+            $response->assertCookieMissing(StudioModeController::COOKIE);
+            $this->assertSame('light', $user->fresh()->studio_mode);
+
+            return;
+        }
+
+        // A guest's cookie is kept for a long time, so the choice survives closing the browser.
+        $response->assertCookie(StudioModeController::COOKIE, 'light');
         $cookie = $response->getCookie(StudioModeController::COOKIE, false);
         $this->assertGreaterThan(now()->addYear()->getTimestamp(), $cookie->getExpiresTime());
+    }
+
+    /**
+     * Saves a mode choice on the account, as the switch does for a signed-in user.
+     */
+    private function withMode(User $user, string $mode): User
+    {
+        $user->studio_mode = $mode;
+        $user->save();
+
+        return $user;
     }
 }
