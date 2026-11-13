@@ -19,15 +19,18 @@
             $tabs = ['grund' => '1 Grund', 'utseende' => '2 Utseende', 'floden' => '3 Flöden'] + $tabs;
         }
         $tab = in_array(request()->query('flik'), array_keys($tabs), true) ? request()->query('flik') : ($canManageSettings ? 'grund' : 'innehall');
-        $tabClasses = 'block whitespace-nowrap border-b-2 border-transparent px-2 py-[13px] text-center text-xs font-semibold text-studio-muted hover:text-studio-ink aria-[current=page]:border-studio-brand aria-[current=page]:text-studio-brand focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-studio-brand';
+        $tabClasses = 'block whitespace-nowrap border-b-2 border-transparent px-2 py-[13px] text-center text-xs font-semibold text-studio-muted hover:text-studio-ink aria-[current=page]:border-studio-brand aria-[current=page]:text-studio-brand-text focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-studio-brand';
         // The layout's "Nytt magasin" modal posts name, domain and template_id too, and old input is shared by
         // every form on the page. After a failed modal submit, its errors and values belong to the modal only.
         $fromCreateModal = old('_form') === 'create-superblog';
         $old = fn (string $key, mixed $default = null): mixed => $fromCreateModal ? $default : old($key, $default);
+        // On wide screens the header starts at the very top, next to the layout's mode switch in the page corner
+        // (about 160 px from the right edge). The header keeps 176 px free on the right there, so a long magazine
+        // name is cut short ahead of the switch. On narrow screens the sidebar sits above the header.
         $selectedTemplate = $old('template_id', $superblog->template_id);
     @endphp
 
-    <header class="flex flex-wrap items-center gap-4 border-b border-studio-line bg-studio-side px-5 py-3">
+    <header class="flex flex-wrap items-center gap-4 border-b border-studio-line bg-studio-side px-5 py-3 lg:pr-44">
         <a href="{{ route('admin.dashboard') }}" class="rounded-lg px-3.5 py-2 text-[13px] font-semibold text-studio-muted hover:text-studio-ink studio-focus-ring"><span aria-hidden="true">←</span> Alla magasin</a>
         <div class="flex min-w-0 flex-1 items-center gap-2.5">
             <h1 class="truncate text-lg font-semibold">{{ $superblog->name }}</h1>
@@ -103,7 +106,7 @@
                             <div role="alert" class="mt-4 rounded-lg border border-studio-bad/40 bg-studio-bad-bg p-4 text-studio-bad">{{ session('error') }}</div>
                         @endif
 
-                        <form method="POST" action="{{ route('admin.superblogs.rss-sources.store', $superblog) }}" class="mt-4 flex flex-col gap-2 rounded-[10px] border border-dashed border-[#50525d] p-3">
+                        <form method="POST" action="{{ route('admin.superblogs.rss-sources.store', $superblog) }}" class="mt-4 flex flex-col gap-2 rounded-[10px] border border-dashed border-studio-line-dash p-3">
                             @csrf
                             {{-- fran brings the user back to this tab; without it the controller goes to the RSS list. --}}
                             <input type="hidden" name="fran" value="byggaren">
@@ -140,7 +143,7 @@
                                                 <input type="hidden" name="name" value="{{ $rssSource->name }}">
                                                 <input type="hidden" name="url" value="{{ $rssSource->url }}">
                                                 <input type="hidden" name="is_active" value="{{ $rssSource->is_active ? 0 : 1 }}">
-                                                <button type="submit" role="switch" aria-checked="{{ $rssSource->is_active ? 'true' : 'false' }}" aria-label="Aktivt flöde: {{ $rssSource->name }}" @class(['relative h-5 w-[34px] rounded-full transition-colors after:absolute after:top-0.5 after:left-0.5 after:size-4 after:rounded-full after:bg-white after:transition-transform studio-focus-ring', 'bg-studio-brand after:translate-x-3.5' => $rssSource->is_active, 'bg-[#484a55]' => ! $rssSource->is_active])></button>
+                                                <button type="submit" role="switch" aria-checked="{{ $rssSource->is_active ? 'true' : 'false' }}" aria-label="Aktivt flöde: {{ $rssSource->name }}" @class(['relative h-5 w-[34px] rounded-full transition-colors after:absolute after:top-0.5 after:left-0.5 after:size-4 after:rounded-full after:bg-white after:transition-transform studio-focus-ring', 'bg-studio-brand after:translate-x-3.5' => $rssSource->is_active, 'bg-studio-switch-off' => ! $rssSource->is_active])></button>
                                             </form>
                                         </div>
                                         @if ($rssSource->is_active)
@@ -159,10 +162,10 @@
                                             <div class="flex items-center justify-end gap-3">
                                                 @if ($rssSource->is_active)
                                                     {{-- form= ties this button to its own form, so Enter in a text field still saves. --}}
-                                                    <button type="submit" form="fetch-{{ $rssSource->id }}" data-pending-text="Hämtar…" class="mr-auto rounded-lg border border-studio-line px-3 py-1.5 text-[13px] font-semibold hover:border-[#5a5d69] studio-focus-ring disabled:opacity-60">↻ Hämta nu</button>
+                                                    <button type="submit" form="fetch-{{ $rssSource->id }}" data-pending-text="Hämtar…" class="mr-auto rounded-lg border border-studio-line px-3 py-1.5 text-[13px] font-semibold hover:border-studio-line-hover studio-focus-ring disabled:opacity-60">↻ Hämta nu</button>
                                                 @endif
                                                 <a href="{{ route('admin.superblogs.rss-sources.delete', [$superblog, $rssSource, 'fran' => 'byggaren']) }}" class="text-[13px] font-semibold text-studio-bad underline underline-offset-4 studio-focus-ring">Ta bort</a>
-                                                <button type="submit" class="rounded-lg border border-studio-line px-3 py-1.5 text-[13px] font-semibold hover:border-[#5a5d69] studio-focus-ring">Spara</button>
+                                                <button type="submit" class="rounded-lg border border-studio-line px-3 py-1.5 text-[13px] font-semibold hover:border-studio-line-hover studio-focus-ring">Spara</button>
                                             </div>
                                         </form>
                                         {{-- The count is stored RSS items, not published articles. --}}
@@ -189,7 +192,7 @@
                     <section aria-labelledby="write-article-heading">
                         <h2 id="write-article-heading" class="text-lg font-semibold">Skriv artikel</h2>
                         <p class="mt-1 text-sm text-studio-muted">Skapa en manuell artikel som sparas som utkast. Den publiceras inte automatiskt.</p>
-                        <a href="{{ route('admin.superblogs.articles.create', $superblog) }}" class="mt-4 inline-flex rounded-lg bg-studio-brand px-4 py-2 text-sm font-medium text-studio-side hover:bg-studio-brand-hover studio-focus-ring">Skapa artikel</a>
+                        <a href="{{ route('admin.superblogs.articles.create', $superblog) }}" class="mt-4 inline-flex rounded-lg bg-studio-brand px-4 py-2 text-sm font-medium text-studio-on-brand hover:bg-studio-brand-hover studio-focus-ring">Skapa artikel</a>
                         <p class="mt-5 text-sm text-studio-muted">Redigera befintliga artiklar under <a href="{{ route('admin.superblogs.edit', [$superblog, 'flik' => 'innehall']) }}" class="font-medium text-studio-ink underline underline-offset-4 studio-focus-ring">Innehåll</a>. Där visas manuella artiklar tillsammans med RSS-artiklar.</p>
                     </section>
                 @elseif ($tab === 'publicera')
@@ -204,7 +207,7 @@
 
                             <form method="POST" action="{{ route('admin.superblogs.unpublish', $superblog) }}" class="mt-5">
                                 @csrf
-                                <button type="submit" class="rounded-lg border border-red-300 px-4 py-2 text-sm font-semibold text-red-700 hover:bg-red-50 studio-focus-ring">Avpublicera</button>
+                                <button type="submit" class="rounded-lg border border-red-300 px-4 py-2 text-sm font-semibold text-red-700 hover:bg-red-50 studio-focus-ring studio-light:border-studio-bad">Avpublicera</button>
                             </form>
                         @else
                             @if ($canManageSettings)
@@ -254,7 +257,7 @@
 
                             <form method="POST" action="{{ route('admin.superblogs.articles.publish-selected', $superblog) }}" class="mt-5">
                                 @csrf
-                                <button type="submit" @disabled($publicationErrors !== []) class="rounded-lg bg-studio-brand px-4 py-2 text-sm font-semibold text-studio-side hover:bg-studio-brand-hover studio-focus-ring disabled:cursor-not-allowed disabled:opacity-50">{{ $canManageSettings ? 'Publicera' : 'Publicera valda artiklar' }}</button>
+                                <button type="submit" @disabled($publicationErrors !== []) class="rounded-lg bg-studio-brand px-4 py-2 text-sm font-semibold text-studio-on-brand hover:bg-studio-brand-hover studio-focus-ring disabled:cursor-not-allowed disabled:opacity-50">{{ $canManageSettings ? 'Publicera' : 'Publicera valda artiklar' }}</button>
                             </form>
                         @endif
                     </section>
@@ -313,15 +316,15 @@
         </section>
 
         {{-- Stacks below the builder on small screens and shares the remaining grid width on desktop. --}}
-        <section aria-label="Förhandsvisning" class="flex h-[70vh] min-w-0 flex-col bg-[#121317] lg:h-auto lg:min-h-0">
+        <section aria-label="Förhandsvisning" class="flex h-[70vh] min-w-0 flex-col bg-studio-preview-bg lg:h-auto lg:min-h-0">
             <div class="flex flex-wrap items-center gap-3 border-b border-studio-line bg-studio-side px-4 py-2.25 text-xs text-studio-muted">
-                <span aria-hidden="true" class="tracking-[2px] text-[#b5b3ab]">●●●</span>
+                <span aria-hidden="true" class="tracking-[2px] text-studio-preview-dots">●●●</span>
                 <code class="min-w-0 flex-1 truncate rounded-md bg-studio-bg px-2.5 py-1 text-studio-ink">{{ $superblog->domain ? 'https://'.$superblog->domain : 'Ingen webbadress än' }}</code>
                 <span data-preview-label>Dator</span>
                 {{-- Hidden until app.js runs, so the controls only appear when switching the preview works. --}}
-                <div role="group" aria-label="Förhandsvisning" hidden data-preview-devices class="inline-flex shrink-0 rounded-lg bg-studio-panel p-0.75">
-                    <button type="button" data-preview-device="desktop" aria-pressed="true" class="rounded-md px-3.5 py-1.5 text-xs font-semibold text-studio-muted hover:text-studio-ink aria-pressed:bg-studio-brand aria-pressed:text-studio-side studio-focus-ring">Dator</button>
-                    <button type="button" data-preview-device="mobile" aria-pressed="false" class="rounded-md px-3.5 py-1.5 text-xs font-semibold text-studio-muted hover:text-studio-ink aria-pressed:bg-studio-brand aria-pressed:text-studio-side studio-focus-ring">Mobil</button>
+                <div role="group" aria-label="Förhandsvisning" hidden data-preview-devices class="inline-flex shrink-0 rounded-lg bg-studio-panel p-0.75 studio-light:bg-studio-bg">
+                    <button type="button" data-preview-device="desktop" aria-pressed="true" class="rounded-md px-3.5 py-1.5 text-xs font-semibold text-studio-muted hover:text-studio-ink aria-pressed:bg-studio-brand aria-pressed:text-studio-on-brand studio-focus-ring">Dator</button>
+                    <button type="button" data-preview-device="mobile" aria-pressed="false" class="rounded-md px-3.5 py-1.5 text-xs font-semibold text-studio-muted hover:text-studio-ink aria-pressed:bg-studio-brand aria-pressed:text-studio-on-brand studio-focus-ring">Mobil</button>
                 </div>
             </div>
             <div data-preview-pane class="flex flex-1 flex-col overflow-auto p-5">
@@ -338,11 +341,11 @@
                         @else
                             {{ $feedCount }} {{ $feedCount === 1 ? 'flöde' : 'flöden' }} · {{ $itemCount }} {{ $itemCount === 1 ? 'hämtad post' : 'hämtade poster' }} · 0 publicerade artiklar. Platshållarna fylls när artiklar publiceras.
                         @endif
-                        <a href="{{ route('admin.superblogs.edit', [$superblog, 'flik' => 'floden']) }}" class="ml-1.5 font-bold text-studio-brand studio-focus-ring">Lägg till flöde →</a>
+                        <a href="{{ route('admin.superblogs.edit', [$superblog, 'flik' => 'floden']) }}" class="ml-1.5 font-bold text-studio-brand-text studio-focus-ring">Lägg till flöde →</a>
                     </div>
                 @endif
                 {{-- Without JS the frame fills the pane unscaled. app.js sizes it per device; overflow-hidden clips the space the scaled iframe still takes up. --}}
-                <div data-preview-frame class="mx-auto min-h-0 w-full flex-1 overflow-hidden bg-white shadow-[0_14px_50px_#17181c30]">
+                <div data-preview-frame class="mx-auto min-h-0 w-full flex-1 overflow-hidden bg-white shadow-[0_14px_50px_var(--color-studio-preview-shadow)]">
                     {{-- A real page in an iframe, so the preview uses the public theme CSS without mixing it into the admin. It reloads with the builder on save and tab change. --}}
                     <iframe src="{{ route('admin.superblogs.preview', $superblog) }}" title="Förhandsvisning av {{ $superblog->name }}" class="block h-full w-full origin-top-left"></iframe>
                 </div>

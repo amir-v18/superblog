@@ -19,7 +19,7 @@
         <p class="text-[13px] leading-normal text-studio-muted">Tre uppgifter räcker för att starta. Allt kan justeras i byggaren, och mallen kan bytas senare.</p>
 
         @if ($templates->isEmpty())
-            <p role="status" class="rounded-lg border border-[#4a4430] bg-[#2c2a24] p-4 text-sm text-[#e2d6a8]">
+            <p role="status" class="rounded-lg border border-studio-warn-line bg-studio-warn-bg p-4 text-sm text-studio-warn-ink">
                 Det finns ingen aktiv mall. En mall måste finnas innan du kan skapa ett magasin.
                 @can('viewAny', App\Models\Template::class)
                     <a href="{{ route('admin.templates.index') }}" class="font-medium underline underline-offset-4">Hantera mallar</a>
@@ -35,7 +35,7 @@
                  readers hear only the title. --}}
             <div class="mt-1.5 flex flex-col gap-4">
                 <label for="create-name" class="flex items-center gap-2.5">
-                    <span aria-hidden="true" class="grid size-6 shrink-0 place-items-center rounded-full bg-studio-brand text-xs font-bold text-white">1</span>
+                    <span aria-hidden="true" class="grid size-6 shrink-0 place-items-center rounded-full bg-studio-brand text-xs font-bold text-studio-on-brand-step">1</span>
                     <span class="text-sm font-bold">Namn</span>
                 </label>
                 <x-admin.input id="create-name" name="name" value="{{ $reopen ? old('name') : '' }}" required maxlength="255" autofocus data-domain-source
@@ -49,7 +49,7 @@
             <fieldset class="mt-1.5 min-w-0" @if ($templateError) aria-describedby="create-template-error" @endif>
                 <legend class="mb-4">
                     <span class="flex items-center gap-2.5">
-                        <span aria-hidden="true" class="grid size-6 shrink-0 place-items-center rounded-full bg-studio-brand text-xs font-bold text-white">2</span>
+                        <span aria-hidden="true" class="grid size-6 shrink-0 place-items-center rounded-full bg-studio-brand text-xs font-bold text-studio-on-brand-step">2</span>
                         <span class="text-sm font-bold">Mall</span>
                         <small class="text-[12.5px] text-studio-muted">Styr layouten på hela sajten</small>
                     </span>
@@ -78,7 +78,7 @@
                 <x-admin.domain-input id="create-domain" :value="$reopen ? old('domain') : null" :error="$domainError" data-domain-target
                                       help="Du kopplar domänen med DNS-inställningar i sista steget innan publicering. Har du ingen domän än kan du ändra adressen senare.">
                     <span class="flex items-center gap-2.5">
-                        <span aria-hidden="true" class="grid size-6 shrink-0 place-items-center rounded-full bg-studio-brand text-xs font-bold text-white">3</span>
+                        <span aria-hidden="true" class="grid size-6 shrink-0 place-items-center rounded-full bg-studio-brand text-xs font-bold text-studio-on-brand-step">3</span>
                         <span class="font-bold">Webbadress</span>
                         <small class="text-[12.5px] font-normal text-studio-muted">Adressen där sajten publiceras (valfri)</small>
                     </span>
@@ -87,7 +87,7 @@
 
             <div class="flex justify-end gap-2.5">
                 {{-- type="button", not a dialog submit: Enter in a field triggers the first submit button, which must be "Skapa". --}}
-                <button type="button" data-close-dialog class="rounded-lg border border-studio-line bg-studio-panel px-4 py-2 text-sm font-medium hover:border-[#5a5d69] studio-focus-ring">Avbryt</button>
+                <button type="button" data-close-dialog class="rounded-lg border border-studio-line bg-studio-panel px-4 py-2 text-sm font-medium hover:border-studio-line-hover studio-focus-ring">Avbryt</button>
                 <x-admin.button :disabled="$templates->isEmpty()" class="disabled:cursor-not-allowed disabled:opacity-50">Skapa och öppna</x-admin.button>
             </div>
         </form>

@@ -22,7 +22,7 @@
             @if ($fromBuilder)
                 <input type="hidden" name="fran" value="byggaren">
             @endif
-            <button type="submit" class="rounded-lg bg-studio-bad px-4 py-2 font-medium text-studio-side hover:bg-studio-bad/85 studio-focus-ring">Yes, delete RSS source</button>
+            <button type="submit" class="rounded-lg bg-studio-bad px-4 py-2 font-medium text-studio-on-bad hover:bg-studio-bad/85 studio-focus-ring">Yes, delete RSS source</button>
             <a href="{{ $backUrl }}" class="text-sm underline underline-offset-4 studio-focus-ring">Cancel</a>
         </form>
     </div>

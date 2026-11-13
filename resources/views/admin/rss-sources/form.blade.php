@@ -8,7 +8,7 @@
     <p class="mt-2 text-studio-muted">{{ $superblog->name }}</p>
 
     @if ($errors->any())
-        <div role="alert" class="mt-6 rounded-lg border border-studio-bad/40 bg-[#43261c] p-4 text-studio-bad">
+        <div role="alert" class="mt-6 rounded-lg border border-studio-bad/40 bg-studio-bad-bg p-4 text-studio-bad">
             <p class="font-medium">Please correct the following:</p>
             <ul class="mt-2 list-inside list-disc">
                 @foreach ($errors->all() as $error)
@@ -25,11 +25,11 @@
         @endif
         <div>
             <label for="name" class="block text-sm font-medium">Source name</label>
-            <input id="name" name="name" value="{{ old('name', $rssSource->name) }}" required maxlength="255" class="mt-2 w-full rounded-lg border border-studio-line bg-studio-bg p-3 focus-visible:outline-2 focus-visible:outline-studio-brand">
+            <input id="name" name="name" value="{{ old('name', $rssSource->name) }}" required maxlength="255" class="mt-2 w-full rounded-lg border border-studio-line bg-studio-bg p-3 focus-visible:outline-2 focus-visible:outline-studio-brand studio-light:border-studio-field-line">
         </div>
         <div>
             <label for="url" class="block text-sm font-medium">Feed URL</label>
-            <input id="url" name="url" type="url" value="{{ old('url', $rssSource->url) }}" required maxlength="65535" placeholder="https://example.com/feed.xml" class="mt-2 w-full rounded-lg border border-studio-line bg-studio-bg p-3 focus-visible:outline-2 focus-visible:outline-studio-brand">
+            <input id="url" name="url" type="url" value="{{ old('url', $rssSource->url) }}" required maxlength="65535" placeholder="https://example.com/feed.xml" class="mt-2 w-full rounded-lg border border-studio-line bg-studio-bg p-3 focus-visible:outline-2 focus-visible:outline-studio-brand studio-light:border-studio-field-line">
         </div>
         <div>
             <input type="hidden" name="is_active" value="0">
@@ -39,7 +39,7 @@
             </label>
         </div>
         <div class="flex items-center gap-4">
-            <button type="submit" class="rounded-lg bg-studio-brand px-4 py-2 font-medium text-studio-side hover:bg-[#ff9068] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-studio-brand">Save RSS source</button>
+            <button type="submit" class="rounded-lg bg-studio-brand px-4 py-2 font-medium text-studio-on-brand hover:bg-studio-brand-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-studio-brand">Save RSS source</button>
             <a href="{{ route('admin.superblogs.rss-sources.index', $superblog) }}" class="text-sm underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-studio-brand">Cancel</a>
         </div>
     </form>

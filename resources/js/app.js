@@ -329,3 +329,65 @@ if (previewIframe) {
     themeRadios.forEach((radio) => radio.addEventListener('change', sync));
     sync();
 }
+
+// Admin color mode: switch in place and save in the background, so unsaved fields (e.g. in the builder) survive.
+// Only pages rendered by layouts.admin have the switch; the preview iframe and the magazines load this file too
+// but have no switch, so nothing here runs there.
+const modeForms = document.querySelectorAll('[data-studio-mode-form]');
+
+if (modeForms.length > 0) {
+    // Shows the page in the given mode and marks that mode's button as pressed in every switch.
+    const applyMode = (mode) => {
+        if (mode === 'light') {
+            document.documentElement.dataset.studioMode = 'light';
+        } else {
+            delete document.documentElement.dataset.studioMode;
+        }
+
+        document.querySelectorAll('[data-studio-mode-option]').forEach((button) => {
+            button.setAttribute('aria-pressed', button.value === mode ? 'true' : 'false');
+        });
+    };
+
+    const showModeError = () => {
+        const notice = document.createElement('div');
+        notice.setAttribute('role', 'alert');
+        notice.className = 'fixed top-4 right-4 left-4 z-50 mx-auto max-w-md rounded-lg border border-studio-bad/40 bg-studio-bad-bg p-3 text-sm text-studio-bad shadow-xl';
+        notice.textContent = 'Valet kunde inte sparas. Läget gäller tills sidan laddas om.';
+        document.body.append(notice);
+        setTimeout(() => notice.remove(), 6000);
+    };
+
+    document.addEventListener('submit', async (event) => {
+        const form = event.target instanceof HTMLFormElement ? event.target : null;
+        if (!form?.matches('[data-studio-mode-form]')) {
+            return;
+        }
+
+        // The pressed button carries the mode. Without a known mode the form posts the normal way.
+        const mode = event.submitter?.value;
+        if (mode !== 'light' && mode !== 'dark') {
+            return;
+        }
+
+        event.preventDefault();
+        // FormData leaves out the submitting button, so its value is added by hand.
+        const body = new FormData(form);
+        body.set('mode', mode);
+        applyMode(mode);
+
+        try {
+            const response = await fetch(form.action, {
+                method: 'POST',
+                headers: { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+                body,
+            });
+
+            if (!response.ok) {
+                showModeError();
+            }
+        } catch {
+            showModeError();
+        }
+    });
+}

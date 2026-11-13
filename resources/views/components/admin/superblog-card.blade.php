@@ -13,12 +13,12 @@
         ? ucfirst(\Illuminate\Support\Carbon::parse($lastFetchedAt)->locale('sv')->diffForHumans())
         : 'Aldrig';
     // The same classes on both tags, so inaccessible cards look identical but are not clickable.
-    $cardClasses = 'block overflow-hidden rounded-xl border border-studio-line bg-studio-panel';
+    $cardClasses = 'block overflow-hidden rounded-xl border border-studio-line bg-studio-panel studio-light:studio-raised';
 @endphp
 
 <div class="flex h-full flex-col">
     @if ($canOpen)
-        <a href="{{ $builderUrl }}" class="{{ $cardClasses }} flex-1 transition hover:-translate-y-0.5 hover:shadow-[0_10px_28px_#0006] studio-focus-ring">
+        <a href="{{ $builderUrl }}" class="{{ $cardClasses }} flex-1 transition hover:-translate-y-0.5 hover:shadow-[0_10px_28px_var(--color-studio-card-shadow)] studio-focus-ring studio-light:hover:shadow-[0_10px_28px_var(--color-studio-card-shadow)]">
     @else
         <div class="{{ $cardClasses }} flex-1">
     @endif

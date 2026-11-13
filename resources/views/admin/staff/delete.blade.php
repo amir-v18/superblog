@@ -11,7 +11,7 @@
         <form method="POST" action="{{ route('admin.staff.destroy', $user) }}" class="mt-6 flex items-center gap-4">
             @csrf
             @method('DELETE')
-            <button type="submit" class="inline-flex items-center gap-2 rounded-lg bg-studio-bad px-4 py-2 font-medium text-studio-side hover:bg-studio-bad/85 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-studio-brand">
+            <button type="submit" class="inline-flex items-center gap-2 rounded-lg bg-studio-bad px-4 py-2 font-medium text-studio-on-bad hover:bg-studio-bad/85 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-studio-brand">
                 <svg aria-hidden="true" class="h-5 w-5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M3 6h18M8 6V4h8v2m3 0-1 14H6L5 6m4 4v6m6-6v6" />
                 </svg>

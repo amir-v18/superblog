@@ -13,7 +13,7 @@
             <div class="flex flex-wrap items-center gap-4">
                 <form method="POST" action="{{ route('admin.superblogs.rss-sources.fetch', [$superblog, $rssSource]) }}">
                     @csrf
-                    <button type="submit" class="rounded-lg bg-studio-brand px-4 py-2 text-sm font-medium text-studio-side hover:bg-[#ff9068] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-studio-brand">Fetch now</button>
+                    <button type="submit" class="rounded-lg bg-studio-brand px-4 py-2 text-sm font-medium text-studio-on-brand hover:bg-studio-brand-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-studio-brand">Fetch now</button>
                 </form>
                 <a href="{{ route('admin.superblogs.rss-sources.items.clear', [$superblog, $rssSource]) }}" class="text-sm text-studio-bad underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-studio-brand">Clear all items</a>
             </div>
@@ -48,7 +48,7 @@
                         @else
                             <form method="POST" action="{{ route('admin.superblogs.rss-sources.items.article.store', [$superblog, $rssSource, $rssItem]) }}">
                                 @csrf
-                                <button type="submit" class="rounded-lg bg-studio-brand px-3 py-2 text-sm font-medium text-studio-side hover:bg-[#ff9068] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-studio-brand">Create article</button>
+                                <button type="submit" class="rounded-lg bg-studio-brand px-3 py-2 text-sm font-medium text-studio-on-brand hover:bg-studio-brand-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-studio-brand">Create article</button>
                             </form>
                         @endif
                     </div>

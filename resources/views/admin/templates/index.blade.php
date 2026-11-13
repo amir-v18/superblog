@@ -12,7 +12,7 @@
     </div>
 
     @if ($errors->any())
-        <div role="alert" class="mt-6 rounded-lg border border-studio-bad/40 bg-[#43261c] p-4 text-studio-bad">
+        <div role="alert" class="mt-6 rounded-lg border border-studio-bad/40 bg-studio-bad-bg p-4 text-studio-bad">
             @foreach ($errors->all() as $error)
                 <p>{{ $error }}</p>
             @endforeach

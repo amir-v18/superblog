@@ -14,6 +14,8 @@
     --color-studio-bg: #1d1e24;
     --color-studio-panel: #24262d;
     --color-studio-line: #363842;
+    /* Edge of text fields in the light mode; the default mode keeps the ordinary line color. */
+    --color-studio-field-line: #363842;
     --color-studio-ink: #ecebe6;
     --color-studio-muted: #9fa1aa;
     --color-studio-brand: #ff7a4d;
@@ -24,12 +26,124 @@
     --color-studio-bad-bg: #43261c;
     --color-studio-pill: #343640;
     --color-studio-live: #1e3a2b;
+
+    /* Sidebar text shades and its colored markers (the dot of a magazine without a theme, the dashed frame of the new-magazine link). */
+    --color-studio-side-ink: #e9e7e1;
+    --color-studio-side-nav: #c9c8c2;
+    --color-studio-side-muted: #9a9ca4;
+    --color-studio-side-label: #7d7f87;
+    --color-studio-side-mark: #5b5d66;
+    /* The color that stands out most against the studio background: the selected menu item, and the base of the
+       translucent highlights and dividers. White here; a light mode replaces it with a near-black value. */
+    --color-studio-contrast: #fff;
+
+    /* Notice shown when no template exists (create page and the new-magazine dialog). */
+    --color-studio-warn-bg: #2c2a24;
+    --color-studio-warn-line: #4a4430;
+    --color-studio-warn-ink: #e2d6a8;
+    /* Status text for staff accounts awaiting approval. */
+    --color-studio-pending: #f0b255;
+    /* Lines: a stronger edge on pointer-over, a brighter one for the cancel button in dialogs, and the dashed
+       frame of the add-feed form. */
+    --color-studio-line-hover: #5a5d69;
+    --color-studio-line-bright: #b9b7af;
+    --color-studio-line-dash: #50525d;
+    /* Track of a feed switch that is turned off. */
+    --color-studio-switch-off: #484a55;
+    /* Hint text shown in the domain field until something is typed. */
+    --color-studio-placeholder: #70727c;
+    /* Builder preview pane: its background, the three window dots and the soft halo beneath the page. */
+    --color-studio-preview-bg: #121317;
+    --color-studio-preview-dots: #b5b3ab;
+    --color-studio-preview-shadow: #17181c30;
+    /* Soft halo beneath a magazine card on pointer-over. */
+    --color-studio-card-shadow: #0006;
+
+    /* Text placed on an orange or a red button, and the orange used as a text color (the selected tab, links).
+       Separate from the sidebar and brand colors so a light mode can give each its own value. */
+    --color-studio-on-brand: #17181c;
+    --color-studio-on-bad: #17181c;
+    --color-studio-brand-text: #ff7a4d;
+    /* The step numbers on orange in the new-magazine dialog. */
+    --color-studio-on-brand-step: #fff;
 }
 
 /* Admin focus ring: shown on keyboard focus only (:focus-visible), never on a mouse click. Public pages use outline-primary instead. */
 @utility studio-focus-ring {
     @apply focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-studio-brand;
 }
+
+/* Soft halo beneath cards and panels in the light mode. It fills the same variable as the framework's halo
+   utilities, so a selected card keeps its colored frame around it. */
+@utility studio-raised {
+    --tw-shadow: 0 1px 2px var(--color-studio-soft-shadow), 0 4px 14px var(--color-studio-soft-shadow);
+    box-shadow:
+        var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow),
+        var(--tw-shadow);
+}
+
+/*
+ * Light mode of the admin studio. Applies only when layouts.admin writes data-studio-mode="light" on <html>
+ * (from the studio_mode cookie); the magazines, the builder preview and the public pages never get the attribute.
+ * Only the studio color variables change, so every studio utility follows without new classes. Deliberately
+ * outside any cascade layer: Tailwind puts the default values in its theme layer, and a rule outside all layers
+ * always takes precedence over layered rules. The preview halo keeps its default value, which suits both modes.
+ */
+:root[data-studio-mode='light'] {
+    --color-studio-bg: #f3f2ee;
+    --color-studio-panel: #ffffff;
+    --color-studio-line: #dfddd5;
+    --color-studio-field-line: #80828c;
+    --color-studio-ink: #1b1c20;
+    --color-studio-muted: #5c5e68;
+    --color-studio-brand: #d0451e;
+    --color-studio-side: #ffffff;
+    --color-studio-ok: #17723f;
+    --color-studio-bad: #b42318;
+    --color-studio-brand-hover: #c23d16;
+    --color-studio-bad-bg: #fdebe6;
+    --color-studio-pill: #ebe9e2;
+    --color-studio-live: #dcf1e5;
+
+    --color-studio-side-ink: #1d1e24;
+    --color-studio-side-nav: #4a4d55;
+    --color-studio-side-muted: #5c5e68;
+    --color-studio-side-label: #5f616b;
+    --color-studio-side-mark: #80828c;
+    --color-studio-contrast: #1d1e24;
+
+    --color-studio-warn-bg: #fbf4dc;
+    --color-studio-warn-line: #ead9a0;
+    --color-studio-warn-ink: #6b5712;
+    --color-studio-pending: #8a5300;
+    --color-studio-line-hover: #80828c;
+    --color-studio-line-bright: #6b6d77;
+    --color-studio-line-dash: #b5b3ab;
+    --color-studio-switch-off: #80828c;
+    --color-studio-placeholder: #696b75;
+    --color-studio-preview-bg: #e8e6df;
+    --color-studio-preview-dots: #b5b3ab;
+    --color-studio-card-shadow: #0000001a;
+    --color-studio-soft-shadow: #17181c14;
+
+    --color-studio-on-brand: #ffffff;
+    --color-studio-on-bad: #ffffff;
+    --color-studio-brand-text: #c3411c;
+    --color-studio-on-brand-step: #ffffff;
+}
+
+/* Native form controls, scrollbars and dialogs follow the light colors; the body keeps its own setting otherwise. */
+:root[data-studio-mode='light'] body {
+    color-scheme: light;
+}
+
+/*
+ * Extra classes for the few admin spots whose default look uses set palette colors instead of studio variables.
+ * They are added next to the existing classes and only apply under data-studio-mode="light", so the default look
+ * keeps exactly the classes it had. The attribute is one level more specific than a single class, so these win
+ * whatever their order in the file. The magazines and the builder preview never carry the attribute.
+ */
+@custom-variant studio-light ([data-studio-mode='light'] &);
 
 /*
  * Theme system: a theme is a set of raw values selected by data-theme on <html>.

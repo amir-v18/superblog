@@ -1,2 +1,2 @@
 {{-- The orange admin button. It submits its form by default (type="submit"); pass type="button" if one ever must not submit. Extra classes and attributes (e.g. self-end, :disabled) are merged in. --}}
-<button {{ $attributes->merge(['type' => 'submit', 'class' => 'rounded-lg bg-studio-brand px-4 py-2 text-sm font-medium text-studio-side hover:bg-studio-brand-hover studio-focus-ring']) }}>{{ $slot }}</button>
+<button {{ $attributes->merge(['type' => 'submit', 'class' => 'rounded-lg bg-studio-brand px-4 py-2 text-sm font-medium text-studio-on-brand hover:bg-studio-brand-hover studio-focus-ring']) }}>{{ $slot }}</button>
