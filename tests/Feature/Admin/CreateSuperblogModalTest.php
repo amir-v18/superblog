@@ -154,7 +154,7 @@ class CreateSuperblogModalTest extends TestCase
         $admin = $this->makeUser(approved: true, superAdmin: true);
         $modern = $this->makeTemplate('Modern magasin', 'modern', null);
         $classic = $this->makeTemplate('Klassisk tidning', 'classic', null);
-        config(['templates.default' => 'classic']);
+        config(['templates.default' => 'template-classic']);
 
         $form = $this->modalForm($admin);
 
@@ -237,13 +237,25 @@ class CreateSuperblogModalTest extends TestCase
 
     private function makeTemplate(string $name, string $slug, ?string $description, bool $active = true): Template
     {
-        return Template::create([
+        $template = Template::create([
             'name' => $name,
             'slug' => $slug,
             'description' => $description,
             'layout' => 'layouts.public',
             'is_active' => $active,
         ]);
+
+        $seedKey = match ($slug) {
+            'modern' => 'template-modern',
+            'classic' => 'template-classic',
+            default => null,
+        };
+
+        if ($seedKey !== null) {
+            $template->forceFill(['seed_key' => $seedKey])->save();
+        }
+
+        return $template;
     }
 
     public function test_a_failed_builder_save_does_not_fill_or_open_the_modal(): void

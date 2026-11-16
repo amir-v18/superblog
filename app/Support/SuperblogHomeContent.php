@@ -36,16 +36,17 @@ class SuperblogHomeContent
     }
 
     /**
-     * The folder of the template's site views, from config/templates.php. A template missing there (an old or
-     * hand-made one) gets the default template's site, so every magazine can still be rendered.
+     * The folder of the template's site views, selected by its immutable seed key. An unknown legacy key
+     * gets the code-controlled default site so every Superblog can still be rendered.
      */
     public function siteFor(Superblog $superblog): string
     {
-        // Looked up as array keys, not with dot notation, so the slug is never parsed as a config path.
         $templates = config('templates.list', []);
+        $default = $templates[config('templates.default')] ?? [];
 
-        return $templates[(string) $superblog->template?->slug]['site']
-            ?? $templates[config('templates.default')]['site'];
+        return $templates[(string) $superblog->template?->seed_key]['site']
+            ?? $default['site']
+            ?? 'templates.news';
     }
 
     private function themeFor(Superblog $superblog): string|array

@@ -45,9 +45,9 @@ class SuperblogPreviewTest extends TestCase
     {
         $admin = $this->makeUser(approved: true, superAdmin: true);
         $superblog = $this->makeSuperblog($admin);
-        $superblog->template->update(['slug' => 'classic']);
+        $superblog->template->forceFill(['seed_key' => 'template-classic'])->save();
         // A folder that does not exist: the error names the view, which shows the registry was read.
-        config(['templates.list.classic.site' => 'templates.registry-check']);
+        config(['templates.list.template-classic.site' => 'templates.registry-check']);
 
         $this->withoutExceptionHandling();
         $this->expectException(InvalidArgumentException::class);
@@ -59,15 +59,15 @@ class SuperblogPreviewTest extends TestCase
     public function test_a_template_missing_from_the_registry_gets_the_default_templates_site(): void
     {
         $admin = $this->makeUser(approved: true, superAdmin: true);
-        // makeSuperblog's template has the slug "news", which is not in the registry.
+        // An unknown stable key falls back to the registry default.
         $superblog = $this->makeSuperblog($admin);
-        config(['templates.list.modern.site' => 'templates.news']);
+        config(['templates.list.template-modern.site' => 'templates.news']);
 
         $this->actingAs($admin)->get(route('admin.superblogs.preview', $superblog))
             ->assertOk()
             ->assertViewIs('templates.news.home');
 
-        $superblog->template->update(['slug' => 'tech']);
+        $superblog->template->forceFill(['seed_key' => 'unknown-template'])->save();
 
         $this->get(route('admin.superblogs.preview', $superblog))
             ->assertOk()
@@ -78,7 +78,7 @@ class SuperblogPreviewTest extends TestCase
     {
         $admin = $this->makeUser(approved: true, superAdmin: true);
         $superblog = $this->makeSuperblog($admin);
-        $superblog->template->update(['slug' => 'classic']);
+        $superblog->template->forceFill(['seed_key' => 'template-classic'])->save();
 
         // What the page itself contains (one H1, the name in two places, nothing made up) is tested in
         // ClassicFrontPageTest; this test covers which view the preview picks and how it is kept out of search.
@@ -91,7 +91,7 @@ class SuperblogPreviewTest extends TestCase
             ->assertSee('data-admin-preview-superblog-id="'.$superblog->getKey().'"', false)
             ->assertSee('<span data-live-name>Dagens Budbärare</span>', false);
 
-        $superblog->template->update(['slug' => 'modern']);
+        $superblog->template->forceFill(['seed_key' => 'template-modern'])->save();
 
         $this->get(route('admin.superblogs.preview', $superblog))
             ->assertOk()
@@ -116,7 +116,7 @@ class SuperblogPreviewTest extends TestCase
     {
         $admin = $this->makeUser(approved: true, superAdmin: true);
         $superblog = $this->makeSuperblog($admin);
-        $superblog->template->update(['slug' => 'classic']);
+        $superblog->template->forceFill(['seed_key' => 'template-classic'])->save();
 
         $this->actingAs($admin)->get(route('admin.superblogs.preview', $superblog))
             ->assertSee('data-theme="budbararen"', false)
@@ -128,6 +128,19 @@ class SuperblogPreviewTest extends TestCase
         $this->get(route('admin.superblogs.preview', $superblog))
             ->assertSee('data-theme="techenspraket"', false)
             ->assertDontSee('data-theme="budbararen"', false);
+    }
+
+    public function test_an_inactive_assigned_template_still_renders_in_the_admin_preview(): void
+    {
+        $admin = $this->makeUser(approved: true, superAdmin: true);
+        $superblog = $this->makeSuperblog($admin);
+        $superblog->template->forceFill(['seed_key' => 'template-classic'])->save();
+        $superblog->template->update(['is_active' => false]);
+
+        $this->actingAs($admin)->get(route('admin.superblogs.preview', $superblog))
+            ->assertOk()
+            ->assertViewIs('templates.classic.home')
+            ->assertSee('data-theme="budbararen"', false);
     }
 
     public function test_saved_theme_is_used_in_the_preview(): void

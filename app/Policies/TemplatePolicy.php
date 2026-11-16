@@ -12,17 +12,7 @@ class TemplatePolicy
         return $user->is_super_admin === true && $user->approval_status === 'approved';
     }
 
-    public function create(User $user): bool
-    {
-        return $this->viewAny($user);
-    }
-
     public function update(User $user, Template $template): bool
-    {
-        return $this->viewAny($user);
-    }
-
-    public function delete(User $user, Template $template): bool
     {
         return $this->viewAny($user);
     }
