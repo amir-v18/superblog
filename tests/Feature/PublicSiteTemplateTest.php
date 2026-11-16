@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\Superblog;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use InvalidArgumentException;
 use Tests\Concerns\CreatesSuperblogs;
 use Tests\TestCase;
 
@@ -17,7 +18,7 @@ class PublicSiteTemplateTest extends TestCase
 
     public function test_a_published_classic_magazine_shows_its_own_front_page_and_articles(): void
     {
-        $superblog = $this->publishedMagazine('classic');
+        $superblog = $this->publishedMagazine('template-classic');
         $this->makeArticle($superblog, 'Lead story', now()->subMinute());
         $this->makeArticle($superblog, 'News story', now()->subMinutes(2));
 
@@ -37,7 +38,7 @@ class PublicSiteTemplateTest extends TestCase
 
     public function test_the_classic_front_page_loads_the_newspaper_fonts(): void
     {
-        $superblog = $this->publishedMagazine('classic');
+        $superblog = $this->publishedMagazine('template-classic');
 
         $response = $this->get(route('public.superblogs.show', $superblog))->assertOk();
 
@@ -49,25 +50,31 @@ class PublicSiteTemplateTest extends TestCase
         $response->assertDontSee('Instrument Sans', false);
     }
 
-    public function test_modern_and_templates_missing_from_the_registry_keep_the_modern_front_page(): void
+    public function test_template_rendering_uses_its_stable_key_after_name_and_slug_are_renamed(): void
     {
-        // makeSuperblog's template has the slug "news", which is not in the registry.
-        $superblog = $this->publishedMagazine('news');
+        $superblog = $this->publishedMagazine('template-classic');
+        $superblog->template->update(['name' => 'Renamed newspaper', 'slug' => 'different-slug']);
 
         $this->get(route('public.superblogs.show', $superblog))
             ->assertOk()
-            ->assertViewIs('templates.news.home');
+            ->assertViewIs('templates.classic.home')
+            ->assertSee('data-theme="budbararen"', false);
+    }
 
-        $superblog->template->update(['slug' => 'modern']);
+    public function test_an_inactive_template_stays_available_to_its_existing_superblog(): void
+    {
+        $superblog = $this->publishedMagazine('template-classic');
+        $superblog->template->update(['is_active' => false]);
 
         $this->get(route('public.superblogs.show', $superblog))
             ->assertOk()
-            ->assertViewIs('templates.news.home');
+            ->assertViewIs('templates.classic.home')
+            ->assertSee('data-theme="budbararen"', false);
     }
 
     public function test_only_selected_and_dated_articles_reach_the_public_classic_page(): void
     {
-        $superblog = $this->publishedMagazine('classic');
+        $superblog = $this->publishedMagazine('template-classic');
         $this->makeArticle($superblog, 'Shown story', now());
         $this->makeArticle($superblog, 'Unselected story', now(), selected: false);
         $this->makeArticle($superblog, 'Undated story', null);
@@ -86,7 +93,7 @@ class PublicSiteTemplateTest extends TestCase
 
     public function test_the_article_page_still_works_for_a_classic_magazine(): void
     {
-        $superblog = $this->publishedMagazine('classic');
+        $superblog = $this->publishedMagazine('template-classic');
         $this->makeArticle($superblog, 'Lead story', now());
         $article = $superblog->articles()->firstOrFail();
 
@@ -97,18 +104,33 @@ class PublicSiteTemplateTest extends TestCase
             ->assertSee('Lead story');
     }
 
+    public function test_article_view_is_resolved_by_stable_key_after_the_slug_changes(): void
+    {
+        $superblog = $this->publishedMagazine('template-classic');
+        $superblog->template->update(['name' => 'Renamed classic', 'slug' => 'edited-slug']);
+        $this->makeArticle($superblog, 'Lead story', now());
+        $article = $superblog->articles()->firstOrFail();
+        config(['templates.list.template-classic.article_view' => 'templates.keyed-article-check']);
+
+        $this->withoutExceptionHandling();
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('View [templates.keyed-article-check] not found.');
+
+        $this->get(route('public.superblogs.articles.show', [$superblog, $article]));
+    }
+
     public function test_an_unpublished_classic_magazine_is_not_found(): void
     {
-        $superblog = $this->publishedMagazine('classic');
+        $superblog = $this->publishedMagazine('template-classic');
         $superblog->update(['status' => 'draft']);
 
         $this->get(route('public.superblogs.show', $superblog))->assertNotFound();
     }
 
-    private function publishedMagazine(string $templateSlug): Superblog
+    private function publishedMagazine(string $templateKey): Superblog
     {
         $superblog = $this->makeSuperblog($this->makeUser(approved: true, superAdmin: true));
-        $superblog->template->update(['slug' => $templateSlug]);
+        $superblog->template->forceFill(['seed_key' => $templateKey])->save();
         $superblog->update(['status' => 'published']);
 
         return $superblog;

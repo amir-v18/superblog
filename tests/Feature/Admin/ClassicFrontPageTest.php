@@ -187,7 +187,7 @@ class ClassicFrontPageTest extends TestCase
     {
         $admin = $this->makeUser(approved: true, superAdmin: true);
         $superblog = $this->makeSuperblog($admin);
-        $superblog->template->update(['slug' => 'classic']);
+        $superblog->template->forceFill(['seed_key' => 'template-classic'])->save();
         $superblog->update(['status' => $status]);
 
         return [$admin, $superblog];

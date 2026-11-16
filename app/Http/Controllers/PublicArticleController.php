@@ -21,10 +21,16 @@ class PublicArticleController extends Controller
             ->with(['articleLinks', 'rssItem'])
             ->firstOrFail();
 
-        return view('templates.news.article', [
+        $template = $superblog->template;
+        $templates = config('templates.list', []);
+        $articleView = $templates[(string) $template?->seed_key]['article_view']
+            ?? $templates[config('templates.default')]['article_view']
+            ?? 'templates.news.article';
+
+        return view($articleView, [
             'article' => $this->articleViewData($article),
             'theme' => $superblog->settings['theme'] ?? null,
-            'layout' => $superblog->template?->layout ?? 'layouts.public',
+            'layout' => $template?->layout ?? 'layouts.public',
         ]);
     }
 
