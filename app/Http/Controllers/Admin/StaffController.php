@@ -33,7 +33,7 @@ class StaffController extends Controller
     {
         $this->authorizeStaffManagement();
 
-        $rules = ['action' => ['required', 'string', 'in:approve,reject,assign']];
+        $rules = ['action' => ['required', 'string', 'in:approve,reject,assign,promote_admin,demote_admin']];
 
         if ($request->input('action') === 'assign') {
             $rules['assignments'] = ['sometimes', 'array'];
@@ -71,20 +71,98 @@ class StaffController extends Controller
             return to_route('admin.staff.index')->with('status', "Superblog assignments updated for {$staffName}.");
         }
 
-        if ($request->user()->is($user)) {
-            return back()->withErrors(['staff' => 'You cannot change your own account status.']);
+        if (in_array($validated['action'], ['promote_admin', 'demote_admin'], true)) {
+            return $this->changeAdminRole($request, $user, $validated['action']);
         }
 
-        if ($user->is_super_admin) {
-            return back()->withErrors(['staff' => 'You cannot change the approval status of a super-admin account here.']);
+        $actorId = $request->user()->getKey();
+        $message = DB::transaction(function () use ($user, $validated, $actorId): string {
+            $admins = User::query()
+                ->where('is_super_admin', true)
+                ->orderBy('id')
+                ->lockForUpdate()
+                ->get(['id', 'approval_status']);
+            $actor = $admins->firstWhere('id', $actorId);
+            abort_unless($actor && $actor->approval_status === 'approved', 403);
+
+            $target = User::query()->lockForUpdate()->findOrFail($user->getKey());
+
+            if ($actor->is($target)) {
+                throw ValidationException::withMessages([
+                    'staff' => 'You cannot change your own account status.',
+                ]);
+            }
+
+            if ($target->is_super_admin) {
+                throw ValidationException::withMessages([
+                    'staff' => 'You cannot change the approval status of an admin account here.',
+                ]);
+            }
+
+            $target->approval_status = $validated['action'] === 'approve' ? 'approved' : 'rejected';
+            $target->save();
+
+            return $validated['action'] === 'approve'
+                ? "{$target->name} has been approved."
+                : "{$target->name} has been rejected.";
+        });
+
+        return to_route('admin.staff.index')->with('status', $message);
+    }
+
+    private function changeAdminRole(Request $request, User $user, string $action): RedirectResponse
+    {
+        $actorId = $request->user()->getKey();
+
+        if ($action === 'demote_admin' && $actorId === $user->getKey()) {
+            throw ValidationException::withMessages([
+                'staff' => 'You cannot demote your own admin account.',
+            ]);
         }
 
-        $user->approval_status = $validated['action'] === 'approve' ? 'approved' : 'rejected';
-        $user->save();
+        $message = DB::transaction(function () use ($user, $action, $actorId): string {
+            // Locking the admin set serializes simultaneous role changes without relying on a migrations-table row.
+            $admins = User::query()
+                ->where('is_super_admin', true)
+                ->orderBy('id')
+                ->lockForUpdate()
+                ->get(['id', 'approval_status']);
 
-        $message = $validated['action'] === 'approve'
-            ? "{$user->name} has been approved."
-            : "{$user->name} has been rejected.";
+            $actor = $admins->firstWhere('id', $actorId);
+            abort_unless($actor && $actor->approval_status === 'approved', 403);
+
+            $target = User::query()->lockForUpdate()->findOrFail($user->getKey());
+
+            if ($action === 'promote_admin') {
+                if ($target->is_super_admin || $target->approval_status !== 'approved') {
+                    throw ValidationException::withMessages([
+                        'staff' => 'Only approved editors can be promoted to admin.',
+                    ]);
+                }
+
+                $target->is_super_admin = true;
+                $target->save();
+
+                return "{$target->name} is now an admin.";
+            }
+
+            if (! $target->is_super_admin) {
+                throw ValidationException::withMessages([
+                    'staff' => 'This account is not an admin.',
+                ]);
+            }
+
+            if ($admins->count() <= 1) {
+                throw ValidationException::withMessages([
+                    'staff' => 'You cannot demote the last remaining admin.',
+                ]);
+            }
+
+            $target->is_super_admin = false;
+            $target->save();
+
+            return "{$target->name} is now an editor.";
+        });
 
         return to_route('admin.staff.index')->with('status', $message);
     }
