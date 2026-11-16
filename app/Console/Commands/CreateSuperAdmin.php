@@ -3,7 +3,6 @@
 namespace App\Console\Commands;
 
 use App\Models\User;
-use App\Support\SuperAdminPromotionLock;
 use Illuminate\Console\Command;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\DB;
@@ -15,7 +14,7 @@ class CreateSuperAdmin extends Command
 {
     protected $signature = 'superblog:create-super-admin';
 
-    protected $description = 'Create the first approved Superblog super admin';
+    protected $description = 'Create an approved Superblog admin account';
 
     public function handle(): int
     {
@@ -44,13 +43,7 @@ class CreateSuperAdmin extends Command
         }
 
         try {
-            $created = DB::transaction(function () use ($name, $email, $password): bool {
-                app(SuperAdminPromotionLock::class)->acquire();
-
-                if (User::where('is_super_admin', true)->exists()) {
-                    return false;
-                }
-
+            DB::transaction(function () use ($name, $email, $password): void {
                 $user = new User;
                 $user->name = $name;
                 $user->email = $email;
@@ -59,25 +52,18 @@ class CreateSuperAdmin extends Command
                 $user->approval_status = 'approved';
                 $user->save();
 
-                return true;
             });
         } catch (UniqueConstraintViolationException) {
             $this->error('An account with that email already exists. No account was created.');
 
             return self::FAILURE;
         } catch (Throwable) {
-            $this->error('Could not safely verify the super-admin lock. No account was created.');
+            $this->error('Could not create the admin account. No account was created.');
 
             return self::FAILURE;
         }
 
-        if (! $created) {
-            $this->error('A super admin already exists. No account was created.');
-
-            return self::FAILURE;
-        }
-
-        $this->info('The approved super-admin account was created.');
+        $this->info('The approved admin account was created.');
 
         return self::SUCCESS;
     }

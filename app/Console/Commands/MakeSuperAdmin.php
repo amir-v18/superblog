@@ -3,7 +3,6 @@
 namespace App\Console\Commands;
 
 use App\Models\User;
-use App\Support\SuperAdminPromotionLock;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
 use Throwable;
@@ -12,7 +11,7 @@ class MakeSuperAdmin extends Command
 {
     protected $signature = 'superblog:make-super-admin {email : Email of an existing account}';
 
-    protected $description = 'Explicitly approve and promote an existing account to super admin';
+    protected $description = 'Explicitly approve and promote an existing account to admin';
 
     public function handle(): int
     {
@@ -30,12 +29,6 @@ class MakeSuperAdmin extends Command
 
         try {
             $result = DB::transaction(function () use ($user): string {
-                app(SuperAdminPromotionLock::class)->acquire();
-
-                if (User::where('is_super_admin', true)->exists()) {
-                    return 'already_exists';
-                }
-
                 $lockedUser = User::query()->lockForUpdate()->find($user->getKey());
                 if (! $lockedUser || $lockedUser->email !== $user->email) {
                     return 'target_missing';
@@ -49,13 +42,7 @@ class MakeSuperAdmin extends Command
                 return 'promoted';
             });
         } catch (Throwable) {
-            $this->error('Could not safely verify the super-admin lock. No account was promoted.');
-
-            return self::FAILURE;
-        }
-
-        if ($result === 'already_exists') {
-            $this->error('A super admin already exists. The account was not changed.');
+            $this->error('Could not promote the account safely. No account was promoted.');
 
             return self::FAILURE;
         }
@@ -66,7 +53,7 @@ class MakeSuperAdmin extends Command
             return self::FAILURE;
         }
 
-        $this->info('The existing account is now an approved super admin.');
+        $this->info('The existing account is now an approved admin.');
 
         return self::SUCCESS;
     }

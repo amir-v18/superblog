@@ -10,19 +10,22 @@ class StaffManagementViewTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_super_admin_actions_are_hidden_for_another_super_admin_row_but_remain_for_ordinary_staff(): void
+    public function test_role_actions_are_available_for_other_admins_and_ordinary_staff_but_not_self(): void
     {
         $admin = $this->makeUser('admin@example.com', true, 'approved');
+        $admin->update(['name' => 'Current Admin']);
         $duplicateAdminRow = $this->makeUser('duplicate@example.com', true, 'pending', 'google-person-subject');
         $staff = $this->makeUser('staff@example.com', false, 'pending');
 
         $this->actingAs($admin)
             ->get(route('admin.staff.index'))
             ->assertOk()
-            ->assertDontSee(route('admin.staff.update', $duplicateAdminRow), false)
+            ->assertSee(route('admin.staff.update', $duplicateAdminRow), false)
             ->assertSee(route('admin.staff.update', $staff), false)
+            ->assertSee('Demote to editor')
             ->assertSee('Approve')
-            ->assertSee('Reject');
+            ->assertSee('Reject')
+            ->assertDontSee('Demote Current Admin to editor?', false);
     }
 
     private function makeUser(string $email, bool $superAdmin, string $approvalStatus, ?string $googleSubject = null): User

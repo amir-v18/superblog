@@ -13,7 +13,7 @@ class MapGoogleIdentity extends Command
     protected $signature = 'superblog:map-google-identity
         {user_id : Existing user database ID}
         {google_subject : Verified Google OpenID Connect subject}
-        {--initial-super-admin : Confirm the target is the single approved bootstrap super-admin}';
+        {--admin-account : Confirm the target is an approved admin account}';
 
     protected $description = 'Explicitly map a verified Google identity to an existing user';
 
@@ -44,16 +44,15 @@ class MapGoogleIdentity extends Command
             return self::FAILURE;
         }
 
-        $isBootstrapAdmin = $this->option('initial-super-admin');
+        $isAdminAccount = $this->option('admin-account');
         if ($user->is_super_admin) {
-            if (! $isBootstrapAdmin || $user->approval_status !== 'approved'
-                || User::where('is_super_admin', true)->count() !== 1) {
-                $this->error('A super-admin mapping requires --initial-super-admin and a single approved super admin.');
+            if (! $isAdminAccount || $user->approval_status !== 'approved') {
+                $this->error('An admin identity mapping requires --admin-account and an approved admin account.');
 
                 return self::FAILURE;
             }
-        } elseif ($isBootstrapAdmin) {
-            $this->error('The selected user is not an approved super admin. No mapping was changed.');
+        } elseif ($isAdminAccount) {
+            $this->error('The selected user is not an approved admin. No mapping was changed.');
 
             return self::FAILURE;
         }
@@ -70,22 +69,21 @@ class MapGoogleIdentity extends Command
             return self::FAILURE;
         }
 
-        $role = $user->is_super_admin ? 'approved bootstrap super-admin' : 'staff account';
+        $role = $user->is_super_admin ? 'approved admin' : 'staff account';
         if (! $this->confirm("Map Google identity to {$role} #{$user->id} ({$user->email})? The subject itself will not be displayed.")) {
             return self::FAILURE;
         }
 
         try {
-            DB::transaction(function () use ($user, $validated, $isBootstrapAdmin): void {
+            DB::transaction(function () use ($user, $validated, $isAdminAccount): void {
                 $locked = User::query()->lockForUpdate()->findOrFail($user->getKey());
 
-                if ($isBootstrapAdmin) {
-                    if (! $locked->is_super_admin || $locked->approval_status !== 'approved'
-                        || User::where('is_super_admin', true)->count() !== 1) {
-                        throw new GoogleBootstrapTargetChanged;
+                if ($isAdminAccount) {
+                    if (! $locked->is_super_admin || $locked->approval_status !== 'approved') {
+                        throw new GoogleAdminTargetChanged;
                     }
                 } elseif ($locked->is_super_admin) {
-                    throw new GoogleBootstrapTargetChanged;
+                    throw new GoogleAdminTargetChanged;
                 }
 
                 if ($locked->google_subject !== null) {
@@ -99,10 +97,10 @@ class MapGoogleIdentity extends Command
                 $locked->google_subject = $validated['google_subject'];
                 $locked->save();
             });
-        } catch (GoogleIdentityAlreadyMapped|GoogleSubjectAlreadyMapped|GoogleBootstrapTargetChanged|UniqueConstraintViolationException $exception) {
+        } catch (GoogleIdentityAlreadyMapped|GoogleSubjectAlreadyMapped|GoogleAdminTargetChanged|UniqueConstraintViolationException $exception) {
             $message = match (true) {
                 $exception instanceof GoogleIdentityAlreadyMapped => 'This user was mapped by another operation. No mapping was changed.',
-                $exception instanceof GoogleBootstrapTargetChanged => 'The selected account no longer meets the required role checks. No mapping was changed.',
+                $exception instanceof GoogleAdminTargetChanged => 'The selected account no longer meets the required role checks. No mapping was changed.',
                 default => 'That Google subject is already mapped. No mapping was changed.',
             };
             $this->error($message);
@@ -120,4 +118,4 @@ class GoogleIdentityAlreadyMapped extends \RuntimeException {}
 
 class GoogleSubjectAlreadyMapped extends \RuntimeException {}
 
-class GoogleBootstrapTargetChanged extends \RuntimeException {}
+class GoogleAdminTargetChanged extends \RuntimeException {}

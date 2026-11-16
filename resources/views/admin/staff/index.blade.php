@@ -26,36 +26,48 @@
                             <p class="break-all text-sm text-studio-muted">{{ $member->email }}</p>
                             <p class="mt-1 text-sm font-medium {{ $member->approval_status === 'pending' ? 'text-studio-pending' : ($member->approval_status === 'approved' ? 'text-studio-ok' : 'text-studio-bad') }}">{{ ucfirst($member->approval_status) }}</p>
                         </div>
-                        @unless (auth()->user()->is($member) || $member->is_super_admin)
+                        @unless (auth()->user()->is($member))
                             <div class="flex w-full flex-wrap items-center justify-start gap-2">
-                                @if ($member->approval_status !== 'approved')
-                                    <form method="POST" action="{{ route('admin.staff.update', $member) }}" class="w-36">
+                                @if ($member->is_super_admin)
+                                    <form method="POST" action="{{ route('admin.staff.update', $member) }}" class="w-36" onsubmit="return confirm(@js('Demote '.$member->name.' to editor?'))">
                                         @csrf
-                                        <input type="hidden" name="action" value="approve">
-                                        <button type="submit" class="inline-flex h-10 w-full items-center justify-center rounded-lg bg-studio-brand px-3 text-sm font-medium text-studio-on-brand hover:bg-studio-brand-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-studio-brand">Approve</button>
+                                        <input type="hidden" name="action" value="demote_admin">
+                                        <button type="submit" class="inline-flex h-10 w-full items-center justify-center rounded-lg border border-studio-bad/40 px-3 text-sm font-medium text-studio-bad hover:bg-studio-bad-bg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-studio-brand">Demote to editor</button>
                                     </form>
                                 @else
-                                    <span aria-hidden="true" class="h-10 w-36"></span>
-                                @endif
-                                @if ($member->approval_status !== 'rejected')
-                                    <form method="POST" action="{{ route('admin.staff.update', $member) }}" class="w-36">
-                                        @csrf
-                                        <input type="hidden" name="action" value="reject">
-                                        <button type="submit" class="inline-flex h-10 w-full items-center justify-center rounded-lg border border-studio-bad/40 px-3 text-sm font-medium text-studio-bad hover:bg-studio-bad-bg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-studio-brand">Reject</button>
-                                    </form>
-                                @else
-                                    <span aria-hidden="true" class="h-10 w-36"></span>
-                                @endif
-                                @if ($member->superblogs_count === 0)
-                                    <a href="{{ route('admin.staff.confirm-delete', $member) }}" aria-label="Delete {{ $member->name }}"
-                                        class="inline-flex h-10 w-36 items-center justify-center gap-2 rounded-lg border border-studio-bad/50 px-3 text-sm font-medium text-studio-bad hover:bg-studio-bad-bg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-studio-brand">
-                                        <svg aria-hidden="true" class="h-5 w-5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                                            <path d="M3 6h18M8 6V4h8v2m3 0-1 14H6L5 6m4 4v6m6-6v6" />
-                                        </svg>
-                                        <span>Delete account</span>
-                                    </a>
-                                @else
-                                    <span title="Owned Superblogs must be transferred before deletion." class="flex h-10 w-36 items-center justify-center px-2 text-center text-xs text-studio-muted">Transfer ownership first</span>
+                                    @if ($member->approval_status !== 'approved')
+                                        <form method="POST" action="{{ route('admin.staff.update', $member) }}" class="w-36">
+                                            @csrf
+                                            <input type="hidden" name="action" value="approve">
+                                            <button type="submit" class="inline-flex h-10 w-full items-center justify-center rounded-lg bg-studio-brand px-3 text-sm font-medium text-studio-on-brand hover:bg-studio-brand-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-studio-brand">Approve</button>
+                                        </form>
+                                    @else
+                                        <form method="POST" action="{{ route('admin.staff.update', $member) }}" class="w-36" onsubmit="return confirm(@js('Promote '.$member->name.' to admin?'))">
+                                            @csrf
+                                            <input type="hidden" name="action" value="promote_admin">
+                                            <button type="submit" class="inline-flex h-10 w-full items-center justify-center rounded-lg bg-studio-brand px-3 text-sm font-medium text-studio-on-brand hover:bg-studio-brand-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-studio-brand">Promote to admin</button>
+                                        </form>
+                                    @endif
+                                    @if ($member->approval_status !== 'rejected')
+                                        <form method="POST" action="{{ route('admin.staff.update', $member) }}" class="w-36">
+                                            @csrf
+                                            <input type="hidden" name="action" value="reject">
+                                            <button type="submit" class="inline-flex h-10 w-full items-center justify-center rounded-lg border border-studio-bad/40 px-3 text-sm font-medium text-studio-bad hover:bg-studio-bad-bg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-studio-brand">Reject</button>
+                                        </form>
+                                    @else
+                                        <span aria-hidden="true" class="h-10 w-36"></span>
+                                    @endif
+                                    @if ($member->superblogs_count === 0)
+                                        <a href="{{ route('admin.staff.confirm-delete', $member) }}" aria-label="Delete {{ $member->name }}"
+                                            class="inline-flex h-10 w-36 items-center justify-center gap-2 rounded-lg border border-studio-bad/50 px-3 text-sm font-medium text-studio-bad hover:bg-studio-bad-bg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-studio-brand">
+                                            <svg aria-hidden="true" class="h-5 w-5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                                                <path d="M3 6h18M8 6V4h8v2m3 0-1 14H6L5 6m4 4v6m6-6v6" />
+                                            </svg>
+                                            <span>Delete account</span>
+                                        </a>
+                                    @else
+                                        <span title="Owned Superblogs must be transferred before deletion." class="flex h-10 w-36 items-center justify-center px-2 text-center text-xs text-studio-muted">Transfer ownership first</span>
+                                    @endif
                                 @endif
                             </div>
                         @endunless

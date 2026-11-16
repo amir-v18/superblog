@@ -101,9 +101,9 @@ After migrating a fresh local database, create your own initial account with the
 ddev artisan superblog:create-super-admin
 ```
 
-Enter your own name, email, and password at the prompts. The password prompts do not echo input, require confirmation, and the account is stored with a hashed password. The command approves this first account as a super admin and refuses to create an account if any super admin already exists. Each developer should use a separate local database and their own account; do not share accounts or passwords.
+Enter your own name, email, and password at the prompts. The password prompts do not echo input, require confirmation, and the account is stored with a hashed password. The command creates an approved admin account; it can be used for the first admin or to provision another admin. Each developer should use a separate local database and their own account; do not share accounts or passwords.
 
-The existing `superblog:make-super-admin {email}` command remains available to approve and promote an already existing account when appropriate. There is no password-based public registration. A first-time verified Google identity may explicitly request a normal pending staff account; it receives no admin access until approved.
+The existing `superblog:make-super-admin {email}` command remains available to approve and promote an already existing account when appropriate. Both commands can provision additional admins. There is no password-based public registration. A first-time verified Google identity may explicitly request a normal pending staff account; it receives no admin access until approved.
 
 ## Google sign-in and existing accounts
 
@@ -115,7 +115,7 @@ GOOGLE_CLIENT_SECRET=your-client-secret
 GOOGLE_REDIRECT_URI=https://your-ddev-host/auth/google/callback
 ```
 
-Google login identifies accounts by the stable Google OpenID Connect subject (`sub`), never by email alone. To map the existing bootstrap super-admin or a seeded staff account, first sign in with the intended Google account. If it is not yet linked, the setup page shows its verified email and subject. Verify that identity with the account owner through a trusted channel. The subject is an identifier, not a password or token. Find the intended existing user's database ID with Tinker, checking the account's role and approval state:
+Google login identifies accounts by the stable Google OpenID Connect subject (`sub`), never by email alone. To map an existing admin or staff account, first sign in with the intended Google account. If it is not yet linked, the setup page shows its verified email and subject. Verify that identity with the account owner through a trusted channel. The subject is an identifier, not a password or token. Find the intended existing user's database ID with Tinker, checking the account's role and approval state:
 
 ```sh
 ddev artisan tinker
@@ -125,10 +125,10 @@ ddev artisan tinker
 \App\Models\User::query()->orderBy('id')->get(['id', 'name', 'email', 'approval_status', 'is_super_admin', 'google_subject'])->toArray();
 ```
 
-Map the initial super-admin using that exact user ID and the verified subject from the setup page. The command confirms the selected record without displaying the subject, and requires the target to be approved and the only super-admin account:
+Map an existing admin using that exact user ID and the verified subject from the setup page. The command confirms the selected record without displaying the subject and requires the target to already be an approved admin. The explicit option does not grant admin privileges:
 
 ```sh
-ddev artisan superblog:map-google-identity 42 'replace-with-verified-subject' --initial-super-admin
+ddev artisan superblog:map-google-identity 42 'replace-with-verified-subject' --admin-account
 ```
 
 Replace `42` and the quoted example subject with the actual verified values; the example is not a real account.
@@ -141,9 +141,9 @@ ddev artisan superblog:map-google-identity 17 'replace-with-verified-subject'
 
 Replace both example values with the intended staff record ID and verified subject.
 
-The command refuses missing users, existing mappings, duplicate subjects, and incorrect super-admin targets. It changes only the Google subject field; it does not alter approval, roles, flags, password hashes, or assignments. If a new Google identity is not linked and does not conflict with an existing email, the user can explicitly create a pending staff account from the setup page. An email conflict requires administrator mapping; matching email never performs an automatic link.
+The command refuses missing users, existing mappings, duplicate subjects, and targets that do not meet the selected role checks. The `--admin-account` option confirms that an explicitly selected target is already an approved admin; it does not grant admin privileges, and having other admins does not prevent the mapping. The command changes only the Google subject field; it does not alter approval, roles, flags, password hashes, or assignments. Google sign-in and email matching never grant admin privileges. If a new Google identity is not linked and does not conflict with an existing email, the user can explicitly create a pending staff account from the setup page. An email conflict requires administrator mapping; matching email never performs an automatic link.
 
-Email/password hashes and the password-login handler are retained. The password-login route is registered consistently so route caching cannot capture the wrong environment; request-time middleware allows it only in `local` and `testing`, and returns 404 in other environments. Production users see Google sign-in only. Google login does not approve accounts: pending users still need super-admin approval, and staff still need Superblog assignments.
+Email/password hashes and the password-login handler are retained. The password-login route is registered consistently so route caching cannot capture the wrong environment; request-time middleware allows it only in `local` and `testing`, and returns 404 in other environments. Production users see Google sign-in only. Google login does not approve accounts: pending users still need admin approval, and staff still need Superblog assignments.
 
 ## Test staff approval locally
 

@@ -136,31 +136,39 @@ class GoogleAuthenticationTest extends TestCase
         $this->assertAuthenticatedAs($pending);
     }
 
-    public function test_mapping_command_requires_explicit_valid_super_admin_and_never_overwrites(): void
+    public function test_mapping_command_requires_explicit_valid_admin_and_never_overwrites(): void
     {
         $admin = $this->makeUser('admin@example.com', 'approved', true);
+        $anotherAdmin = $this->makeUser('another-admin@example.com', 'approved', true);
         $staff = $this->makeUser('staff@example.com', 'pending');
 
         $this->artisan('superblog:map-google-identity', ['user_id' => 999, 'google_subject' => 'missing'])
             ->assertFailed();
         $this->artisan('superblog:map-google-identity', ['user_id' => $admin->id, 'google_subject' => 'subject-admin'])
-            ->expectsOutputToContain('--initial-super-admin')
+            ->expectsOutputToContain('--admin-account')
             ->assertFailed();
         $this->artisan('superblog:map-google-identity', [
             'user_id' => $admin->id,
             'google_subject' => 'subject-admin',
-            '--initial-super-admin' => true,
-        ])->expectsConfirmation("Map Google identity to approved bootstrap super-admin #{$admin->id} ({$admin->email})? The subject itself will not be displayed.", 'yes')
+            '--admin-account' => true,
+        ])->expectsConfirmation("Map Google identity to approved admin #{$admin->id} ({$admin->email})? The subject itself will not be displayed.", 'yes')
+            ->assertSuccessful();
+        $this->artisan('superblog:map-google-identity', [
+            'user_id' => $anotherAdmin->id,
+            'google_subject' => 'subject-another-admin',
+            '--admin-account' => true,
+        ])->expectsConfirmation("Map Google identity to approved admin #{$anotherAdmin->id} ({$anotherAdmin->email})? The subject itself will not be displayed.", 'yes')
             ->assertSuccessful();
 
         $this->artisan('superblog:map-google-identity', ['user_id' => $staff->id, 'google_subject' => 'subject-admin'])
             ->expectsOutputToContain('already mapped')
             ->assertFailed();
-        $this->artisan('superblog:map-google-identity', ['user_id' => $admin->id, 'google_subject' => 'replacement', '--initial-super-admin' => true])
+        $this->artisan('superblog:map-google-identity', ['user_id' => $admin->id, 'google_subject' => 'replacement', '--admin-account' => true])
             ->expectsOutputToContain('never overwritten')
             ->assertFailed();
 
         $this->assertSame('subject-admin', $admin->fresh()->google_subject);
+        $this->assertSame('subject-another-admin', $anotherAdmin->fresh()->google_subject);
         $this->assertNull($staff->fresh()->google_subject);
         $this->assertSame('pending', $staff->fresh()->approval_status);
         $this->assertFalse($staff->fresh()->is_super_admin);
