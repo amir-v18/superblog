@@ -54,6 +54,7 @@
                         <small class="text-[12.5px] text-studio-muted">Styr layouten på hela sajten</small>
                     </span>
                 </legend>
+                <p class="-mt-3 mb-3 text-[12.5px] text-studio-muted">Observera: Mallen kan inte bytas efter att Superbloggen har skapats.</p>
                 {{-- Each card is a label around a radio that only screen readers see, so the choice is sent as template_id
                      without JS. The radio gets the keyboard focus, so the card draws the focus indicator in its place,
                      with the same values as the other admin buttons. --}}
