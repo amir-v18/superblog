@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Admin;
 
+use App\Enums\ArticleContentFormat;
 use App\Models\Article;
 use App\Models\RssItem;
 use App\Models\RssSource;
@@ -29,9 +30,10 @@ class RssArticleWorkflowTest extends TestCase
         $this->assertSame($superblog->getKey(), $article->superblog_id);
         $this->assertSame($item->getKey(), $article->rss_item_id);
         $this->assertSame('rss', $article->source_type);
+        $this->assertSame(ArticleContentFormat::LegacyHtml, $article->content_format);
         $this->assertSame('draft', $article->status);
         $this->assertTrue($article->is_selected_for_publication);
-        $this->assertSame('Original feed content', $article->content);
+        $this->assertSame('<p>Original feed content</p>', $article->content);
         $this->assertSame('Original feed content', $item->fresh()->content);
         $this->assertSame('A source summary', $item->fresh()->summary);
 
@@ -54,7 +56,7 @@ class RssArticleWorkflowTest extends TestCase
         $article = $this->createDraft($staff, $superblog, $source, $item);
 
         // The summary becomes the article body, while the RSS item keeps its own copy unchanged.
-        $this->assertSame('Only the feed summary.', $article->content);
+        $this->assertSame('<p>Only the feed summary.</p>', $article->content);
         $this->assertNull($item->fresh()->content);
         $this->assertSame('Only the feed summary.', $item->fresh()->summary);
 
@@ -263,7 +265,7 @@ class RssArticleWorkflowTest extends TestCase
         $article->refresh();
         $this->assertSame('Edited title', $article->title);
         $this->assertSame('edited-title', $article->slug);
-        $this->assertSame('Edited article body', $article->content);
+        $this->assertSame('<p>Edited article body</p>', $article->content);
         $this->assertSame('draft', $article->status);
         $this->assertSame('rss', $article->source_type);
         $this->assertSame($item->getKey(), $article->rss_item_id);
@@ -392,7 +394,7 @@ class RssArticleWorkflowTest extends TestCase
 
         $article->refresh();
         $this->assertSame('Updated published title', $article->title);
-        $this->assertSame('Updated published body', $article->content);
+        $this->assertSame('<p>Updated published body</p>', $article->content);
         $this->assertSame('published', $article->status);
         $this->assertTrue($publishedAt->equalTo($article->published_at));
         $this->assertTrue($contentEditAt->equalTo($article->content_modified_at));

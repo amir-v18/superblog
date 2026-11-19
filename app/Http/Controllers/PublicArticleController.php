@@ -2,14 +2,16 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\ArticleContentFormat;
 use App\Models\Article;
 use App\Models\Superblog;
+use App\Support\ArticleHtmlSanitizer;
 use Illuminate\Support\Str;
 use Illuminate\View\View;
 
 class PublicArticleController extends Controller
 {
-    public function show(Superblog $superblog, Article $article): View
+    public function show(Superblog $superblog, Article $article, ArticleHtmlSanitizer $htmlSanitizer): View
     {
         abort_unless($superblog->status === 'published', 404);
 
@@ -21,6 +23,11 @@ class PublicArticleController extends Controller
             ->with(['articleLinks', 'rssItem'])
             ->firstOrFail();
 
+        // The structured-document renderer is a later phase; never expose its JSON as article body text.
+        abort_unless($article->content_format === ArticleContentFormat::LegacyHtml, 404);
+
+        $articleViewData = $this->articleViewData($article, $htmlSanitizer);
+
         $template = $superblog->template;
         $templates = config('templates.list', []);
         $articleView = $templates[(string) $template?->seed_key]['article_view']
@@ -28,13 +35,13 @@ class PublicArticleController extends Controller
             ?? 'templates.news.article';
 
         return view($articleView, [
-            'article' => $this->articleViewData($article),
+            'article' => $articleViewData,
             'theme' => $superblog->settings['theme'] ?? null,
             'layout' => $template?->layout ?? 'layouts.public',
         ]);
     }
 
-    private function articleViewData(Article $article): array
+    private function articleViewData(Article $article, ArticleHtmlSanitizer $htmlSanitizer): array
     {
         $links = [];
 
@@ -60,12 +67,13 @@ class PublicArticleController extends Controller
             $sources[] = ['name' => $rssItem->title, 'url' => $rssItem->url];
         }
 
-        $body = $this->contentBlocks($article->content);
+        // Sanitize legacy records again at the public boundary before the view renders HTML.
+        $safeContent = $htmlSanitizer->sanitize($article->content);
 
         return [
             'title' => $article->title,
             'slug' => $article->slug,
-            'description' => $this->metaDescription($body),
+            'description' => $this->metaDescription($safeContent, $htmlSanitizer),
             'author' => $rssItem?->author,
             'created_at' => $article->created_at,
             'published_at' => $article->published_at,
@@ -75,31 +83,17 @@ class PublicArticleController extends Controller
             'is_ai_processed' => false,
             'is_locked' => $article->is_locked,
             'image' => null,
-            'body' => $body,
+            'body_html' => $article->is_locked
+                ? $htmlSanitizer->firstParagraphHtml($safeContent)
+                : $safeContent,
             'links' => $links,
             'sources' => $sources,
         ];
     }
 
-    private function contentBlocks(string $content): array
+    private function metaDescription(string $safeContent, ArticleHtmlSanitizer $htmlSanitizer): string
     {
-        $content = preg_replace('#<\s*(script|style)\b[^>]*>.*?</\s*\1\s*>#is', '', $content) ?? $content;
-        $content = preg_replace('#<\s*br\s*/?\s*>|<\s*/\s*(?:p|div|h[1-6]|li)\s*>#i', "\n\n", $content) ?? $content;
-        $plainText = html_entity_decode(strip_tags($content), ENT_QUOTES | ENT_HTML5, 'UTF-8');
-        $paragraphs = preg_split('/\R{2,}/u', trim($plainText), -1, PREG_SPLIT_NO_EMPTY) ?: [];
-
-        return array_map(fn (string $text): array => ['type' => 'p', 'text' => $text], $paragraphs);
-    }
-
-    /**
-     * Built from the first paragraph only: a locked article page also shows only its first paragraph,
-     * so the description can never reveal locked text. The paragraphs are already free of HTML and
-     * have their entities decoded. Always returns a string, never null.
-     */
-    private function metaDescription(array $body): string
-    {
-        $firstParagraph = collect($body)->firstWhere('type', 'p')['text'] ?? '';
-        $text = trim(preg_replace('/\s+/u', ' ', $firstParagraph) ?? '');
+        $text = $htmlSanitizer->firstParagraphText($safeContent);
 
         return Str::limit($text, 160, '…', preserveWords: true);
     }

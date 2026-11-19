@@ -2,9 +2,11 @@
 
 namespace App\Services;
 
+use App\Enums\ArticleContentFormat;
 use App\Models\RssItem;
 use App\Models\RssSource;
 use App\Models\Superblog;
+use App\Support\ArticleHtmlSanitizer;
 use App\Support\RssFeedDnsResolver;
 use App\Support\RssFeedFetchException;
 use Carbon\CarbonImmutable;
@@ -20,7 +22,10 @@ class RssFeedFetcher
 
     private const MAX_ITEMS = 500;
 
-    public function __construct(private readonly RssFeedDnsResolver $dnsResolver) {}
+    public function __construct(
+        private readonly RssFeedDnsResolver $dnsResolver,
+        private readonly ArticleHtmlSanitizer $htmlSanitizer,
+    ) {}
 
     public function fetch(RssSource $rssSource): int
     {
@@ -146,13 +151,23 @@ class RssFeedFetcher
 
         $superblog->articles()->create([
             'rss_item_id' => $rssItem->getKey(),
+            'content_format' => ArticleContentFormat::LegacyHtml,
             'title' => $rssItem->title,
             'slug' => $slug,
-            'content' => $rssItem->content ?: $rssItem->summary ?: '',
+            'content' => $this->articleContent($rssItem),
             'source_type' => 'rss',
             'status' => 'draft',
             'is_selected_for_publication' => true,
         ]);
+    }
+
+    private function articleContent(RssItem $rssItem): string
+    {
+        $content = $this->htmlSanitizer->sanitize($rssItem->content ?: '');
+
+        return $this->htmlSanitizer->hasText($content)
+            ? $content
+            : $this->htmlSanitizer->sanitize($rssItem->summary ?: '');
     }
 
     /** @return array{resolve: ?string} */

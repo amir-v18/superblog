@@ -16,9 +16,12 @@
 
         // Locked articles only get the first paragraph. The rest is never sent to the browser,
         // so it cannot be read from the page source.
-        $blocks = $isLocked
-            ? collect($article['body'])->where('type', 'p')->take(1)->all()
-            : $article['body'];
+        $blocks = [];
+        if (! array_key_exists('body_html', $article)) {
+            $blocks = $isLocked
+                ? collect($article['body'])->where('type', 'p')->take(1)->all()
+                : $article['body'];
+        }
 
         // RSS articles always go through AI transformation (RSS → AI → Article); there is no "ai" source type.
         $isAiProcessed = $article['is_ai_processed'] ?? $article['source_type'] === 'rss';
@@ -120,19 +123,23 @@
             @endif
 
             <div class="relative mt-8">
-                @foreach ($blocks as $block)
-                    @switch($block['type'])
-                        @case('h2')
-                            <h2 class="mt-10 font-display text-2xl font-semibold">{{ $block['text'] }}</h2>
-                            @break
-                        @case('h3')
-                            <h3 class="mt-8 font-display text-xl font-semibold">{{ $block['text'] }}</h3>
-                            @break
-                        @case('p')
-                            <p class="mt-4 leading-7 first:mt-0">{{ $block['text'] }}</p>
-                            @break
-                    @endswitch
-                @endforeach
+                @if (array_key_exists('body_html', $article))
+                    <div class="article-body space-y-4 leading-7">{!! $article['body_html'] !!}</div>
+                @else
+                    @foreach ($blocks as $block)
+                        @switch($block['type'])
+                            @case('h2')
+                                <h2 class="mt-10 font-display text-2xl font-semibold">{{ $block['text'] }}</h2>
+                                @break
+                            @case('h3')
+                                <h3 class="mt-8 font-display text-xl font-semibold">{{ $block['text'] }}</h3>
+                                @break
+                            @case('p')
+                                <p class="mt-4 leading-7 first:mt-0">{{ $block['text'] }}</p>
+                                @break
+                        @endswitch
+                    @endforeach
+                @endif
 
                 @if ($isLocked)
                     <div aria-hidden="true" class="pointer-events-none absolute inset-x-0 bottom-0 h-16 bg-linear-to-b from-transparent to-paper"></div>

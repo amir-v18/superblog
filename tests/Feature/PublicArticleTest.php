@@ -33,6 +33,30 @@ class PublicArticleTest extends TestCase
             ->assertDontSee('Fetch now');
     }
 
+    public function test_public_rendering_preserves_approved_formatting_and_sanitizes_legacy_content(): void
+    {
+        [$superblog, $article] = $this->makeArticle('published', Carbon::parse('2026-11-02 14:30:00'));
+        $article->update([
+            'content' => '<p onclick="alert(1)">First <strong>bold</strong> <em>italic</em> <a href="https://example.test/story">safe link</a> <a href="javascript:alert(2)">unsafe link</a> <span data-text-size="large" style="color:red">large</span><span data-text-size="huge">unknown size</span></p><h2>A heading</h2><ol><li>List item</li></ol><script>alert("script must not render")</script>',
+        ]);
+
+        $this->get(route('public.superblogs.articles.show', [$superblog, $article]))
+            ->assertOk()
+            ->assertSee('<strong>bold</strong>', false)
+            ->assertSee('<em>italic</em>', false)
+            ->assertSee('<a href="https://example.test/story">safe link</a>', false)
+            ->assertSee('<span data-text-size="large">large</span>', false)
+            ->assertSee('<h2>A heading</h2>', false)
+            ->assertSee('<ol><li>List item</li></ol>', false)
+            ->assertSee('unsafe link')
+            ->assertSee('unknown size')
+            ->assertDontSee('onclick')
+            ->assertDontSee('javascript:')
+            ->assertDontSee('style=')
+            ->assertDontSee('data-text-size="huge"')
+            ->assertDontSee('script must not render');
+    }
+
     public function test_content_modified_date_is_rendered_only_when_available(): void
     {
         [$superblog, $article] = $this->makeArticle('published', Carbon::parse('2026-11-02 14:30:00'));

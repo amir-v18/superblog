@@ -2,12 +2,13 @@
 
 namespace App\Models;
 
+use App\Enums\ArticleContentFormat;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-#[Fillable(['superblog_id', 'rss_item_id', 'title', 'slug', 'content', 'source_type', 'status', 'is_locked', 'is_selected_for_publication', 'published_at'])]
+#[Fillable(['superblog_id', 'rss_item_id', 'title', 'slug', 'content', 'content_format', 'source_type', 'status', 'is_locked', 'is_selected_for_publication', 'published_at'])]
 class Article extends Model
 {
     protected function casts(): array
@@ -17,6 +18,7 @@ class Article extends Model
             'is_selected_for_publication' => 'boolean',
             'published_at' => 'datetime',
             'content_modified_at' => 'datetime',
+            'content_format' => ArticleContentFormat::class,
         ];
     }
 

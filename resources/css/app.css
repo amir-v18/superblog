@@ -145,6 +145,57 @@
  */
 @custom-variant studio-light ([data-studio-mode='light'] &);
 
+/* Article text sizes are stored only as validated enum values by the HTML sanitizer. */
+.article-body [data-text-size='small'] {
+    font-size: 0.875em;
+}
+
+.article-body [data-text-size='normal'] {
+    font-size: 1em;
+}
+
+.article-body [data-text-size='large'] {
+    font-size: 1.25em;
+}
+
+.article-body h2 {
+    @apply mt-10 font-display text-2xl font-semibold;
+}
+
+.article-body h3 {
+    @apply mt-8 font-display text-xl font-semibold;
+}
+
+.article-body ul {
+    @apply ml-6 list-disc;
+}
+
+.article-body ol {
+    @apply ml-6 list-decimal;
+}
+
+.article-body a {
+    @apply text-primary underline underline-offset-4;
+}
+
+.article-editor-tool {
+    @apply rounded-lg border border-studio-line bg-studio-panel px-3 py-2 text-sm font-medium text-studio-ink hover:bg-studio-line-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-studio-brand disabled:cursor-not-allowed disabled:opacity-45;
+}
+
+[data-editor-body] [data-placeholder]:empty::before,
+[data-editor-title]:empty::before {
+    color: color-mix(in srgb, currentColor 45%, transparent);
+    content: attr(data-placeholder);
+    pointer-events: none;
+}
+
+[data-editor-body] [contenteditable='true'],
+[data-editor-title][contenteditable='true'] {
+    border-radius: 0.25rem;
+    outline: 2px solid color-mix(in srgb, var(--color-studio-brand) 45%, transparent);
+    outline-offset: 3px;
+}
+
 /*
  * Theme system: a theme is a set of raw values selected by data-theme on <html>.
  * The @theme inline block below maps them to Tailwind utilities (bg-paper, text-ink, font-display, ...).

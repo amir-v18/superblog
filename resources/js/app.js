@@ -169,6 +169,262 @@ window.addEventListener('storage', (event) => {
     }
 });
 
+// Article editing stays in the preview; only explicitly permitted blocks become editable on double-click.
+document.querySelectorAll('[data-article-editor]').forEach((form) => {
+    const title = form.querySelector('[data-editor-title]');
+    const titleField = form.querySelector('[data-article-title-field]');
+    const body = form.querySelector('[data-editor-body]');
+    const contentField = form.querySelector('[data-article-content-field]');
+    const sizeSelect = form.querySelector('[data-article-text-size]');
+    const backlinkPreview = form.querySelector('[data-editor-backlinks-preview]');
+    let savedRange = null;
+
+    if (!title || !titleField || !body || !contentField) {
+        return;
+    }
+
+    const syncBacklinks = () => {
+        if (!backlinkPreview) {
+            return;
+        }
+
+        const brandUrl = form.querySelector('[data-editor-link-url="brand"]')?.value.trim() ?? '';
+        const brandText = form.querySelector('[data-editor-link-anchor="brand"]')?.value.trim() ?? '';
+        const productUrl = form.querySelector('[data-editor-link-url="product"]')?.value.trim() ?? '';
+        const productText = form.querySelector('[data-editor-link-anchor="product"]')?.value.trim() ?? '';
+
+        const updateLink = (kind, url, text) => {
+            const link = form.querySelector(`[data-editor-${kind}-preview]`);
+            let safeUrl = false;
+            try {
+                safeUrl = ['http:', 'https:'].includes(new URL(url).protocol);
+            } catch {}
+
+            link.hidden = !safeUrl || !text;
+            if (safeUrl && text) {
+                link.href = url;
+                link.textContent = text;
+            }
+
+            return !link.hidden;
+        };
+
+        const hasBrand = updateLink('brand', brandUrl, brandText);
+        const hasProduct = updateLink('product', productUrl, productText);
+        const separator = form.querySelector('[data-editor-link-separator]');
+        separator.hidden = !(hasBrand && hasProduct);
+        backlinkPreview.hidden = !(hasBrand || hasProduct);
+    };
+
+    const syncFields = () => {
+        titleField.value = title.textContent.replace(/\s+/g, ' ').trim();
+        contentField.value = body.innerHTML;
+        syncBacklinks();
+        updateHeadingButton();
+    };
+
+    const updateHeadingButton = () => {
+        const h3Button = form.querySelector('[data-article-add-block="h3"]');
+        if (h3Button) {
+            h3Button.disabled = !body.querySelector('h2');
+        }
+    };
+
+    const editableBlock = (target) => target.closest('[data-editor-title], [data-editor-body] p, [data-editor-body] h2, [data-editor-body] h3, [data-editor-body] li');
+
+    const moveCaretToPoint = (element, event) => {
+        let range = null;
+        if (document.caretRangeFromPoint) {
+            range = document.caretRangeFromPoint(event.clientX, event.clientY);
+        } else if (document.caretPositionFromPoint) {
+            const position = document.caretPositionFromPoint(event.clientX, event.clientY);
+            if (position) {
+                range = document.createRange();
+                range.setStart(position.offsetNode, position.offset);
+                range.collapse(true);
+            }
+        }
+
+        if (range && element.contains(range.startContainer)) {
+            const selection = window.getSelection();
+            selection.removeAllRanges();
+            selection.addRange(range);
+        }
+    };
+
+    form.addEventListener('dblclick', (event) => {
+        const block = event.target instanceof Element ? editableBlock(event.target) : null;
+        if (!block || !form.contains(block)) {
+            return;
+        }
+
+        block.contentEditable = 'true';
+        block.focus({ preventScroll: true });
+        moveCaretToPoint(block, event);
+    });
+
+    document.addEventListener('selectionchange', () => {
+        const selection = window.getSelection();
+        if (selection?.rangeCount && body.contains(selection.anchorNode)) {
+            savedRange = selection.getRangeAt(0).cloneRange();
+        }
+    });
+
+    form.addEventListener('input', syncFields);
+    form.querySelectorAll('[data-editor-link-url], [data-editor-link-anchor]').forEach((input) => {
+        input.addEventListener('input', syncBacklinks);
+    });
+    form.addEventListener('focusout', (event) => {
+        const block = event.target instanceof Element ? event.target.closest('[contenteditable="true"]') : null;
+        if (!block || !form.contains(block)) {
+            return;
+        }
+
+        if (event.relatedTarget instanceof Element && event.relatedTarget.closest('[role="toolbar"]')) {
+            return;
+        }
+
+        window.setTimeout(() => {
+            if (!block.contains(document.activeElement)) {
+                block.contentEditable = 'false';
+                syncFields();
+            }
+        }, 0);
+    });
+
+    form.addEventListener('keydown', (event) => {
+        const block = event.target instanceof Element ? event.target.closest('[contenteditable="true"]') : null;
+        if (!block || !form.contains(block) || event.key !== 'Enter' || block === title || block.matches('li')) {
+            return;
+        }
+
+        event.preventDefault();
+        const selection = window.getSelection();
+        const range = selection?.rangeCount ? selection.getRangeAt(0) : null;
+        const nextParagraph = document.createElement('p');
+        nextParagraph.dataset.editableBlock = '';
+
+        if (range && block.contains(range.endContainer)) {
+            const remainder = range.cloneRange();
+            remainder.selectNodeContents(block);
+            remainder.setStart(range.endContainer, range.endOffset);
+            nextParagraph.append(remainder.extractContents());
+        }
+
+        block.after(nextParagraph);
+        nextParagraph.contentEditable = 'true';
+        nextParagraph.focus();
+        syncFields();
+    });
+
+    form.querySelectorAll('[data-article-command]').forEach((button) => {
+        button.addEventListener('mousedown', (event) => event.preventDefault());
+        button.addEventListener('click', () => {
+            const selection = window.getSelection();
+            if (!selection?.rangeCount || !body.contains(selection.anchorNode)) {
+                return;
+            }
+
+            if (button.dataset.articleCommand === 'createLink') {
+                const href = window.prompt('Enter a link URL (http, https, mailto or a relative path):');
+                if (!href) {
+                    return;
+                }
+
+                let protocol = '';
+                try {
+                    protocol = new URL(href, window.location.origin).protocol;
+                } catch {
+                    window.alert('Enter a valid link URL.');
+                    return;
+                }
+
+                if (!['http:', 'https:', 'mailto:'].includes(protocol)) {
+                    window.alert('Only http, https, mailto and relative links are allowed.');
+                    return;
+                }
+
+                document.execCommand('createLink', false, href);
+            } else {
+                document.execCommand(button.dataset.articleCommand, false);
+
+                const sourceTag = button.dataset.articleCommand === 'bold' ? 'b' : 'i';
+                const semanticTag = button.dataset.articleCommand === 'bold' ? 'strong' : 'em';
+                body.querySelectorAll(sourceTag).forEach((source) => {
+                    const replacement = document.createElement(semanticTag);
+                    replacement.append(...source.childNodes);
+                    source.replaceWith(replacement);
+                });
+            }
+
+            syncFields();
+        });
+    });
+
+    sizeSelect?.addEventListener('change', () => {
+        const selection = window.getSelection();
+        if (!savedRange || !selection || !body.contains(savedRange.commonAncestorContainer)) {
+            return;
+        }
+
+        selection.removeAllRanges();
+        selection.addRange(savedRange);
+
+        if (!selection.isCollapsed) {
+            const span = document.createElement('span');
+            span.dataset.textSize = sizeSelect.value;
+            span.append(selection.getRangeAt(0).extractContents());
+            selection.getRangeAt(0).insertNode(span);
+            selection.removeAllRanges();
+        }
+
+        syncFields();
+    });
+
+    form.querySelectorAll('[data-article-add-block]').forEach((button) => {
+        button.addEventListener('mousedown', (event) => event.preventDefault());
+        button.addEventListener('click', () => {
+            const tag = button.dataset.articleAddBlock;
+            if (tag === 'h3' && !body.querySelector('h2')) {
+                return;
+            }
+
+            const block = document.createElement(tag);
+            block.dataset.editableBlock = '';
+
+            if (tag === 'ul' || tag === 'ol') {
+                const item = document.createElement('li');
+                item.dataset.editableBlock = '';
+                item.dataset.placeholder = 'List item';
+                block.append(item);
+            } else {
+                block.dataset.placeholder = tag === 'h2' ? 'Main section heading' : tag === 'h3' ? 'Subsection heading' : 'Paragraph';
+            }
+
+            const selection = window.getSelection();
+            const anchor = selection?.anchorNode;
+            const selectedBlock = anchor instanceof Element
+                ? anchor.closest('p, h2, h3, ul, ol')
+                : anchor?.parentElement?.closest('p, h2, h3, ul, ol');
+            if (selectedBlock?.parentElement === body) {
+                selectedBlock.after(block);
+            } else {
+                body.append(block);
+            }
+
+            const editable = block.matches('ul, ol') ? block.querySelector('li') : block;
+            editable.contentEditable = 'true';
+            editable.focus();
+            updateHeadingButton();
+            syncFields();
+        });
+    });
+
+    form.addEventListener('submit', syncFields);
+    updateHeadingButton();
+    syncFields();
+});
+
 // Links with data-open-dialog open that <dialog> when the page has one; otherwise they stay normal links.
 document.addEventListener('click', (event) => {
     const closer = event.target instanceof Element ? event.target.closest('[data-close-dialog]') : null;

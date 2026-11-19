@@ -2,10 +2,12 @@
 
 namespace Tests\Feature\Admin;
 
+use App\Enums\ArticleContentFormat;
 use App\Models\Article;
 use App\Models\Superblog;
 use App\Models\Template;
 use App\Models\User;
+use App\Support\ArticleContentDocument;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -28,6 +30,15 @@ class ManualArticleCreationTest extends TestCase
             ->assertOk()
             ->assertSee('New manual article')
             ->assertDontSee('Excerpt')
+            ->assertSee('data-article-editor', false)
+            ->assertSee('data-editor-title', false)
+            ->assertSee('data-editor-body', false)
+            ->assertSee('data-article-add-block="h2"', false)
+            ->assertSee('data-article-add-block="h3"', false)
+            ->assertSee('data-article-add-block="ul"', false)
+            ->assertSee('data-article-text-size', false)
+            ->assertSee('Brand and product/service links')
+            ->assertDontSee('<textarea id="content"', false)
             ->assertSee(route('admin.superblogs.articles.store', $superblog), false);
     }
 
@@ -59,12 +70,233 @@ class ManualArticleCreationTest extends TestCase
         $this->assertNull($article->rss_item_id);
         $this->assertTrue($article->is_selected_for_publication);
         $this->assertNull($article->published_at);
+        $this->assertSame(ArticleContentFormat::LegacyHtml, $article->content_format);
 
         $this->get(route('admin.superblogs.edit', [$superblog, 'flik' => 'innehall']))
             ->assertOk()
             ->assertSee('A manual story')
             ->assertSee('name="selected_article_ids[]" value="'.$article->id.'"', false)
             ->assertSee('name="selected_article_ids[]" value="'.$article->id.'" checked', false);
+    }
+
+    public function test_article_document_storage_round_trips_and_preserves_publication_fields(): void
+    {
+        $superblog = $this->makeSuperblog($this->makeApprovedUser(superAdmin: true), 'Structured article Superblog');
+        $publishedAt = now()->subDays(2)->startOfSecond();
+        $modifiedAt = now()->subDay()->startOfSecond();
+        $article = $this->makeManualArticle($superblog, 'Structured article', [
+            'status' => 'published',
+            'is_selected_for_publication' => false,
+            'published_at' => $publishedAt,
+        ]);
+        $article->forceFill(['content_modified_at' => $modifiedAt])->save();
+        $document = [
+            'version' => 1,
+            'blocks' => [[
+                'id' => '1a912ca0-1111-4111-8111-111111111111',
+                'type' => 'introduction',
+                'runs' => [['text' => 'Structured introduction.']],
+            ]],
+        ];
+
+        $documents = new ArticleContentDocument;
+        $documents->storeOn($article, $document);
+        $article->save();
+        $article->refresh();
+
+        $this->assertSame(ArticleContentFormat::BlocksV1, $article->content_format);
+        $this->assertSame($documents->deserialize($documents->serialize($document)), $documents->readFrom($article));
+        $this->assertSame('published', $article->status);
+        $this->assertFalse($article->is_selected_for_publication);
+        $this->assertTrue($publishedAt->equalTo($article->published_at));
+        $this->assertTrue($modifiedAt->equalTo($article->content_modified_at));
+    }
+
+    public function test_legacy_article_content_is_unchanged_and_defaults_to_legacy_html_format(): void
+    {
+        $superblog = $this->makeSuperblog($this->makeApprovedUser(superAdmin: true), 'Legacy article Superblog');
+        $legacyHtml = '<p>Legacy <strong>formatted</strong> text.</p><h2>Existing heading</h2>';
+
+        $article = $this->makeManualArticle($superblog, 'Legacy article', ['content' => $legacyHtml])->fresh();
+
+        $this->assertSame(ArticleContentFormat::LegacyHtml, $article->content_format);
+        $this->assertSame($legacyHtml, $article->content);
+        $this->assertNull((new ArticleContentDocument)->readFrom($article));
+    }
+
+    public function test_manual_article_content_is_sanitized_before_storage(): void
+    {
+        [$staff, $superblog] = $this->makeAssignedSuperblog();
+
+        $this->actingAs($staff)->post(route('admin.superblogs.articles.store', $superblog), [
+            'title' => 'Sanitized article',
+            'slug' => 'sanitized-article',
+            'content' => '<p onclick="alert(1)">A <strong>bold</strong> <span data-text-size="large" style="color:red">line</span><script>alert("xss")</script><a href="javascript:alert(1)">link</a></p>',
+        ])->assertSessionHasNoErrors()->assertRedirect();
+
+        $article = Article::query()->where('slug', 'sanitized-article')->firstOrFail();
+        $this->assertSame(ArticleContentFormat::LegacyHtml, $article->content_format);
+        $this->assertSame('<p>A <strong>bold</strong> <span data-text-size="large">line</span><a>link</a></p>', $article->content);
+        $this->assertSame('draft', $article->status);
+        $this->assertNull($article->published_at);
+        $this->assertNull($article->content_modified_at);
+    }
+
+    public function test_article_body_rejects_missing_introduction_or_h3_without_an_h2(): void
+    {
+        [$staff, $superblog] = $this->makeAssignedSuperblog();
+        $route = route('admin.superblogs.articles.store', $superblog);
+
+        $this->actingAs($staff)->from(route('admin.superblogs.articles.create', $superblog))
+            ->post($route, [
+                'title' => 'Missing introduction',
+                'slug' => 'missing-introduction',
+                'content' => '<h2>Main section</h2><p>Text after heading.</p>',
+            ])
+            ->assertSessionHasErrors('content');
+
+        $this->post($route, [
+            'title' => 'Orphan subsection',
+            'slug' => 'orphan-subsection',
+            'content' => '<p>Introduction.</p><h3>Subsection first</h3>',
+        ])->assertSessionHasErrors('content');
+
+        $this->assertDatabaseCount('articles', 0);
+    }
+
+    public function test_backend_removes_body_h1_and_keeps_only_the_title_h1_publicly(): void
+    {
+        [$staff, $superblog] = $this->makeAssignedSuperblog();
+
+        $this->actingAs($staff)->post(route('admin.superblogs.articles.store', $superblog), [
+            'title' => 'The generated title',
+            'slug' => 'generated-title',
+            'content' => '<h1>Forged extra heading</h1><p>Introduction paragraph.</p><h2>Main section</h2><p>Section body.</p>',
+        ])->assertSessionHasNoErrors()->assertRedirect();
+
+        $article = Article::query()->where('slug', 'generated-title')->firstOrFail();
+        $this->assertStringNotContainsString('<h1', $article->content);
+
+        $this->post(route('admin.superblogs.articles.publish', [$superblog, $article]));
+        $superblog->update(['status' => 'published']);
+
+        $response = $this->get(route('public.superblogs.articles.show', [$superblog, $article]))->assertOk();
+        $this->assertSame(1, substr_count($response->getContent(), '<h1'));
+        $response->assertSee('<h1', false)->assertSee('The generated title')->assertSee('Introduction paragraph.')
+            ->assertDontSee('Forged extra heading');
+    }
+
+    public function test_article_links_are_saved_separately_and_change_public_modified_date(): void
+    {
+        [$staff, $superblog] = $this->makeAssignedSuperblog();
+
+        $this->actingAs($staff)->post(route('admin.superblogs.articles.store', $superblog), [
+            'title' => 'Backlink story',
+            'slug' => 'backlink-story',
+            'content' => '<p>Introduction.</p><h2>Main section</h2><p>Body.</p>',
+            'links' => [
+                'brand' => ['url' => 'https://brand.example.test', 'anchor_text' => 'Brand name'],
+                'product' => ['url' => 'https://brand.example.test/product', 'anchor_text' => 'Product name'],
+            ],
+        ])->assertSessionHasNoErrors()->assertRedirect();
+
+        $article = Article::query()->where('slug', 'backlink-story')->firstOrFail();
+        $this->assertDatabaseHas('article_links', [
+            'article_id' => $article->id,
+            'type' => 'brand',
+            'url' => 'https://brand.example.test',
+            'anchor_text' => 'Brand name',
+        ]);
+        $this->assertDatabaseHas('article_links', [
+            'article_id' => $article->id,
+            'type' => 'product',
+            'url' => 'https://brand.example.test/product',
+            'anchor_text' => 'Product name',
+        ]);
+        $this->actingAs($staff)
+            ->get(route('admin.superblogs.articles.edit', [$superblog, $article]))
+            ->assertOk()
+            ->assertSee('data-editor-brand-preview', false)
+            ->assertSee('href="https://brand.example.test"', false)
+            ->assertSee('Brand name')
+            ->assertSee('name="links[product][url]"', false);
+
+        $this->post(route('admin.superblogs.articles.publish', [$superblog, $article]));
+        $firstPublishedAt = $article->fresh()->published_at;
+        $this->travelTo(now()->addMinute());
+
+        $this->put(route('admin.superblogs.articles.update', [$superblog, $article]), [
+            'title' => 'Backlink story',
+            'slug' => 'backlink-story',
+            'content' => '<p>Introduction.</p><h2>Main section</h2><p>Body.</p>',
+            'links' => [
+                'brand' => ['url' => 'https://new-brand.example.test', 'anchor_text' => 'Updated brand'],
+                'product' => ['url' => 'https://brand.example.test/product', 'anchor_text' => 'Product name'],
+            ],
+        ])->assertSessionHasNoErrors()->assertRedirect();
+
+        $article->refresh();
+        $this->assertSame('published', $article->status);
+        $this->assertTrue($firstPublishedAt->equalTo($article->published_at));
+        $this->assertNotNull($article->content_modified_at);
+        $this->assertDatabaseHas('article_links', [
+            'article_id' => $article->id,
+            'type' => 'brand',
+            'url' => 'https://new-brand.example.test',
+            'anchor_text' => 'Updated brand',
+        ]);
+
+        $superblog->update(['status' => 'published']);
+        $this->get(route('public.superblogs.articles.show', [$superblog, $article]))
+            ->assertOk()
+            ->assertSee('href="https://new-brand.example.test"', false)
+            ->assertSee('Updated brand')
+            ->assertSee('Product name');
+    }
+
+    public function test_article_backlink_validation_rejects_unsafe_protocols_and_incomplete_pairs(): void
+    {
+        [$staff, $superblog] = $this->makeAssignedSuperblog();
+        $route = route('admin.superblogs.articles.store', $superblog);
+        $base = [
+            'title' => 'Unsafe backlink',
+            'slug' => 'unsafe-backlink',
+            'content' => '<p>Introduction.</p>',
+        ];
+
+        $this->actingAs($staff)->from(route('admin.superblogs.articles.create', $superblog))
+            ->post($route, [...$base, 'links' => ['brand' => ['url' => 'javascript:alert(1)', 'anchor_text' => 'Unsafe']]])
+            ->assertSessionHasErrors('links.brand.url');
+
+        $this->post($route, [...$base, 'links' => ['brand' => ['url' => 'https://brand.example.test', 'anchor_text' => '']]])
+            ->assertSessionHasErrors('links.brand.anchor_text');
+
+        $this->assertDatabaseCount('articles', 0);
+    }
+
+    public function test_saving_unchanged_legacy_text_does_not_create_a_false_content_modified_date(): void
+    {
+        [$staff, $superblog] = $this->makeAssignedSuperblog();
+        $publishedAt = now()->subDays(3)->startOfSecond();
+        $article = $this->makeManualArticle($superblog, 'Legacy text article', [
+            'content' => 'Existing plain body.',
+            'status' => 'published',
+            'published_at' => $publishedAt,
+            'content_modified_at' => null,
+        ]);
+
+        $this->travelTo(now()->addMinute());
+        $this->actingAs($staff)->put(route('admin.superblogs.articles.update', [$superblog, $article]), [
+            'title' => 'Legacy text article',
+            'slug' => 'legacy-text-article',
+            'content' => 'Existing plain body.',
+        ])->assertSessionHasNoErrors()->assertRedirect();
+
+        $article->refresh();
+        $this->assertSame('<p>Existing plain body.</p>', $article->content);
+        $this->assertSame('published', $article->status);
+        $this->assertTrue($publishedAt->equalTo($article->published_at));
+        $this->assertNull($article->content_modified_at);
     }
 
     public function test_manual_article_saved_from_the_form_is_shown_on_the_public_page(): void

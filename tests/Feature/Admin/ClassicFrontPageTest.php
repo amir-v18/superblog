@@ -23,6 +23,7 @@ class ClassicFrontPageTest extends TestCase
 
     public function test_articles_fill_the_lead_the_news_and_the_row_in_order(): void
     {
+        $this->travelTo(Carbon::parse('2026-11-19 15:00:00'));
         [$admin, $superblog] = $this->classicMagazine('published');
         // Story 1 is the newest. Each one is a minute older than the one before.
         foreach (range(1, 7) as $number) {
@@ -81,6 +82,7 @@ class ClassicFrontPageTest extends TestCase
 
     public function test_most_read_lists_the_newest_published_manual_articles_numbered(): void
     {
+        $this->travelTo(Carbon::parse('2026-11-19 15:00:00'));
         [$admin, $superblog] = $this->classicMagazine('published');
         // The same articles as the Modern front page: manual, published, selected and dated, at most five, newest first.
         foreach (range(1, 6) as $number) {
@@ -94,6 +96,8 @@ class ClassicFrontPageTest extends TestCase
         $this->assertStringContainsString('>Mest lästa</h2>', $mostRead);
         $this->assertTrue($this->inOrder($mostRead, ['>1<', 'Manual 1<', '>2<', 'Manual 2<', '>3<', 'Manual 3<', '>4<', 'Manual 4<', '>5<', 'Manual 5<']));
         $this->assertSame(5, substr_count($mostRead, '<li'));
+        $this->assertSame(5, substr_count($mostRead, '<time datetime='));
+        $this->assertStringContainsString('>19 nov 2026</time>', $mostRead);
         foreach (['Manual 6', 'From a feed', 'Not selected', 'rounded-[3px] bg-ink/14'] as $missing) {
             $this->assertStringNotContainsString($missing, $mostRead);
         }
@@ -170,8 +174,9 @@ class ClassicFrontPageTest extends TestCase
 
     public function test_selected_drafts_show_their_created_date_in_the_offline_preview(): void
     {
+        $this->travelTo(Carbon::parse('2026-11-19 15:00:00'));
         [$admin, $superblog] = $this->classicMagazine('draft');
-        // Undated drafts are sorted by id, newest first: draft 4 leads and draft 1 opens the row.
+        // Drafts have no publication timestamp, but still have a real creation date.
         foreach (range(1, 4) as $number) {
             $this->makeArticle($superblog, "Draft {$number}", null, status: 'draft');
         }
@@ -185,6 +190,7 @@ class ClassicFrontPageTest extends TestCase
         $this->assertSame(1, substr_count($row, '<span>Skapad:</span>'));
         $this->assertSame(4, substr_count($main, '<span>Skapad:</span>'));
         $this->assertSame(4, substr_count($main, '<time datetime="'));
+        $this->assertStringContainsString('>19 nov 2026</time>', $row);
         // Drafts are not published, so "Mest lästa" has none of them, as on the Modern front page.
         $this->assertStringContainsString('Manuella artiklar visas här när de publiceras.', $this->part($html, '<section aria-labelledby="most-read-heading"'));
     }

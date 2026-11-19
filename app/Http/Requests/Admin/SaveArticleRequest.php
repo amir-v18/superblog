@@ -56,7 +56,22 @@ class SaveArticleRequest extends FormRequest
                 'regex:/^[a-z0-9]+(?:-[a-z0-9]+)*$/',
                 $uniqueSlug,
             ],
-            'content' => ['required', 'string'],
+            'content' => [
+                'required',
+                'string',
+                function (string $attribute, mixed $value, \Closure $fail): void {
+                    if (is_string($value) && strlen($value) > 2_097_152) {
+                        $fail('Article content may not exceed 2 MB.');
+                    }
+                },
+            ],
+            'links' => ['sometimes', 'array:brand,product'],
+            'links.brand' => ['sometimes', 'array:url,anchor_text'],
+            'links.brand.url' => ['nullable', 'required_with:links.brand.anchor_text', 'url:http,https', 'max:2048'],
+            'links.brand.anchor_text' => ['nullable', 'required_with:links.brand.url', 'string', 'max:255'],
+            'links.product' => ['sometimes', 'array:url,anchor_text'],
+            'links.product.url' => ['nullable', 'required_with:links.product.anchor_text', 'url:http,https', 'max:2048'],
+            'links.product.anchor_text' => ['nullable', 'required_with:links.product.url', 'string', 'max:255'],
         ];
     }
 }
