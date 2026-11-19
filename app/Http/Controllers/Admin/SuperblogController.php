@@ -108,7 +108,6 @@ class SuperblogController extends Controller
         return view('admin.superblogs.edit', [
             'superblog' => $superblog,
             'canManageSettings' => $canManageSettings,
-            'templates' => $canManageSettings ? $this->availableTemplates($superblog) : collect(),
             // withCount adds rss_items_count with one query, instead of one count per feed in the view.
             'rssSources' => $canManageSettings ? $superblog->rssSources()->withCount('rssItems')->orderBy('name')->get() : collect(),
             // Same rule as the dashboard: only published articles count, drafts do not.
@@ -202,16 +201,10 @@ class SuperblogController extends Controller
         throw ValidationException::withMessages(['slug' => 'The slug or domain is already in use. Please choose another.']);
     }
 
-    private function availableTemplates(?Superblog $superblog = null)
+    private function availableTemplates()
     {
         return Template::query()
-            ->where(function ($query) use ($superblog): void {
-                $query->where('is_active', true);
-
-                if ($superblog?->exists) {
-                    $query->orWhereKey($superblog->template_id);
-                }
-            })
+            ->where('is_active', true)
             ->orderBy('name')
             ->get();
     }

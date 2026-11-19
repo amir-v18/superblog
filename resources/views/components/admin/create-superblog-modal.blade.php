@@ -16,7 +16,7 @@
     {{-- Clicks on this inner wrapper never reach the dialog itself, which is how app.js detects clicks outside. --}}
     <div class="flex flex-col gap-4 p-6.5">
         <h2 id="create-superblog-heading" class="text-[22px] font-semibold tracking-tight">Nytt magasin</h2>
-        <p class="text-[13px] leading-normal text-studio-muted">Tre uppgifter räcker för att starta. Allt kan justeras i byggaren, och mallen kan bytas senare.</p>
+        <p class="text-[13px] leading-normal text-studio-muted">Välj en aktiv mall när du skapar magasinet. Namn och webbadress kan justeras senare i byggaren.</p>
 
         @if ($templates->isEmpty())
             <p role="status" class="rounded-lg border border-studio-warn-line bg-studio-warn-bg p-4 text-sm text-studio-warn-ink">
@@ -54,6 +54,7 @@
                         <small class="text-[12.5px] text-studio-muted">Styr layouten på hela sajten</small>
                     </span>
                 </legend>
+                <p class="-mt-3 mb-3 text-[12.5px] text-studio-muted">Observera: Mallen kan inte bytas efter att Superbloggen har skapats.</p>
                 {{-- Each card is a label around a radio that only screen readers see, so the choice is sent as template_id
                      without JS. The radio gets the keyboard focus, so the card draws the focus indicator in its place,
                      with the same values as the other admin buttons. --}}
