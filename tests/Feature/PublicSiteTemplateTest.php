@@ -91,6 +91,51 @@ class PublicSiteTemplateTest extends TestCase
             ->assertDontSee('>Utkast<', false);
     }
 
+    public function test_homepage_article_dates_match_the_article_view_and_stack_vertically(): void
+    {
+        $superblog = $this->publishedMagazine('template-modern');
+        $this->makeArticle($superblog, 'Dated story', now());
+        $article = $superblog->articles()->firstOrFail();
+        $createdAt = now()->subDay()->startOfDay();
+        $modifiedAt = $createdAt->copy()->addHours(4);
+        $article->forceFill([
+            'created_at' => $createdAt,
+            'content_modified_at' => $modifiedAt,
+        ])->save();
+
+        foreach (['template-modern', 'template-classic'] as $templateKey) {
+            $superblog->template->forceFill(['seed_key' => $templateKey])->save();
+            $content = $this->get(route('public.superblogs.show', $superblog))
+                ->assertOk()
+                ->assertSee('Skapad:')
+                ->assertSee('Senast ändrad:')
+                ->assertSee($createdAt->locale('sv')->isoFormat('D MMM YYYY'))
+                ->assertSee($modifiedAt->locale('sv')->isoFormat('D MMM YYYY'))
+                ->assertSee('datetime="'.$createdAt->toIso8601String().'"', false)
+                ->assertSee('datetime="'.$modifiedAt->toIso8601String().'"', false)
+                ->getContent();
+
+            $this->assertMatchesRegularExpression(
+                '/<div class="grid gap-y-0\.5[^\"]*">\s*<div>\s*<span>Skapad:<\/span>.*?<\/div>\s*<div>\s*<span>Senast ändrad:<\/span>/s',
+                $content,
+            );
+        }
+    }
+
+    public function test_new_homepage_articles_show_only_the_created_date(): void
+    {
+        $superblog = $this->publishedMagazine('template-modern');
+        $this->makeArticle($superblog, 'New story', now());
+
+        foreach (['template-modern', 'template-classic'] as $templateKey) {
+            $superblog->template->forceFill(['seed_key' => $templateKey])->save();
+            $this->get(route('public.superblogs.show', $superblog))
+                ->assertOk()
+                ->assertSee('Skapad:')
+                ->assertDontSee('Senast ändrad:');
+        }
+    }
+
     public function test_the_article_page_still_works_for_a_classic_magazine(): void
     {
         $superblog = $this->publishedMagazine('template-classic');

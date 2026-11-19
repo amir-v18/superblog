@@ -45,9 +45,7 @@
                             <h2 class="line-clamp-3 font-display text-3xl leading-tight font-semibold tracking-tight">
                                 <a href="{{ route('public.superblogs.articles.show', [$superblog, $featuredArticle]) }}" target="_blank" rel="noopener" class="hover:underline">{{ $featuredArticle->title }}</a>
                             </h2>
-                            @if ($featuredArticle->published_at)
-                                <time class="text-xs text-ink/60" datetime="{{ $featuredArticle->published_at->toIso8601String() }}">{{ $featuredArticle->published_at->locale('sv')->isoFormat('D MMMM YYYY') }}</time>
-                            @endif
+                            <x-article-date-lines :article="$featuredArticle" class="text-xs text-ink/60" />
                         </div>
                     @else
                         <div class="absolute right-5 bottom-5 left-5 flex flex-col gap-2 rounded-md bg-paper/92 p-4">
@@ -67,7 +65,10 @@
                 <aside aria-labelledby="latest-sidebar-heading" class="border-l border-ink/15 pl-5 max-[760px]:border-l-0 max-[760px]:pl-0">
                     <h2 id="latest-sidebar-heading" class="mb-1 border-b-3 border-primary pb-2 {{ $eyebrow }}">Mest lästa artiklar just nu</h2>
                     @forelse ($manualArticles as $article)
-                        <a href="{{ route('public.superblogs.articles.show', [$superblog, $article]) }}" target="_blank" rel="noopener" class="block border-b border-ink/12 py-3 font-medium hover:underline">{{ $article->title }}</a>
+                        <div class="border-b border-ink/12 py-3">
+                            <a href="{{ route('public.superblogs.articles.show', [$superblog, $article]) }}" target="_blank" rel="noopener" class="block font-medium hover:underline">{{ $article->title }}</a>
+                            <x-article-date-lines :article="$article" class="mt-1 text-[11px] text-ink/60" />
+                        </div>
                     @empty
                         @if ($articles->isEmpty())
                             @foreach (range(1, 5) as $rank)

@@ -111,9 +111,9 @@ SEO is a platform responsibility. Laravel must enforce required SEO/content vali
 
 The platform should provide a canonical URL, one H1, a logical heading hierarchy, semantic HTML, appropriate image alt text, structured data, Open Graph metadata, robots directives, sitemap, and `robots.txt` as applicable. Article title is the page H1. A meta description is derived automatically from the first paragraph. Brand/product/service links are useful optional content, not universal publication requirements.
 
-`published_at` means the first-publication date. Withdrawal and republishing do not clear or replace it. A separate reader-facing “Senast ändrad” timestamp changes when public-visible article content changes (title, body/formatting, or image) and when the article is republished. Selection-only changes do not update it. Do not use the generic technical `updated_at` as this value if selection or internal status changes can touch it. Expose the first publication date as `datePublished` and the content-modified date as `dateModified` in appropriate HTML/structured data.
+`published_at` means the first-publication date. Withdrawal and republishing do not clear or replace it. A separate reader-facing `content_modified_at` timestamp changes only when public-visible article content changes (title, body/formatting, or image). Publishing, republishing, selection changes, and taking a whole Superblog offline do not update it. Future changes to public-facing ArticleLink records must also update it. Do not use the generic technical `updated_at` as this value if selection or internal status changes can touch it. Expose the first publication date as `datePublished` and the content-modified date as `dateModified` in appropriate HTML/structured data.
 
-Status: automatic SEO metadata exists in part; the agreed publication validation and separate content-modified date are planned.
+Status: automatic SEO metadata and separate first-publication/content-modified date behavior are implemented in part. Required publication validation remains planned.
 
 ### Roles and permissions
 
@@ -255,7 +255,7 @@ Required SEO/content validation
 
 ### Publishing
 
-Selection controls inclusion; status controls publication. A live Superblog exposes only selected, published articles with a valid first-publication date. Publishing a Superblog publishes eligible selected articles and sets the Superblog live. Unpublishing the Superblog takes the whole site offline without changing article statuses or publication dates. Withdrawing a single article preserves its first-publication date; republishing updates the “Senast ändrad” value.
+Selection controls inclusion; status controls publication. A live Superblog exposes only selected, published articles with a valid first-publication date. Publishing a Superblog publishes eligible selected articles and sets the Superblog live. Unpublishing the Superblog takes the whole site offline without changing article statuses or publication dates. Withdrawing and republishing an article preserve its first-publication date and do not by themselves update `content_modified_at`.
 
 ## 7. Public rendering and URLs
 
@@ -292,7 +292,7 @@ Do not add or run unnecessary tests. Use focused existing tests and lightweight 
 
 ## 11. Implementation status snapshot
 
-This snapshot is based on source inspection and SQLite verification on 16 November 2026. It records implementation gaps relative to the agreed target; it does not invalidate intentionally planned or open blueprint sections.
+This snapshot is based on source inspection and verification on 19 November 2026. It records implementation gaps relative to the agreed target; it does not invalidate intentionally planned or open blueprint sections.
 
 * Current public Superblog routes use `/superblogs/{slug}`; host/domain dispatch and central-host-only admin routing are not implemented.
 * Current Superblog schema still has a slug and nullable domain.
@@ -303,7 +303,7 @@ This snapshot is based on source inspection and SQLite verification on 16 Novemb
 * Staff Management now lets approved admins promote approved editors and demote other admins. Role changes preserve the user row, Google identity, approval status, and Superblog assignments; self-demotion and removing the final admin are blocked. The existing staff-update endpoint rechecks access and target state transactionally and locks admin rows in stable order for role and approval actions. Feature tests use SQLite, with focused role tests also run against disposable MySQL 8.4; simultaneous multi-process contention was not directly exercised.
 * Article bodies are currently plain text in a textarea. The agreed basic visual editor, media upload/rendering, and template-specific article views remain to be implemented.
 * Excerpt has been removed. Public meta description is derived from the first paragraph.
-* Current withdrawal logic clears `published_at`; the agreed first-publication and separate “Senast ändrad” behavior is not yet implemented.
+* `published_at` is preserved as the first-publication date across withdrawal and republication. `content_modified_at` is set only when reader-visible title/body content on a published article is edited; publication, republication, selection-only changes, slug-only edits, and whole-Superblog unpublishing do not change it. Public article pages show “Skapad” from `created_at` and show “Senast ändrad” whenever `content_modified_at` is later than `created_at`, including when both dates fall on the same calendar day; structured data includes a known actual modification timestamp. Existing dates were not backfilled: existing `published_at` values remain as stored, and `content_modified_at` starts null for existing rows because historical modification times cannot be reliably inferred. Focused and full tests passed on SQLite; the additive migration was separately verified against an ephemeral MySQL 8.4 database.
 * The forward migration `2026_11_11_000001_preserve_articles_when_rss_items_are_deleted` changes `articles.rss_item_id` to `nullOnDelete()`. Deleting an RSS item or source detaches the article without removing its content, selection, status, publication date, or timeline record. The original migrations remain unchanged. SQLite and a disposable MySQL 8.4 database were used to verify the migration and preservation behavior.
 * RSS fetching is currently manual. Database queue infrastructure exists, but scheduled fetches, quotas, AI/image jobs, persistent warnings, and Auto publish do not.
 * Paywall rendering currently exists, but reader authentication/subscriptions do not. The agreed public behavior is full article access until reader access is designed.

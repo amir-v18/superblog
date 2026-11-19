@@ -22,6 +22,17 @@ class GoogleAuthenticationTest extends TestCase
         $this->configureGoogle();
     }
 
+    public function test_root_shows_the_login_page(): void
+    {
+        $this->get('/')
+            ->assertOk()
+            ->assertSee('Sign in with Google');
+
+        $this->get(route('login'))
+            ->assertOk()
+            ->assertSee('Sign in with Google');
+    }
+
     public function test_linked_super_admin_signs_in_without_changing_privileges(): void
     {
         $admin = $this->makeUser('admin@example.com', 'approved', true, false, 'google-admin');

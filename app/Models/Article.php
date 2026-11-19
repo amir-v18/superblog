@@ -16,6 +16,7 @@ class Article extends Model
             'is_locked' => 'boolean',
             'is_selected_for_publication' => 'boolean',
             'published_at' => 'datetime',
+            'content_modified_at' => 'datetime',
         ];
     }
 

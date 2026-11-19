@@ -72,7 +72,7 @@
                         <h2 class="mt-1 text-center font-display text-[clamp(34px,4.4cqw,62px)] leading-[1.02] font-black tracking-[-.01em] text-balance @max-[640px]:text-[34px]">
                             <a href="{{ route('public.superblogs.articles.show', [$superblog, $lead]) }}" target="_blank" rel="noopener" class="hover:text-primary">{{ $lead->title }}</a>
                         </h2>
-                        <p class="mt-2 mb-3.5 border-y border-line py-[5px] text-center {{ $byline }}"><x-classic.date :article="$lead" /></p>
+                        <div class="mt-2 mb-3.5 border-y border-line py-[5px] text-center {{ $byline }}"><x-classic.date :article="$lead" /></div>
                     @else
                         <div class="my-2.5 {{ $headLine }}"></div>
                         <div class="mx-auto my-2 w-[70%] {{ $headLine }}"></div>
@@ -100,7 +100,10 @@
                             @forelse ($manualArticles as $article)
                                 <li class="grid grid-cols-[22px_1fr] items-center gap-2 border-b border-dotted border-line py-[7px] text-sm leading-[1.3]">
                                     <span aria-hidden="true" class="font-display text-[22px] leading-none font-medium text-primary">{{ $loop->iteration }}</span>
-                                    <a href="{{ route('public.superblogs.articles.show', [$superblog, $article]) }}" target="_blank" rel="noopener" class="min-w-0 hover:underline">{{ $article->title }}</a>
+                                    <div class="min-w-0">
+                                        <a href="{{ route('public.superblogs.articles.show', [$superblog, $article]) }}" target="_blank" rel="noopener" class="hover:underline">{{ $article->title }}</a>
+                                        <x-classic.date :article="$article" :class="$byline" />
+                                    </div>
                                 </li>
                             @empty
                                 @foreach (range(1, 5) as $rank)

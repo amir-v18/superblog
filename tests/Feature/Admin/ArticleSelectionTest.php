@@ -89,6 +89,8 @@ class ArticleSelectionTest extends TestCase
         [$staff, $superblog] = $this->makeAssignedSuperblog();
         $publishedAt = now()->subDay()->startOfSecond();
         $published = $this->makeArticle($superblog, 'Published article', status: 'published', selected: true, publishedAt: $publishedAt);
+        $contentModifiedAt = now()->subHours(2)->startOfSecond();
+        $published->forceFill(['content_modified_at' => $contentModifiedAt])->save();
         $draft = $this->makeArticle($superblog, 'Draft article');
 
         $this->actingAs($staff)
@@ -106,6 +108,7 @@ class ArticleSelectionTest extends TestCase
         $this->assertTrue($draft->is_selected_for_publication);
         $this->assertSame('published', $published->status);
         $this->assertTrue($publishedAt->equalTo($published->published_at));
+        $this->assertTrue($contentModifiedAt->equalTo($published->content_modified_at));
         $this->assertSame('draft', $draft->status);
         $this->assertNull($draft->published_at);
     }
@@ -124,7 +127,10 @@ class ArticleSelectionTest extends TestCase
 
         $publishedDate = now()->subDays(3)->startOfSecond();
         $keepPublished = $this->makeArticle($superblog, 'Keep published', status: 'published', selected: true, publishedAt: $publishedDate);
-        $withdrawPublished = $this->makeArticle($superblog, 'Withdraw published', status: 'published', selected: true, publishedAt: now()->subDay());
+        $withdrawPublishedDate = now()->subDay()->startOfSecond();
+        $withdrawPublished = $this->makeArticle($superblog, 'Withdraw published', status: 'published', selected: true, publishedAt: $withdrawPublishedDate);
+        $withdrawModifiedAt = now()->subHours(5)->startOfSecond();
+        $withdrawPublished->forceFill(['content_modified_at' => $withdrawModifiedAt])->save();
         $publishDraft = $this->makeArticle($superblog, 'Publish draft');
         $leaveDraft = $this->makeArticle($superblog, 'Leave draft');
 
@@ -153,10 +159,12 @@ class ArticleSelectionTest extends TestCase
 
         $this->assertSame('published', $publishDraft->fresh()->status);
         $this->assertNotNull($publishDraft->fresh()->published_at);
+        $this->assertNull($publishDraft->fresh()->content_modified_at);
         $this->assertTrue($publishDraft->fresh()->is_selected_for_publication);
 
         $this->assertSame('draft', $withdrawPublished->fresh()->status);
-        $this->assertNull($withdrawPublished->fresh()->published_at);
+        $this->assertTrue($withdrawPublishedDate->equalTo($withdrawPublished->fresh()->published_at));
+        $this->assertTrue($withdrawModifiedAt->equalTo($withdrawPublished->fresh()->content_modified_at));
         $this->assertFalse($withdrawPublished->fresh()->is_selected_for_publication);
         $this->assertSame('draft', $leaveDraft->fresh()->status);
         $this->assertNull($leaveDraft->fresh()->published_at);

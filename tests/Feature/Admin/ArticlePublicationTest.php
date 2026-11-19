@@ -139,6 +139,8 @@ class ArticlePublicationTest extends TestCase
         $superblog->update(['status' => 'published']);
         $publishedAt = now()->subDays(4)->startOfSecond();
         $article = $this->makeArticle($superblog, 'Still published article', status: 'published', selected: true, publishedAt: $publishedAt);
+        $contentModifiedAt = now()->subDay()->startOfSecond();
+        $article->forceFill(['content_modified_at' => $contentModifiedAt])->save();
 
         $this->actingAs($staff)
             ->post(route('admin.superblogs.unpublish', $superblog))
@@ -148,6 +150,7 @@ class ArticlePublicationTest extends TestCase
         $this->assertSame('draft', $superblog->fresh()->status);
         $this->assertSame('published', $article->fresh()->status);
         $this->assertTrue($publishedAt->equalTo($article->fresh()->published_at));
+        $this->assertTrue($contentModifiedAt->equalTo($article->fresh()->content_modified_at));
 
         $this->get(route('admin.superblogs.published'))
             ->assertOk()
@@ -186,7 +189,12 @@ class ArticlePublicationTest extends TestCase
         $selectedDraft = $this->makeArticle($superblog, 'Selected draft', selected: true);
         $publishedAt = now()->subDays(3)->startOfSecond();
         $selectedPublished = $this->makeArticle($superblog, 'Selected published', status: 'published', selected: true, publishedAt: $publishedAt);
-        $unselectedPublished = $this->makeArticle($superblog, 'Unselected published', status: 'published', publishedAt: now()->subDays(2));
+        $selectedModifiedAt = now()->subDay()->startOfSecond();
+        $selectedPublished->forceFill(['content_modified_at' => $selectedModifiedAt])->save();
+        $unselectedPublishedAt = now()->subDays(2)->startOfSecond();
+        $unselectedPublished = $this->makeArticle($superblog, 'Unselected published', status: 'published', publishedAt: $unselectedPublishedAt);
+        $unselectedModifiedAt = now()->subHours(10)->startOfSecond();
+        $unselectedPublished->forceFill(['content_modified_at' => $unselectedModifiedAt])->save();
         $unselectedDraft = $this->makeArticle($superblog, 'Unselected draft');
 
         $otherOwner = $this->makeApprovedUser(superAdmin: true);
@@ -202,10 +210,13 @@ class ArticlePublicationTest extends TestCase
 
         $this->assertSame('published', $selectedDraft->fresh()->status);
         $this->assertNotNull($selectedDraft->fresh()->published_at);
+        $this->assertNull($selectedDraft->fresh()->content_modified_at);
         $this->assertSame('published', $selectedPublished->fresh()->status);
         $this->assertTrue($publishedAt->equalTo($selectedPublished->fresh()->published_at));
+        $this->assertTrue($selectedModifiedAt->equalTo($selectedPublished->fresh()->content_modified_at));
         $this->assertSame('draft', $unselectedPublished->fresh()->status);
-        $this->assertNull($unselectedPublished->fresh()->published_at);
+        $this->assertTrue($unselectedPublishedAt->equalTo($unselectedPublished->fresh()->published_at));
+        $this->assertTrue($unselectedModifiedAt->equalTo($unselectedPublished->fresh()->content_modified_at));
         $this->assertSame('draft', $unselectedDraft->fresh()->status);
         $this->assertNull($unselectedDraft->fresh()->published_at);
         $this->assertSame('draft', $otherSelectedDraft->fresh()->status);
@@ -219,6 +230,54 @@ class ArticlePublicationTest extends TestCase
         $this->post(route('admin.superblogs.articles.publish-selected', $superblog))
             ->assertSessionHas('status', 'Artikelpublicering klar: 0 artiklar publicerades och 0 artiklar drogs tillbaka. Superbloggens status ändrades inte.');
         $this->assertTrue($publishedAtAfterFirstRun->equalTo($selectedPublished->fresh()->published_at));
+        $this->assertTrue($selectedModifiedAt->equalTo($selectedPublished->fresh()->content_modified_at));
+    }
+
+    public function test_republishing_preserves_first_publication_and_content_modified_at(): void
+    {
+        [$staff, $superblog] = $this->makeAssignedSuperblog();
+        $superblog->update(['status' => 'published']);
+        $firstPublishedAt = now()->subDays(5)->startOfSecond();
+        $article = $this->makeArticle($superblog, 'Republished story', status: 'published', selected: true, publishedAt: $firstPublishedAt);
+        $firstModifiedAt = now()->subDays(2)->startOfSecond();
+        $article->forceFill(['content_modified_at' => $firstModifiedAt])->save();
+
+        $this->actingAs($staff)->put(route('admin.superblogs.articles.selection.update', $superblog), [
+            'visible_article_ids' => [$article->getKey()],
+            'selected_article_ids' => [],
+        ])->assertRedirect();
+
+        $this->assertSame('draft', $article->fresh()->status);
+        $this->assertTrue($firstPublishedAt->equalTo($article->fresh()->published_at));
+        $this->assertTrue($firstModifiedAt->equalTo($article->fresh()->content_modified_at));
+
+        $this->travelTo(now()->addMinute()->startOfSecond());
+        $this->put(route('admin.superblogs.articles.selection.update', $superblog), [
+            'visible_article_ids' => [$article->getKey()],
+            'selected_article_ids' => [$article->getKey()],
+        ])->assertRedirect();
+
+        $this->assertSame('published', $article->fresh()->status);
+        $this->assertTrue($firstPublishedAt->equalTo($article->fresh()->published_at));
+        $this->assertTrue($firstModifiedAt->equalTo($article->fresh()->content_modified_at));
+    }
+
+    public function test_batch_republication_preserves_first_publication_and_content_modified_at(): void
+    {
+        [$staff, $superblog] = $this->makeAssignedSuperblog();
+        $firstPublishedAt = now()->subDays(7)->startOfSecond();
+        $article = $this->makeArticle($superblog, 'Batch republished story', status: 'draft', selected: true, publishedAt: $firstPublishedAt);
+        $firstModifiedAt = now()->subDays(3)->startOfSecond();
+        $article->forceFill(['content_modified_at' => $firstModifiedAt])->save();
+        $this->travelTo(now()->addMinute()->startOfSecond());
+
+        $this->actingAs($staff)
+            ->post(route('admin.superblogs.articles.publish-selected', $superblog))
+            ->assertRedirect();
+
+        $this->assertSame('published', $article->fresh()->status);
+        $this->assertTrue($firstPublishedAt->equalTo($article->fresh()->published_at));
+        $this->assertTrue($firstModifiedAt->equalTo($article->fresh()->content_modified_at));
     }
 
     public function test_publication_uses_the_saved_innehall_selection_and_reports_actual_counts(): void
