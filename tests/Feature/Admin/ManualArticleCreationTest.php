@@ -195,6 +195,7 @@ class ManualArticleCreationTest extends TestCase
         $this->assertSame('published', $article->status);
         $this->assertFalse($article->is_selected_for_publication);
         $this->assertTrue($publishedAt->equalTo($article->published_at));
+        $this->assertNotNull($article->content_modified_at);
     }
 
     public function test_new_manual_draft_can_be_found_and_edited_from_innehall(): void

@@ -106,14 +106,16 @@ class ArticleController extends Controller
                 return false;
             }
 
-            $lockedSuperblog->articles()
+            $articlesToPublish = $lockedSuperblog->articles()
                 ->whereIn('id', $visibleIds)
                 ->where('is_selected_for_publication', true)
-                ->where('status', 'draft')
-                ->update([
-                    'status' => 'published',
-                    'published_at' => now(),
-                ]);
+                ->where('status', 'draft');
+
+            $now = now();
+
+            (clone $articlesToPublish)->whereNull('published_at')->update(['published_at' => $now]);
+
+            (clone $articlesToPublish)->update(['status' => 'published']);
 
             $lockedSuperblog->articles()
                 ->whereIn('id', $visibleIds)
@@ -123,7 +125,6 @@ class ArticleController extends Controller
                 })
                 ->update([
                     'status' => 'draft',
-                    'published_at' => null,
                 ]);
 
             return true;
@@ -167,16 +168,14 @@ class ArticleController extends Controller
             $withdrawn = $articlesToWithdraw->count();
 
             if ($published > 0) {
-                $articlesToPublish->update([
-                    'status' => 'published',
-                    'published_at' => $publishedAt,
-                ]);
+                (clone $articlesToPublish)->whereNull('published_at')->update(['published_at' => $publishedAt]);
+
+                (clone $articlesToPublish)->update(['status' => 'published']);
             }
 
             if ($withdrawn > 0) {
                 $articlesToWithdraw->update([
                     'status' => 'draft',
-                    'published_at' => null,
                 ]);
             }
 
@@ -309,11 +308,11 @@ class ArticleController extends Controller
                 throw ValidationException::withMessages(['status' => 'Only draft articles can be published.']);
             }
 
-            $article->update([
-                'status' => 'published',
-                'published_at' => now(),
-                'is_selected_for_publication' => true,
-            ]);
+            $now = now();
+            $article->status = 'published';
+            $article->published_at ??= $now;
+            $article->is_selected_for_publication = true;
+            $article->save();
         });
 
         return to_route('admin.superblogs.edit', [$superblog, 'flik' => 'innehall'])
@@ -326,8 +325,15 @@ class ArticleController extends Controller
             $article = $this->articleForSuperblog($superblog, $article, lock: true);
             abort_unless(in_array($article->status, ['draft', 'published'], true), 404);
 
+            $wasPublished = $article->status === 'published';
+            $article->fill($request->validated());
+
+            if ($wasPublished && $article->isDirty(['title', 'content'])) {
+                $article->content_modified_at = now();
+            }
+
             try {
-                $article->update($request->validated());
+                $article->save();
             } catch (UniqueConstraintViolationException) {
                 throw ValidationException::withMessages(['slug' => 'This slug is already used by another article in this Superblog.']);
             }

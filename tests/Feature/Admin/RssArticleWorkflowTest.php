@@ -268,6 +268,7 @@ class RssArticleWorkflowTest extends TestCase
         $this->assertSame('rss', $article->source_type);
         $this->assertSame($item->getKey(), $article->rss_item_id);
         $this->assertNull($article->published_at);
+        $this->assertNull($article->content_modified_at);
         $this->assertSame('Original feed content', $item->fresh()->content);
     }
 
@@ -285,11 +286,33 @@ class RssArticleWorkflowTest extends TestCase
         $article->refresh();
         $this->assertSame('published', $article->status);
         $this->assertNotNull($article->published_at);
+        $this->assertNull($article->content_modified_at);
         $this->assertTrue($article->is_selected_for_publication);
         $this->get(route('admin.superblogs.edit', [$superblog, 'flik' => 'innehall']))
             ->assertOk()
             ->assertSee('name="selected_article_ids[]" value="'.$article->getKey().'" checked', false);
         $this->assertSame('Original feed content', $item->fresh()->content);
+    }
+
+    public function test_individual_republication_preserves_the_first_publication_date(): void
+    {
+        [$staff, $superblog, $source, $item] = $this->makeAssignedSourceAndItem();
+        $article = $this->createDraft($staff, $superblog, $source, $item);
+        $firstPublishedAt = now()->subDays(6)->startOfSecond();
+        $firstModifiedAt = now()->subDays(2)->startOfSecond();
+        $article->forceFill([
+            'published_at' => $firstPublishedAt,
+            'content_modified_at' => $firstModifiedAt,
+        ])->save();
+        $this->travelTo(now()->addMinute()->startOfSecond());
+
+        $this->actingAs($staff)
+            ->post(route('admin.superblogs.articles.publish', [$superblog, $article]))
+            ->assertRedirect();
+
+        $this->assertSame('published', $article->fresh()->status);
+        $this->assertTrue($firstPublishedAt->equalTo($article->fresh()->published_at));
+        $this->assertTrue($firstModifiedAt->equalTo($article->fresh()->content_modified_at));
     }
 
     public function test_super_admin_can_publish_an_article(): void
@@ -350,6 +373,8 @@ class RssArticleWorkflowTest extends TestCase
             ->post(route('admin.superblogs.articles.publish', [$superblog, $article]))
             ->assertRedirect(route('admin.superblogs.edit', [$superblog, 'flik' => 'innehall']));
         $publishedAt = $article->fresh()->published_at;
+        $contentEditAt = now()->addMinute()->startOfSecond();
+        $this->travelTo($contentEditAt);
 
         $this->get(route('admin.superblogs.articles.edit', [$superblog, $article]))
             ->assertOk()
@@ -370,11 +395,23 @@ class RssArticleWorkflowTest extends TestCase
         $this->assertSame('Updated published body', $article->content);
         $this->assertSame('published', $article->status);
         $this->assertTrue($publishedAt->equalTo($article->published_at));
+        $this->assertTrue($contentEditAt->equalTo($article->content_modified_at));
 
         $this->post(route('admin.superblogs.articles.publish', [$superblog, $article]))
             ->assertSessionHasErrors('status');
         $this->assertSame('published', $article->fresh()->status);
         $this->assertTrue($publishedAt->equalTo($article->fresh()->published_at));
+        $this->assertTrue($contentEditAt->equalTo($article->fresh()->content_modified_at));
+
+        $slugEditAt = $contentEditAt->copy()->addMinute();
+        $this->travelTo($slugEditAt);
+        $this->put(route('admin.superblogs.articles.update', [$superblog, $article]), [
+            'title' => 'Updated published title',
+            'slug' => 'slug-only-change',
+            'content' => 'Updated published body',
+        ])->assertRedirect();
+
+        $this->assertTrue($contentEditAt->equalTo($article->fresh()->content_modified_at));
     }
 
     public function test_article_validation_rejects_missing_fields_and_duplicate_blog_slugs(): void

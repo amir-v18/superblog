@@ -67,7 +67,9 @@ class PublicArticleController extends Controller
             'slug' => $article->slug,
             'description' => $this->metaDescription($body),
             'author' => $rssItem?->author,
+            'created_at' => $article->created_at,
             'published_at' => $article->published_at,
+            'content_modified_at' => $article->content_modified_at,
             'source_type' => $article->source_type,
             // The current workflow does not record AI processing, so RSS provenance alone is not proof of AI use.
             'is_ai_processed' => false,
