@@ -27,7 +27,6 @@
         // On wide screens the header starts at the very top, next to the layout's mode switch in the page corner
         // (about 160 px from the right edge). The header keeps 176 px free on the right there, so a long magazine
         // name is cut short ahead of the switch. On narrow screens the sidebar sits above the header.
-        $selectedTemplate = $old('template_id', $superblog->template_id);
     @endphp
 
     <header class="flex flex-wrap items-center gap-4 border-b border-studio-line bg-studio-side px-5 py-3 lg:pr-44">
@@ -73,10 +72,11 @@
                             <p id="slug-help" class="mt-1 text-sm text-studio-muted">Adressen blir /superblogs/{slug}. Använd små bokstäver och bindestreck. Måste vara unik.</p>
                         </div>
 
-                        <fieldset>
-                            <legend class="text-sm font-medium">Mall</legend>
-                            @include('admin.superblogs._template-options')
-                        </fieldset>
+                        <div>
+                            <span class="block text-sm font-medium">Vald mall</span>
+                            <p class="mt-2 rounded-lg border border-studio-line bg-studio-bg p-3 text-sm">{{ $superblog->template?->name ?? 'Okänd mall' }}</p>
+                            <p class="mt-1 text-sm text-studio-muted">Mallen väljs när Superblocket skapas och kan inte ändras senare.</p>
+                        </div>
 
                         <x-admin.domain-input id="domain" :value="$old('domain', $superblog->domain)" help="Skriv bara domänen, utan https://.">
                             Webbadress (valfri)

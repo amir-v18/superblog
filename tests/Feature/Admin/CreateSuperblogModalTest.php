@@ -92,6 +92,9 @@ class CreateSuperblogModalTest extends TestCase
         $modal = $this->modal($admin);
         $form = $this->modalForm($admin);
 
+        $this->assertStringContainsString('Välj en aktiv mall när du skapar magasinet.', $modal);
+        $this->assertStringNotContainsString('mallen kan bytas senare', $modal);
+
         // One radio per active template, inside the form, so the choice is sent with it. Inactive ones are left out.
         $this->assertSame(2, substr_count($form, 'name="template_id"'));
         foreach ([$tech, $editorial] as $inactive) {

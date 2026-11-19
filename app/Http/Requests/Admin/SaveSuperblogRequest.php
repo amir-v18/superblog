@@ -53,16 +53,26 @@ class SaveSuperblogRequest extends FormRequest
                     $fail('The description must not exceed 65,535 bytes.');
                 }
             }],
-            'template_id' => ['bail', 'required', 'integer', function ($attribute, $value, $fail) use ($superblog) {
-                $template = Template::find($value);
+            'template_id' => [
+                'bail',
+                $superblog instanceof Superblog ? 'sometimes' : 'required',
+                'integer',
+                function ($attribute, $value, $fail) use ($superblog) {
+                    if ($superblog instanceof Superblog) {
+                        if ((int) $superblog->template_id !== (int) $value) {
+                            $fail('A Superblog template cannot be changed after creation.');
+                        }
 
-                $isCurrentTemplate = $superblog instanceof Superblog
-                    && (int) $superblog->template_id === (int) $value;
+                        return;
+                    }
 
-                if (! $template || (! $template->is_active && ! $isCurrentTemplate)) {
-                    $fail('Select an active template.');
-                }
-            }],
+                    $template = Template::find($value);
+
+                    if (! $template || ! $template->is_active) {
+                        $fail('Select an active template.');
+                    }
+                },
+            ],
         ];
     }
 }

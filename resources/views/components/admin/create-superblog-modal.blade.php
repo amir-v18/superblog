@@ -16,7 +16,7 @@
     {{-- Clicks on this inner wrapper never reach the dialog itself, which is how app.js detects clicks outside. --}}
     <div class="flex flex-col gap-4 p-6.5">
         <h2 id="create-superblog-heading" class="text-[22px] font-semibold tracking-tight">Nytt magasin</h2>
-        <p class="text-[13px] leading-normal text-studio-muted">Tre uppgifter räcker för att starta. Allt kan justeras i byggaren, och mallen kan bytas senare.</p>
+        <p class="text-[13px] leading-normal text-studio-muted">Välj en aktiv mall när du skapar magasinet. Namn och webbadress kan justeras senare i byggaren.</p>
 
         @if ($templates->isEmpty())
             <p role="status" class="rounded-lg border border-studio-warn-line bg-studio-warn-bg p-4 text-sm text-studio-warn-ink">
