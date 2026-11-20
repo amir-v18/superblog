@@ -17,6 +17,7 @@ class ArticleHtmlSanitizer
         $config = (new HtmlSanitizerConfig)
             ->defaultAction(HtmlSanitizerAction::Block)
             ->allowElement('p')
+            ->allowElement('br')
             ->allowElement('h2')
             ->allowElement('h3')
             ->allowElement('strong')

@@ -55,15 +55,13 @@ class PublicArticleController extends Controller
         $links = [];
 
         foreach ($article->articleLinks as $link) {
-            $type = $link->type === 'service' ? 'product' : $link->type;
-
-            if (! in_array($type, ['brand', 'product'], true)
+            if ($link->type !== 'brand'
                 || ! $this->isHttpUrl($link->url)
-                || isset($links[$type])) {
+                || isset($links['brand'])) {
                 continue;
             }
 
-            $links[$type] = [
+            $links['brand'] = [
                 'url' => $link->url,
                 'anchor_text' => $link->anchor_text,
             ];
@@ -101,13 +99,14 @@ class PublicArticleController extends Controller
             $publicDocument = $article->is_locked
                 ? ['version' => $document['version'], 'blocks' => [$document['blocks'][0]]]
                 : $document;
-            $bodyHtml = $renderer->render($publicDocument, $article->image, $imageUrl);
+            $bodyHtml = $renderer->render($publicDocument, $article->image, $imageUrl, $article->articleLinks);
             $descriptionText = $renderer->introductionText($document);
             $imageInBody = ! $article->is_locked && collect($document['blocks'])->contains(fn (array $block): bool => $block['type'] === 'image');
         } else {
             // Sanitize legacy records again at the public boundary before the view renders HTML.
             $safeContent = $htmlSanitizer->sanitize($article->content);
             $bodyHtml = $article->is_locked ? $htmlSanitizer->firstParagraphHtml($safeContent) : $safeContent;
+            $bodyHtml = $renderer->qualifySponsoredLinks($bodyHtml, $article->articleLinks);
             $descriptionText = $htmlSanitizer->firstParagraphText($safeContent);
             $imageInBody = false;
         }

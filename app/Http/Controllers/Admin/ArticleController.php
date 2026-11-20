@@ -92,15 +92,18 @@ class ArticleController extends Controller
         SaveArticleRequest $request,
         Superblog $superblog,
         ArticleContentDocument $documents,
+        ArticleHtmlSanitizer $htmlSanitizer,
+        ArticleContentStructure $contentStructure,
     ): RedirectResponse {
         $validated = $request->validated();
+        $publishAfterSave = $request->boolean('publish_after_save');
         $document = $this->decodeSubmittedDocument($validated['document'], $documents, $request->hasFile('image'));
         $links = $validated['links'] ?? [];
         unset($validated['links'], $validated['document'], $validated['content']);
 
         $newPath = null;
         try {
-            $article = DB::transaction(function () use ($validated, $links, $superblog, $documents, $document, &$newPath): Article {
+            $article = DB::transaction(function () use ($validated, $links, $superblog, $documents, $document, $htmlSanitizer, $contentStructure, $publishAfterSave, &$newPath): Article {
                 $lockedSuperblog = Superblog::query()->lockForUpdate()->findOrFail($superblog->getKey());
 
                 $article = $lockedSuperblog->articles()->create([
@@ -120,6 +123,7 @@ class ArticleController extends Controller
                 $documents->storeOn($article, $document);
                 $article->save();
                 $this->syncArticleLinks($article, $links);
+                $this->publishAfterSaveIfRequested($article, $publishAfterSave, $htmlSanitizer, $contentStructure, $documents);
 
                 return $article;
             });
@@ -134,8 +138,12 @@ class ArticleController extends Controller
             throw $exception;
         }
 
-        return to_route('admin.superblogs.articles.edit', [$superblog, $article])
-            ->with('status', 'Draft article created.');
+        if ($publishAfterSave) {
+            return to_route('admin.superblogs.edit', [$superblog, 'flik' => 'innehall'])
+                ->with('status', 'Article saved and published.');
+        }
+
+        return to_route('admin.superblogs.articles.edit', [$superblog, $article])->with('status', 'Draft article created.');
     }
 
     public function updateSelection(
@@ -374,7 +382,7 @@ class ArticleController extends Controller
             'isCreating' => false,
             'editorDocument' => $editorDocument,
             'editorBodyHtml' => $editorDocument !== null
-                ? $renderer->renderEditor($editorDocument, $article->image, $article->image ? route('admin.superblogs.articles.image', [$superblog, $article]) : null)
+                ? $renderer->renderEditor($editorDocument, $article->image, $article->image ? route('admin.superblogs.articles.image', [$superblog, $article]) : null, $article->articleLinks)
                 : '',
             'legacyFallback' => $editorDocument === null && $documentError === null && $article->content_format === ArticleContentFormat::LegacyHtml,
             'editorHtml' => $htmlSanitizer->sanitize((string) old('content', $article->content)),
@@ -467,15 +475,17 @@ class ArticleController extends Controller
         ArticleContentDocument $documents,
         LegacyArticleDocumentConverter $legacyConverter,
         ArticleHtmlSanitizer $htmlSanitizer,
+        ArticleContentStructure $contentStructure,
     ): RedirectResponse {
         $validated = $request->validated();
+        $publishAfterSave = $request->boolean('publish_after_save');
         $links = $validated['links'] ?? null;
         unset($validated['links'], $validated['document'], $validated['content']);
 
         $newPath = null;
         $oldPath = null;
         try {
-            $article = DB::transaction(function () use ($request, $validated, $links, $superblog, $article, $documents, $legacyConverter, $htmlSanitizer, &$newPath, &$oldPath): Article {
+            $article = DB::transaction(function () use ($request, $validated, $links, $superblog, $article, $documents, $legacyConverter, $htmlSanitizer, $contentStructure, $publishAfterSave, &$newPath, &$oldPath): Article {
                 $article = $this->articleForSuperblog($superblog, $article, lock: true)->load('image');
                 abort_unless(in_array($article->status, ['draft', 'published'], true), 404);
 
@@ -545,6 +555,7 @@ class ArticleController extends Controller
                 }
 
                 $article->save();
+                $this->publishAfterSaveIfRequested($article, $publishAfterSave, $htmlSanitizer, $contentStructure, $documents);
 
                 return $article;
             });
@@ -561,7 +572,34 @@ class ArticleController extends Controller
 
         $this->deleteUnreferencedMediaFile($oldPath);
 
+        if ($publishAfterSave) {
+            return to_route('admin.superblogs.edit', [$superblog, 'flik' => 'innehall'])
+                ->with('status', 'Article saved and published.');
+        }
+
         return to_route('admin.superblogs.articles.edit', [$superblog, $article])->with('status', 'Article saved.');
+    }
+
+    private function publishAfterSaveIfRequested(
+        Article $article,
+        bool $publishAfterSave,
+        ArticleHtmlSanitizer $htmlSanitizer,
+        ArticleContentStructure $contentStructure,
+        ArticleContentDocument $documents,
+    ): void {
+        if (! $publishAfterSave || $article->status === 'published') {
+            return;
+        }
+
+        if ($article->status !== 'draft') {
+            throw ValidationException::withMessages(['status' => 'Only draft articles can be published.']);
+        }
+
+        $this->ensureArticleCanBePublished($article, $htmlSanitizer, $contentStructure, $documents);
+        $article->status = 'published';
+        $article->published_at ??= now();
+        $article->is_selected_for_publication = true;
+        $article->save();
     }
 
     private function ensureSanitizedContentHasText(string $content, ArticleHtmlSanitizer $htmlSanitizer): void

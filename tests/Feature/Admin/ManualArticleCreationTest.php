@@ -34,12 +34,29 @@ class ManualArticleCreationTest extends TestCase
             ->assertSee('data-article-editor', false)
             ->assertSee('data-editor-title', false)
             ->assertSee('data-editor-body', false)
+            ->assertSee('data-required-marker="title"', false)
+            ->assertSee('data-required-marker="slug"', false)
+            ->assertSee('data-image-alt-required-marker', false)
+            ->assertSee('data-required-marker="brand-url" hidden', false)
             ->assertSee('data-article-add-block="h2"', false)
             ->assertSee('data-article-add-block="h3"', false)
             ->assertSee('data-article-add-block="bullet"', false)
             ->assertSee('data-article-text-size', false)
-            ->assertSee('data-article-add-image', false)
-            ->assertSee('Brand and product/service links')
+            ->assertDontSee('data-article-add-image', false)
+            ->assertSee('data-introduction-required-proxy', false)
+            ->assertSee('type="text" required tabindex="-1" aria-label="Introduction paragraph"', false)
+            ->assertSee('data-block-move="up" aria-label="Move block up"', false)
+            ->assertSee('data-block-move="down" aria-label="Move block down"', false)
+            ->assertSee('data-block-remove aria-label="Remove block"', false)
+            ->assertDontSee('data-block-menu-toggle', false)
+            ->assertSee('data-article-insert-link="normal"', false)
+            ->assertSee('data-article-insert-link="product"', false)
+            ->assertDontSee('data-article-link-dialog', false)
+            ->assertSee('Save draft')
+            ->assertSee('Källor')
+            ->assertSee('Brand backlink')
+            ->assertDontSee('Product or service backlink')
+            ->assertSee('Save and publish')
             ->assertDontSee('<textarea id="content"', false)
             ->assertSee(route('admin.superblogs.articles.store', $superblog), false);
     }
@@ -80,6 +97,83 @@ class ManualArticleCreationTest extends TestCase
             ->assertSee('A manual story')
             ->assertSee('name="selected_article_ids[]" value="'.$article->id.'"', false)
             ->assertSee('name="selected_article_ids[]" value="'.$article->id.'" checked', false);
+    }
+
+    public function test_save_and_publish_saves_a_new_manual_article_and_publishes_it(): void
+    {
+        [$staff, $superblog] = $this->makeAssignedSuperblog();
+
+        $response = $this->actingAs($staff)->post(route('admin.superblogs.articles.store', $superblog), [
+            'title' => 'Ready to publish',
+            'slug' => 'ready-to-publish',
+            'document' => $this->document('Saved before publication.'),
+            'publish_after_save' => '1',
+        ]);
+
+        $article = Article::query()->where('slug', 'ready-to-publish')->firstOrFail();
+        $response->assertRedirect(route('admin.superblogs.edit', [$superblog, 'flik' => 'innehall']))
+            ->assertSessionHas('status', 'Article saved and published.');
+        $this->assertSame('Saved before publication.', $this->articleIntroduction($article));
+        $this->assertSame('published', $article->status);
+        $this->assertTrue($article->is_selected_for_publication);
+        $this->assertNotNull($article->published_at);
+        $this->assertNull($article->content_modified_at);
+    }
+
+    public function test_save_and_publish_saves_draft_edits_before_publishing(): void
+    {
+        [$staff, $superblog] = $this->makeAssignedSuperblog();
+        $this->actingAs($staff)->post(route('admin.superblogs.articles.store', $superblog), [
+            'title' => 'Draft to update',
+            'slug' => 'draft-to-update',
+            'document' => $this->document('Original body.'),
+        ])->assertRedirect();
+        $article = Article::query()->where('slug', 'draft-to-update')->firstOrFail();
+
+        $response = $this->put(route('admin.superblogs.articles.update', [$superblog, $article]), [
+            'title' => 'Updated before publishing',
+            'slug' => 'updated-before-publishing',
+            'document' => $this->document('The saved new body.'),
+            'publish_after_save' => '1',
+        ]);
+
+        $article->refresh();
+        $response->assertRedirect(route('admin.superblogs.edit', [$superblog, 'flik' => 'innehall']))
+            ->assertSessionHas('status', 'Article saved and published.');
+        $this->assertSame('Updated before publishing', $article->title);
+        $this->assertSame('The saved new body.', $this->articleIntroduction($article));
+        $this->assertSame('published', $article->status);
+        $this->assertNotNull($article->published_at);
+        $this->assertNull($article->content_modified_at);
+    }
+
+    public function test_save_and_publish_saves_changes_to_an_already_published_article_without_resetting_its_first_date(): void
+    {
+        [$staff, $superblog] = $this->makeAssignedSuperblog();
+        $this->actingAs($staff)->post(route('admin.superblogs.articles.store', $superblog), [
+            'title' => 'Already live',
+            'slug' => 'already-live',
+            'document' => $this->document('First version.'),
+        ])->assertRedirect();
+        $article = Article::query()->where('slug', 'already-live')->firstOrFail();
+        $this->post(route('admin.superblogs.articles.publish', [$superblog, $article]));
+        $publishedAt = $article->fresh()->published_at;
+
+        $response = $this->put(route('admin.superblogs.articles.update', [$superblog, $article]), [
+            'title' => 'Already live, revised',
+            'slug' => 'already-live',
+            'document' => $this->document('Updated version.'),
+            'publish_after_save' => '1',
+        ]);
+
+        $article->refresh();
+        $response->assertRedirect(route('admin.superblogs.edit', [$superblog, 'flik' => 'innehall']))
+            ->assertSessionHas('status', 'Article saved and published.');
+        $this->assertSame('Already live, revised', $article->title);
+        $this->assertSame('Updated version.', $this->articleIntroduction($article));
+        $this->assertSame('published', $article->status);
+        $this->assertTrue($publishedAt->equalTo($article->published_at));
+        $this->assertNotNull($article->content_modified_at);
     }
 
     public function test_article_document_storage_round_trips_and_preserves_publication_fields(): void
@@ -173,6 +267,22 @@ class ManualArticleCreationTest extends TestCase
         $this->assertDatabaseCount('articles', 0);
     }
 
+    public function test_empty_introduction_error_names_the_editor_field_in_plain_language(): void
+    {
+        [$staff, $superblog] = $this->makeAssignedSuperblog();
+        $editorUrl = route('admin.superblogs.articles.create', $superblog);
+
+        $this->actingAs($staff)->from($editorUrl)->followingRedirects()
+            ->post(route('admin.superblogs.articles.store', $superblog), [
+                'title' => 'Empty introduction',
+                'slug' => 'empty-introduction',
+                'document' => $this->document('   '),
+            ])
+            ->assertOk()
+            ->assertSee('The introduction paragraph is empty. Add text to the introduction before saving.')
+            ->assertDontSee('blocks.0.runs');
+    }
+
     public function test_backend_removes_body_h1_and_keeps_only_the_title_h1_publicly(): void
     {
         [$staff, $superblog] = $this->makeAssignedSuperblog();
@@ -216,7 +326,11 @@ class ManualArticleCreationTest extends TestCase
             'slug' => 'backlink-story',
             'document' => $this->documentWithBlocks([
                 ['type' => 'heading', 'level' => 2, 'runs' => [['text' => 'Main section']]],
-                ['type' => 'paragraph', 'runs' => [['text' => 'Body.']]],
+                ['type' => 'paragraph', 'runs' => [
+                    ['text' => 'Body with '],
+                    ['text' => 'Product name', 'href' => 'https://brand.example.test/product'],
+                    ['text' => '.'],
+                ]],
             ]),
             'links' => [
                 'brand' => ['url' => 'https://brand.example.test', 'anchor_text' => 'Brand name'],
@@ -243,7 +357,8 @@ class ManualArticleCreationTest extends TestCase
             ->assertSee('data-editor-brand-preview', false)
             ->assertSee('href="https://brand.example.test"', false)
             ->assertSee('Brand name')
-            ->assertSee('name="links[product][url]"', false);
+            ->assertSee('type="hidden" name="links[product][url]"', false)
+            ->assertSee('type="hidden" name="links[product][anchor_text]"', false);
 
         $this->post(route('admin.superblogs.articles.publish', [$superblog, $article]));
         $firstPublishedAt = $article->fresh()->published_at;
@@ -254,7 +369,11 @@ class ManualArticleCreationTest extends TestCase
             'slug' => 'backlink-story',
             'document' => $this->documentWithBlocks([
                 ['type' => 'heading', 'level' => 2, 'runs' => [['text' => 'Main section']]],
-                ['type' => 'paragraph', 'runs' => [['text' => 'Body.']]],
+                ['type' => 'paragraph', 'runs' => [
+                    ['text' => 'Body with '],
+                    ['text' => 'Product name', 'href' => 'https://brand.example.test/product'],
+                    ['text' => '.'],
+                ]],
             ]),
             'links' => [
                 'brand' => ['url' => 'https://new-brand.example.test', 'anchor_text' => 'Updated brand'],
@@ -278,7 +397,8 @@ class ManualArticleCreationTest extends TestCase
             ->assertOk()
             ->assertSee('href="https://new-brand.example.test"', false)
             ->assertSee('Updated brand')
-            ->assertSee('Product name');
+            ->assertSee('<a href="https://brand.example.test/product" rel="sponsored">Product name</a>', false)
+            ->assertDontSee('Produkt eller tjänst:');
     }
 
     public function test_article_backlink_validation_rejects_unsafe_protocols_and_incomplete_pairs(): void

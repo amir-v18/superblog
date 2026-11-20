@@ -61,6 +61,7 @@ class ArticleContentDocument
         $introductionCount = 0;
         $hasH2 = false;
         $imageCount = 0;
+        $blockTypeCounts = ['heading' => 0, 'list' => 0, 'paragraph' => 0];
         $canonicalBlocks = [];
 
         foreach ($blocks as $index => $block) {
@@ -108,9 +109,13 @@ class ArticleContentDocument
             }
 
             if (in_array($type, ['introduction', 'paragraph', 'heading'], true)) {
+                if (isset($blockTypeCounts[$type])) {
+                    $blockTypeCounts[$type]++;
+                }
                 $runs = $this->validateRuns($block['runs'] ?? null, "{$path}.runs", $errors);
                 if ($type !== 'paragraph' && ! $this->runsHaveText($runs)) {
-                    $errors[] = "{$path}.runs must contain readable text.";
+                    $position = $type === 'introduction' ? null : $blockTypeCounts[$type];
+                    $errors[] = $this->emptyTextBlockMessage($type, $position);
                 }
 
                 $canonical['runs'] = $runs;
@@ -129,6 +134,7 @@ class ArticleContentDocument
             }
 
             if ($type === 'list') {
+                $blockTypeCounts['list']++;
                 $style = $block['style'] ?? null;
                 if (! in_array($style, ['bullet', 'numbered'], true)) {
                     $errors[] = "{$path}.style must be bullet or numbered.";
@@ -156,7 +162,7 @@ class ArticleContentDocument
 
                     $runs = $this->validateRuns($item['runs'] ?? null, "{$itemPath}.runs", $errors);
                     if (! $this->runsHaveText($runs)) {
-                        $errors[] = "{$itemPath}.runs must contain readable text.";
+                        $errors[] = 'List item '.($itemIndex + 1)." in list {$blockTypeCounts['list']} is empty. Add text to that list item before saving.";
                     }
 
                     $canonicalItems[] = ['id' => is_string($itemId) ? strtolower($itemId) : '', 'runs' => $runs];
@@ -357,6 +363,15 @@ class ArticleContentDocument
         }
 
         return false;
+    }
+
+    private function emptyTextBlockMessage(string $type, ?int $position): string
+    {
+        return match ($type) {
+            'introduction' => 'The introduction paragraph is empty. Add text to the introduction before saving.',
+            'heading' => "Heading {$position} is empty. Add text to heading {$position} before saving.",
+            default => "Paragraph {$position} is empty. Add text to paragraph {$position} before saving.",
+        };
     }
 
     private function hasExactKeys(array $value, array $keys): bool

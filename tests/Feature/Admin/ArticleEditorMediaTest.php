@@ -77,6 +77,53 @@ class ArticleEditorMediaTest extends TestCase
             ->assertSessionHasNoErrors();
         $article = Article::query()->where('slug', 'accessible-image')->firstOrFail()->load('image');
         $this->assertSame('', $article->image->alt_text);
+
+        $this->post(route('admin.superblogs.articles.publish', [$superblog, $article]))->assertRedirect();
+        $superblog->update(['status' => 'published']);
+        $this->get(route('public.superblogs.articles.show', [$superblog, $article]))
+            ->assertOk()
+            ->assertSee('<img', false)
+            ->assertSee('alt=""', false);
+    }
+
+    public function test_manual_article_shows_brand_link_in_sources_and_product_link_in_its_paragraph(): void
+    {
+        [$admin, $superblog] = $this->makeSuperblog();
+        $article = $this->makeArticle($superblog, 'Product article', [
+            'status' => 'published',
+            'is_selected_for_publication' => true,
+            'published_at' => now(),
+        ]);
+        $productUrl = 'https://customer.example.test/products/example';
+        $document = [
+            'version' => 1,
+            'blocks' => [[
+                'id' => (string) Str::uuid(),
+                'type' => 'introduction',
+                'runs' => [
+                    ['text' => 'Read about '],
+                    ['text' => 'the Example product', 'href' => $productUrl],
+                    ['text' => ' and its details.'],
+                ],
+            ]],
+        ];
+        (new ArticleContentDocument)->storeOn($article, $document);
+        $article->save();
+        $article->articleLinks()->createMany([
+            ['type' => 'brand', 'url' => 'https://customer.example.test', 'anchor_text' => 'Example brand'],
+            ['type' => 'product', 'url' => $productUrl, 'anchor_text' => 'Example product'],
+        ]);
+        $superblog->update(['status' => 'published']);
+
+        $this->get(route('public.superblogs.articles.show', [$superblog, $article]))
+            ->assertOk()
+            ->assertSee('Källor')
+            ->assertSee('Varumärkets webbplats:')
+            ->assertSee('Example brand')
+            ->assertSee('<a href="'.$productUrl.'" rel="sponsored">the Example product</a>', false)
+            ->assertDontSee('Produkt eller tjänst:')
+            ->assertDontSee('Källor och länkar')
+            ->assertDontSee('Läs mer:');
     }
 
     public function test_upload_rejects_non_raster_image_files(): void
@@ -119,6 +166,14 @@ class ArticleEditorMediaTest extends TestCase
         $replaceDocument = $this->documentArray('Introduction.', [
             ['id' => (string) Str::uuid(), 'type' => 'image', 'media_id' => $media->getKey(), 'caption' => 'Updated caption'],
         ]);
+        $this->actingAs($admin)->put(route('admin.superblogs.articles.update', [$superblog, $article]), [
+            'title' => $article->title,
+            'slug' => $article->slug,
+            'document' => json_encode($replaceDocument, JSON_THROW_ON_ERROR),
+            'image' => UploadedFile::fake()->image('missing-alt.webp'),
+        ])->assertSessionHasErrors('image_alt_text');
+        $this->assertSame('Old description', $article->fresh()->image->alt_text);
+
         $this->actingAs($admin)->put(route('admin.superblogs.articles.update', [$superblog, $article]), [
             'title' => $article->title,
             'slug' => $article->slug,

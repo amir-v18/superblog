@@ -383,7 +383,8 @@ class RssArticleWorkflowTest extends TestCase
         $this->get(route('admin.superblogs.articles.edit', [$superblog, $article]))
             ->assertOk()
             ->assertSee('Edit article')
-            ->assertSee('Save changes')
+            ->assertSee('Save and publish')
+            ->assertDontSee('Save changes')
             ->assertDontSee('Publish now');
 
         $this->put(route('admin.superblogs.articles.update', [$superblog, $article]), [

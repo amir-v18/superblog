@@ -48,6 +48,10 @@ class SaveArticleRequest extends FormRequest
             $uniqueSlug->ignore($article);
         }
 
+        $hasImage = $this->hasFile('image')
+            || ($article instanceof Article && $article->image()->exists() && ! $this->boolean('remove_image'));
+        $requiresAltText = $hasImage && ! $this->boolean('image_decorative');
+
         return [
             'title' => ['required', 'string', 'max:255'],
             'slug' => [
@@ -75,10 +79,7 @@ class SaveArticleRequest extends FormRequest
             ],
             'image' => ['sometimes', 'file', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
             'image_alt_text' => [
-                Rule::requiredIf(fn (): bool => ($this->hasFile('image')
-                    || ($article instanceof Article && $article->image()->exists() && ! $this->boolean('remove_image')))
-                    && ! $this->boolean('image_decorative')),
-                'nullable',
+                $requiresAltText ? 'required' : 'nullable',
                 'string',
                 'max:255',
             ],

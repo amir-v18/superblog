@@ -155,23 +155,11 @@
                 </div>
             @endif
 
-            {{-- Brand and product links sit outside the body so they are present on locked articles too. --}}
-            @if (! empty($article['links']['brand']) || ! empty($article['links']['product']))
-                <p class="mt-10 border-t border-line pt-6">
-                    Läs mer:
-                    @if (! empty($article['links']['brand']))
-                        <x-product-link :href="$article['links']['brand']['url']">{{ $article['links']['brand']['anchor_text'] }}</x-product-link>
-                    @endif
-                    @if (! empty($article['links']['brand']) && ! empty($article['links']['product']))
-                        ·
-                    @endif
-                    @if (! empty($article['links']['product']))
-                        <x-product-link :href="$article['links']['product']['url']">{{ $article['links']['product']['anchor_text'] }}</x-product-link>
-                    @endif
-                </p>
-            @endif
-
-            <x-source-box :sources="$article['sources']" class="mt-8" />
+            <x-source-box
+                :sources="$article['sources']"
+                :brand="$article['links']['brand'] ?? null"
+                class="mt-8"
+            />
         </article>
     </div>
 @endsection

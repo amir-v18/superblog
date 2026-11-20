@@ -2,6 +2,7 @@
 
 namespace Tests\Unit;
 
+use App\Support\ArticleContentHtmlRenderer;
 use App\Support\ArticleHtmlSanitizer;
 use PHPUnit\Framework\TestCase;
 
@@ -31,6 +32,23 @@ class ArticleHtmlSanitizerTest extends TestCase
         $this->assertStringContainsString('<ol><li>First</li></ol>', $safe);
         $this->assertStringContainsString('<ul><li>Second</li></ul>', $safe);
         $this->assertSame($safe, $sanitizer->sanitize($safe));
+    }
+
+    public function test_it_preserves_line_breaks_in_rendered_article_content(): void
+    {
+        $renderer = new ArticleContentHtmlRenderer;
+        $sanitizer = new ArticleHtmlSanitizer;
+
+        $html = $renderer->render([
+            'version' => 1,
+            'blocks' => [[
+                'id' => '1a912ca0-1111-4111-8111-111111111111',
+                'type' => 'introduction',
+                'runs' => [['text' => "First line\nSecond line"]],
+            ]],
+        ]);
+
+        $this->assertSame('<p>First line<br>Second line</p>', $sanitizer->sanitize($html));
     }
 
     public function test_it_removes_scripts_unsafe_links_and_unsupported_attributes(): void

@@ -178,7 +178,11 @@ document.querySelectorAll('[data-article-editor]').forEach((form) => {
     const contentField = form.querySelector('[data-article-content-field]');
     const sizeSelect = form.querySelector('[data-article-text-size]');
     const backlinkPreview = form.querySelector('[data-editor-backlinks-preview]');
+    const insertLinkButtons = form.querySelectorAll('[data-article-insert-link]');
+    const linkNotice = form.querySelector('[data-article-link-notice]');
     const imageInput = form.querySelector('[data-article-image-input]');
+    const imageAltText = form.querySelector('[data-image-alt-text]');
+    const imageDecorative = form.querySelector('[data-image-decorative]');
     const removeImageField = form.querySelector('[data-remove-image-field]');
     const saveState = form.querySelector('[data-save-state]');
     const legacyMode = form.dataset.editorMode === 'legacy';
@@ -190,6 +194,32 @@ document.querySelectorAll('[data-article-editor]').forEach((form) => {
     if (!title || !titleField || !body || (!documentField && !contentField)) {
         return;
     }
+
+    const syncImageAltRequirement = () => {
+        const hasImage = Boolean(imageInput?.files?.length || (form.dataset.originalImageId && removeImageField?.value !== '1'));
+        const isRequired = hasImage && !imageDecorative?.checked;
+        if (imageAltText) imageAltText.required = isRequired;
+        const marker = form.querySelector('[data-image-alt-required-marker]');
+        if (marker) marker.hidden = !isRequired;
+    };
+
+    const syncLinkRequirements = () => {
+        ['brand'].forEach((type) => {
+            const url = form.querySelector(`[data-editor-link-url="${type}"]`);
+            const anchor = form.querySelector(`[data-editor-link-anchor="${type}"]`);
+            const urlRequired = Boolean(anchor?.value.trim());
+            const anchorRequired = Boolean(url?.value.trim());
+            if (url) url.required = urlRequired;
+            if (anchor) anchor.required = anchorRequired;
+            const urlMarker = form.querySelector(`[data-required-marker="${type}-url"]`);
+            const anchorMarker = form.querySelector(`[data-required-marker="${type}-anchor"]`);
+            if (urlMarker) urlMarker.hidden = !urlRequired;
+            if (anchorMarker) anchorMarker.hidden = !anchorRequired;
+        });
+    };
+
+    syncImageAltRequirement();
+    syncLinkRequirements();
 
     const newId = () => globalThis.crypto?.randomUUID?.() ?? 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (character) => {
         const random = Math.random() * 16 | 0;
@@ -210,31 +240,28 @@ document.querySelectorAll('[data-article-editor]').forEach((form) => {
 
         const brandUrl = form.querySelector('[data-editor-link-url="brand"]')?.value.trim() ?? '';
         const brandText = form.querySelector('[data-editor-link-anchor="brand"]')?.value.trim() ?? '';
-        const productUrl = form.querySelector('[data-editor-link-url="product"]')?.value.trim() ?? '';
-        const productText = form.querySelector('[data-editor-link-anchor="product"]')?.value.trim() ?? '';
-
-        const updateLink = (kind, url, text) => {
-            const link = form.querySelector(`[data-editor-${kind}-preview]`);
-            let safeUrl = false;
-            try {
-                safeUrl = ['http:', 'https:'].includes(new URL(url).protocol);
-            } catch {}
-
-            link.hidden = !safeUrl || !text;
-            if (safeUrl && text) {
-                link.href = url;
-                link.textContent = text;
-            }
-
-            return !link.hidden;
-        };
-
-        const hasBrand = updateLink('brand', brandUrl, brandText);
-        const hasProduct = updateLink('product', productUrl, productText);
-        const separator = form.querySelector('[data-editor-link-separator]');
-        separator.hidden = !(hasBrand && hasProduct);
-        backlinkPreview.hidden = !(hasBrand || hasProduct);
+        let hasBrand = false;
+        try {
+            hasBrand = ['http:', 'https:'].includes(new URL(brandUrl).protocol) && Boolean(brandText);
+        } catch {}
+        const brandRow = form.querySelector('[data-editor-brand-row]');
+        const brandPreviewLink = form.querySelector('[data-editor-brand-preview]');
+        if (brandRow) brandRow.hidden = !hasBrand;
+        if (hasBrand && brandPreviewLink) {
+            brandPreviewLink.href = brandUrl;
+            brandPreviewLink.textContent = brandText;
+        }
+        backlinkPreview.hidden = !hasBrand;
     };
+
+    const syncInsertLinkButton = () => {
+        const hasText = Array.from(body.querySelectorAll('[contenteditable="true"]'))
+            .some((editable) => editable.textContent.trim() !== '');
+        insertLinkButtons.forEach((button) => { button.disabled = !hasText; });
+    };
+
+    syncBacklinks();
+    syncInsertLinkButton();
 
     const updateHeadingButton = () => {
         const blocks = Array.from(body.querySelectorAll('[data-editor-block]'));
@@ -323,14 +350,18 @@ document.querySelectorAll('[data-article-editor]').forEach((form) => {
         titleField.value = title.textContent.replace(/\s+/g, ' ').trim();
         if (documentField) documentField.value = JSON.stringify(readDocument());
         if (contentField) contentField.value = body.innerHTML;
+        const introduction = body.querySelector('[data-block-type="introduction"] [data-editor-text]');
+        const introductionProxy = form.querySelector('[data-introduction-required-proxy]');
+        if (introductionProxy) introductionProxy.value = introduction?.textContent.trim() ? 'present' : '';
         syncBacklinks();
+        syncInsertLinkButton();
         updateHeadingButton();
     };
 
-    const blockButtons = () => `<div class="article-editor-block-controls" aria-label="Block controls">
+    const blockButtons = () => `<div class="article-editor-block-controls" role="group" aria-label="Block controls">
         <button type="button" data-block-move="up" aria-label="Move block up" title="Move up">↑</button>
         <button type="button" data-block-move="down" aria-label="Move block down" title="Move down">↓</button>
-        <button type="button" data-block-remove aria-label="Remove block" title="Remove block">×</button>
+        <button type="button" class="article-editor-block-remove" data-block-remove aria-label="Remove block" title="Remove block">X</button>
     </div>`;
 
     const makeWrapper = (type, level = null) => {
@@ -339,7 +370,7 @@ document.querySelectorAll('[data-article-editor]').forEach((form) => {
         wrapper.dataset.editorBlock = '';
         wrapper.dataset.blockId = newId();
         wrapper.dataset.blockType = type;
-        wrapper.innerHTML = blockButtons();
+        if (type !== 'image') wrapper.innerHTML = blockButtons();
 
         if (type === 'paragraph' || type === 'introduction' || type === 'heading') {
             const tag = type === 'heading' ? `h${level}` : 'p';
@@ -441,39 +472,148 @@ document.querySelectorAll('[data-article-editor]').forEach((form) => {
     const formatSelection = (command) => {
         const selection = window.getSelection();
         if (!selection?.rangeCount || selection.isCollapsed || !body.contains(selection.anchorNode)) return;
-        if (command === 'createLink') {
-            const href = window.prompt('Enter a link URL (http, https, mailto or a relative path):');
-            if (!href) return;
-            if (href.startsWith('//')) {
-                window.alert('Protocol-relative links are not allowed.');
-                return;
-            }
-            let protocol = '';
-            try { protocol = new URL(href, window.location.origin).protocol; } catch {}
-            if (!['http:', 'https:', 'mailto:'].includes(protocol)) {
-                window.alert('Only http, https, mailto and relative links are allowed.');
-                return;
-            }
-            document.execCommand('createLink', false, href);
-        } else {
-            document.execCommand(command, false);
-            const oldTag = command === 'bold' ? 'B' : 'I';
-            const newTag = command === 'bold' ? 'STRONG' : 'EM';
-            body.querySelectorAll(oldTag.toLowerCase()).forEach((old) => {
-                const replacement = document.createElement(newTag.toLowerCase());
-                replacement.append(...old.childNodes);
-                old.replaceWith(replacement);
-            });
-        }
+        document.execCommand(command, false);
+        const oldTag = command === 'bold' ? 'B' : 'I';
+        const newTag = command === 'bold' ? 'STRONG' : 'EM';
+        body.querySelectorAll(oldTag.toLowerCase()).forEach((old) => {
+            const replacement = document.createElement(newTag.toLowerCase());
+            replacement.append(...old.childNodes);
+            old.replaceWith(replacement);
+        });
         setDirty();
         syncFields();
     };
+
+    const editableFor = (node) => {
+        const element = node instanceof Element ? node : node?.parentElement;
+        return element?.closest('[contenteditable="true"]') ?? null;
+    };
+
+    const selectedRange = () => {
+        const selection = window.getSelection();
+        let range = selection?.rangeCount ? selection.getRangeAt(0).cloneRange() : null;
+        const rangeEditable = range && body.contains(range.commonAncestorContainer)
+            ? editableFor(range.startContainer)
+            : null;
+        if (!rangeEditable || rangeEditable !== editableFor(range.endContainer) || !range.toString().trim()) return null;
+
+        return range;
+    };
+
+    const showLinkNotice = (message) => {
+        if (!linkNotice) return;
+        linkNotice.textContent = message;
+        linkNotice.hidden = false;
+    };
+
+    const insertLinkFromSelection = (type) => {
+        const range = selectedRange();
+        if (!range) {
+            showLinkNotice('Select the words you want to link in the article first.');
+            return;
+        }
+
+        savedRange = range.cloneRange();
+        const selectedAnchor = Array.from(body.querySelectorAll('a')).find((anchor) => range.intersectsNode(anchor));
+        const productUrl = form.querySelector('[data-editor-link-url="product"]')?.value.trim() ?? '';
+        const initialUrl = selectedAnchor?.getAttribute('href') ?? (type === 'product' ? productUrl : '');
+        const promptText = type === 'product'
+            ? 'Enter the product or service URL (http or https):'
+            : 'Enter a link URL (http, https, mailto or a relative path):';
+        const enteredUrl = window.prompt(promptText, initialUrl);
+        if (!enteredUrl) return;
+
+        const href = enteredUrl.trim();
+        if (href.length > 2048) {
+            showLinkNotice('The link URL may not exceed 2048 characters.');
+            return;
+        }
+        if (href.startsWith('//')) {
+            showLinkNotice('Protocol-relative URLs are not allowed.');
+            return;
+        }
+
+        let protocol = '';
+        try { protocol = new URL(href, window.location.origin).protocol; } catch {}
+        const allowedProtocols = type === 'product' ? ['http:', 'https:'] : ['http:', 'https:', 'mailto:'];
+        if (!allowedProtocols.includes(protocol) || (type === 'product' && !/^https?:\/\//i.test(href))) {
+            showLinkNotice(type === 'product' ? 'Product links must use an http or https URL.' : 'Use an http, https, mailto or relative URL.');
+            return;
+        }
+
+        if (insertSelectedLink(href, type)) linkNotice.hidden = true;
+    };
+
+    const insertSelectedLink = (href, type) => {
+        const range = savedRange?.cloneRange() ?? null;
+        if (!range || !body.contains(range.commonAncestorContainer) || !range.toString().trim()) {
+            showLinkNotice('Select the words you want to link in the article first.');
+            return false;
+        }
+
+        const selectedText = range.toString().trim();
+        if (type === 'product' && selectedText.length > 255) {
+            showLinkNotice('Select no more than 255 characters for a product or service link.');
+            return false;
+        }
+        const productUrlField = form.querySelector('[data-editor-link-url="product"]');
+        const productTextField = form.querySelector('[data-editor-link-anchor="product"]');
+        const previousProductUrl = productUrlField?.value.trim() ?? '';
+        const selectedProductAnchor = Array.from(body.querySelectorAll('a')).some((anchor) => range.intersectsNode(anchor)
+            && (anchor.hasAttribute('data-article-product-link') || anchor.href === previousProductUrl));
+        const fragment = range.extractContents();
+
+        // A selected link is replaced rather than nested inside another anchor.
+        fragment.querySelectorAll?.('a').forEach((anchor) => anchor.replaceWith(...anchor.childNodes));
+        const anchor = document.createElement('a');
+        anchor.href = href;
+        if (type === 'product') {
+            anchor.rel = 'sponsored';
+            anchor.dataset.articleProductLink = '';
+        }
+        anchor.append(fragment);
+        range.insertNode(anchor);
+
+        if (type === 'product') {
+            if (productUrlField) productUrlField.value = href;
+            if (productTextField) productTextField.value = selectedText;
+            body.querySelectorAll('a[data-article-product-link]').forEach((existing) => {
+                if (existing !== anchor) existing.replaceWith(...existing.childNodes);
+            });
+            if (previousProductUrl && previousProductUrl !== href) {
+                body.querySelectorAll('a').forEach((existing) => {
+                    if (existing !== anchor && existing.href === previousProductUrl) existing.replaceWith(...existing.childNodes);
+                });
+            }
+        } else if (selectedProductAnchor) {
+            if (productUrlField) productUrlField.value = '';
+            if (productTextField) productTextField.value = '';
+        }
+
+        const cursor = document.createRange();
+        cursor.setStartAfter(anchor);
+        cursor.collapse(true);
+        const selection = window.getSelection();
+        selection?.removeAllRanges();
+        selection?.addRange(cursor);
+        savedRange = cursor.cloneRange();
+        lastFocusedBlock = anchor.closest('[data-editor-block]');
+
+        setDirty();
+        syncFields();
+        return true;
+    };
+
+    insertLinkButtons.forEach((button) => {
+        button.addEventListener('click', () => insertLinkFromSelection(button.dataset.articleInsertLink));
+    });
 
     document.addEventListener('selectionchange', () => {
         const selection = window.getSelection();
         if (selection?.rangeCount && body.contains(selection.anchorNode)) {
             savedRange = selection.getRangeAt(0).cloneRange();
             lastFocusedBlock = currentTextBlock();
+            if (selection.toString().trim() && linkNotice) linkNotice.hidden = true;
         }
     });
 
@@ -490,6 +630,8 @@ document.querySelectorAll('[data-article-editor]').forEach((form) => {
         const updateValue = () => {
             setDirty();
             syncFields();
+            syncImageAltRequirement();
+            syncLinkRequirements();
             if (input.matches('[data-image-alt-text], [data-image-decorative]')) {
                 const alt = form.querySelector('[data-image-decorative]')?.checked
                     ? ''
@@ -516,20 +658,9 @@ document.querySelectorAll('[data-article-editor]').forEach((form) => {
             return;
         }
 
-        if (event.key === 'Enter' && wrapper && ['introduction', 'paragraph', 'heading'].includes(wrapper.dataset.blockType) && !event.shiftKey) {
+        if (event.key === 'Enter' && !event.shiftKey && (editable.matches('[data-editor-text]') || (legacyMode && editable.matches('p, h2, h3')))) {
             event.preventDefault();
-            const selection = window.getSelection();
-            const range = selection?.rangeCount ? selection.getRangeAt(0) : null;
-            const next = makeWrapper('paragraph');
-            const nextText = next.querySelector('[data-editor-text]');
-            if (range && editable.contains(range.endContainer)) {
-                const remainder = range.cloneRange();
-                remainder.selectNodeContents(editable);
-                remainder.setStart(range.endContainer, range.endOffset);
-                nextText.append(remainder.extractContents());
-            }
-            wrapper.after(next);
-            focusAtEnd(nextText);
+            document.execCommand('insertLineBreak', false);
             setDirty();
             syncFields();
             return;
@@ -599,7 +730,7 @@ document.querySelectorAll('[data-article-editor]').forEach((form) => {
         }
     });
 
-    form.querySelectorAll('[data-article-command]').forEach((button) => button.addEventListener('mousedown', (event) => event.preventDefault()));
+    form.querySelectorAll('[data-article-command], [data-article-insert-link]').forEach((button) => button.addEventListener('mousedown', (event) => event.preventDefault()));
 
     sizeSelect?.addEventListener('change', () => {
         const selection = window.getSelection();
@@ -644,7 +775,6 @@ document.querySelectorAll('[data-article-editor]').forEach((form) => {
         });
     });
 
-    form.querySelector('[data-article-add-image]')?.addEventListener('click', () => imageInput?.click());
     imageInput?.addEventListener('change', () => {
         const file = imageInput.files?.[0];
         if (!file) return;
@@ -654,6 +784,7 @@ document.querySelectorAll('[data-article-editor]').forEach((form) => {
             insertAfterFocus(imageBlock);
         }
         updateImagePreview(file);
+        syncImageAltRequirement();
         setDirty();
         syncFields();
     });
@@ -665,6 +796,7 @@ document.querySelectorAll('[data-article-editor]').forEach((form) => {
         if (preview) preview.remove();
         if (String(form.dataset.originalImageId || '') !== '') removeImageField.value = '1';
         if (imageInput) imageInput.value = '';
+        syncImageAltRequirement();
         setDirty();
         updateBlockControls();
         syncFields();

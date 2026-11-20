@@ -199,44 +199,63 @@
 .article-editor-block {
     position: relative;
     margin-block: 1rem;
+    display: flow-root;
 }
 
 .article-editor-block-controls {
     position: absolute;
     z-index: 2;
-    top: -0.7rem;
+    top: -1.5rem;
     right: 0;
-    display: flex;
-    gap: 0.2rem;
-    border: 1px solid var(--color-studio-line);
-    border-radius: 0.5rem;
-    background: var(--color-paper, #fff);
-    padding: 0.15rem;
-    opacity: 0;
-    transition: opacity 120ms ease;
+    display: none;
+    align-items: center;
+    gap: 0.15rem;
 }
 
 .article-editor-block:hover .article-editor-block-controls,
-.article-editor-block:focus-within .article-editor-block-controls,
-.article-editor-block-controls:focus-within {
-    opacity: 1;
+.article-editor-block:focus-within .article-editor-block-controls {
+    display: flex;
 }
 
 .article-editor-block-controls button {
-    min-width: 1.75rem;
-    min-height: 1.75rem;
-    border-radius: 0.3rem;
+    display: grid;
+    width: 1.35rem;
+    height: 1.35rem;
+    place-items: center;
+    border: 1px solid var(--color-line, #e5e7eb);
+    border-radius: 0.35rem;
+    background: var(--color-paper, #fff);
     color: var(--color-ink, #17181c);
-    font-size: 0.8rem;
+    font-size: 0.75rem;
+    line-height: 1;
+    opacity: 0.62;
 }
 
-.article-editor-block-controls button:hover {
-    background: color-mix(in srgb, var(--color-ink, #17181c) 10%, transparent);
+.article-editor-block-controls button:hover:not(:disabled),
+.article-editor-block-controls button:focus-visible {
+    opacity: 1;
+    background: color-mix(in srgb, var(--color-ink, #17181c) 8%, var(--color-paper, #fff));
+}
+
+.article-editor-block-controls .article-editor-block-remove {
+    color: var(--color-studio-bad, #b42318);
 }
 
 .article-editor-block-controls button:disabled {
     cursor: not-allowed;
-    opacity: 0.35;
+    opacity: 0.28;
+}
+
+.article-editor-required-proxy {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    border: 0;
+    opacity: 0;
+    pointer-events: none;
 }
 
 .article-editor-block [data-editor-text] {
@@ -263,12 +282,6 @@
 
 .article-editor-block [data-editor-list]:is(ol) {
     list-style: decimal;
-}
-
-@media (hover: none) {
-    .article-editor-block-controls {
-        opacity: 0.8;
-    }
 }
 
 /*
