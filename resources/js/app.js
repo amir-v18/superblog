@@ -169,19 +169,39 @@ window.addEventListener('storage', (event) => {
     }
 });
 
-// Article editing stays in the preview; only explicitly permitted blocks become editable on double-click.
+// The editor keeps semantic blocks in the DOM and serializes plain-text runs to the versioned document.
 document.querySelectorAll('[data-article-editor]').forEach((form) => {
     const title = form.querySelector('[data-editor-title]');
     const titleField = form.querySelector('[data-article-title-field]');
     const body = form.querySelector('[data-editor-body]');
+    const documentField = form.querySelector('[data-article-document-field]');
     const contentField = form.querySelector('[data-article-content-field]');
     const sizeSelect = form.querySelector('[data-article-text-size]');
     const backlinkPreview = form.querySelector('[data-editor-backlinks-preview]');
+    const imageInput = form.querySelector('[data-article-image-input]');
+    const removeImageField = form.querySelector('[data-remove-image-field]');
+    const saveState = form.querySelector('[data-save-state]');
+    const legacyMode = form.dataset.editorMode === 'legacy';
     let savedRange = null;
+    let dirty = false;
+    let submitting = false;
+    let lastFocusedBlock = null;
 
-    if (!title || !titleField || !body || !contentField) {
+    if (!title || !titleField || !body || (!documentField && !contentField)) {
         return;
     }
+
+    const newId = () => globalThis.crypto?.randomUUID?.() ?? 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (character) => {
+        const random = Math.random() * 16 | 0;
+        return (character === 'x' ? random : (random & 0x3 | 0x8)).toString(16);
+    });
+
+    const setDirty = () => {
+        dirty = true;
+        if (saveState) {
+            saveState.textContent = 'Unsaved changes';
+        }
+    };
 
     const syncBacklinks = () => {
         if (!backlinkPreview) {
@@ -216,212 +236,460 @@ document.querySelectorAll('[data-article-editor]').forEach((form) => {
         backlinkPreview.hidden = !(hasBrand || hasProduct);
     };
 
+    const updateHeadingButton = () => {
+        const blocks = Array.from(body.querySelectorAll('[data-editor-block]'));
+        const selected = currentTextBlock();
+        const insertionIndex = selected?.parentElement === body ? blocks.indexOf(selected) + 1 : blocks.length;
+        const hasH2 = legacyMode
+            ? body.querySelector('h2') !== null
+            : blocks.slice(0, insertionIndex).some((block) => block.dataset.blockType === 'heading' && block.dataset.level === '2');
+        const h3Button = form.querySelector('[data-article-add-block="h3"]');
+        if (h3Button) h3Button.disabled = !hasH2;
+    };
+
+    const headingOrderIsValid = (blocks) => {
+        let hasH2 = false;
+        for (const block of blocks) {
+            if (block.dataset.blockType !== 'heading') continue;
+            if (block.dataset.level === '2') hasH2 = true;
+            if (block.dataset.level === '3' && !hasH2) return false;
+        }
+        return true;
+    };
+
+    const sameRun = (left, right) => left.text !== '' && left.href === right.href && left.size === right.size
+        && JSON.stringify(left.marks) === JSON.stringify(right.marks);
+
+    const readRuns = (root) => {
+        const runs = [];
+        const visit = (node, marks = [], size = 'normal', href = undefined) => {
+            if (node.nodeType === Node.TEXT_NODE) {
+                const text = node.nodeValue ?? '';
+                if (!text) return;
+                const run = { text, marks: [...new Set(marks)], size };
+                if (href !== undefined) run.href = href;
+                const previous = runs.at(-1);
+                if (previous && sameRun(previous, run)) previous.text += run.text;
+                else runs.push(run);
+                return;
+            }
+            if (!(node instanceof Element)) return;
+            const tag = node.tagName.toLowerCase();
+            if (tag === 'br') {
+                visit(document.createTextNode('\n'), marks, size, href);
+                return;
+            }
+            const nextMarks = [...marks];
+            if (tag === 'b' || tag === 'strong') nextMarks.push('bold');
+            if (tag === 'i' || tag === 'em') nextMarks.push('italic');
+            const nextSize = node.matches('span[data-text-size]') && ['small', 'normal', 'large'].includes(node.dataset.textSize)
+                ? node.dataset.textSize : size;
+            const nextHref = tag === 'a' ? node.getAttribute('href') ?? undefined : href;
+            node.childNodes.forEach((child) => visit(child, nextMarks, nextSize, nextHref));
+        };
+        root.childNodes.forEach((node) => visit(node));
+        return runs;
+    };
+
+    const readDocument = () => {
+        const blocks = [];
+        body.querySelectorAll(':scope > [data-editor-block]').forEach((wrapper) => {
+            const block = { id: wrapper.dataset.blockId || newId(), type: wrapper.dataset.blockType };
+            wrapper.dataset.blockId = block.id;
+            if (['introduction', 'paragraph'].includes(block.type)) {
+                block.runs = readRuns(wrapper.querySelector('[data-editor-text]'));
+            } else if (block.type === 'heading') {
+                block.level = Number(wrapper.dataset.level);
+                block.runs = readRuns(wrapper.querySelector('[data-editor-text]'));
+            } else if (block.type === 'list') {
+                const list = wrapper.querySelector('[data-editor-list]');
+                block.style = list?.tagName === 'OL' ? 'numbered' : 'bullet';
+                block.items = Array.from(list?.querySelectorAll(':scope > li') ?? []).map((item) => {
+                    if (!item.dataset.listItemId) item.dataset.listItemId = newId();
+                    return { id: item.dataset.listItemId, runs: readRuns(item) };
+                });
+            } else if (block.type === 'image') {
+                block.media_id = Number(wrapper.dataset.mediaId || 0);
+                block.caption = wrapper.querySelector('[data-editor-caption]')?.textContent.trim() ?? '';
+            } else {
+                return;
+            }
+            blocks.push(block);
+        });
+        return { version: 1, blocks };
+    };
+
     const syncFields = () => {
         titleField.value = title.textContent.replace(/\s+/g, ' ').trim();
-        contentField.value = body.innerHTML;
+        if (documentField) documentField.value = JSON.stringify(readDocument());
+        if (contentField) contentField.value = body.innerHTML;
         syncBacklinks();
         updateHeadingButton();
     };
 
-    const updateHeadingButton = () => {
-        const h3Button = form.querySelector('[data-article-add-block="h3"]');
-        if (h3Button) {
-            h3Button.disabled = !body.querySelector('h2');
+    const blockButtons = () => `<div class="article-editor-block-controls" aria-label="Block controls">
+        <button type="button" data-block-move="up" aria-label="Move block up" title="Move up">↑</button>
+        <button type="button" data-block-move="down" aria-label="Move block down" title="Move down">↓</button>
+        <button type="button" data-block-remove aria-label="Remove block" title="Remove block">×</button>
+    </div>`;
+
+    const makeWrapper = (type, level = null) => {
+        const wrapper = document.createElement('div');
+        wrapper.className = 'article-editor-block group';
+        wrapper.dataset.editorBlock = '';
+        wrapper.dataset.blockId = newId();
+        wrapper.dataset.blockType = type;
+        wrapper.innerHTML = blockButtons();
+
+        if (type === 'paragraph' || type === 'introduction' || type === 'heading') {
+            const tag = type === 'heading' ? `h${level}` : 'p';
+            if (type === 'heading') wrapper.dataset.level = String(level);
+            const text = document.createElement(tag);
+            text.dataset.editorText = '';
+            text.dataset.placeholder = type === 'introduction' ? 'Write the introduction…' : type === 'heading' ? 'Section heading…' : 'Write a paragraph…';
+            text.contentEditable = 'true';
+            text.spellcheck = true;
+            wrapper.append(text);
+        } else if (type === 'list') {
+            const list = document.createElement(level === 'numbered' ? 'ol' : 'ul');
+            list.dataset.editorList = '';
+            const item = document.createElement('li');
+            item.dataset.listItemId = newId();
+            item.dataset.placeholder = 'List item…';
+            item.contentEditable = 'true';
+            item.spellcheck = true;
+            list.append(item);
+            wrapper.append(list);
+        } else if (type === 'image') {
+            wrapper.dataset.mediaId = String(form.dataset.originalImageId || 0);
+            wrapper.innerHTML += `<figure data-editor-image-block><div data-image-placeholder class="rounded-lg border border-dashed border-studio-line p-8 text-center text-sm text-studio-muted">Choose an image to see it here.</div><figcaption data-editor-caption data-placeholder="Add an optional caption…" contenteditable="true" spellcheck="true"></figcaption></figure>`;
         }
+
+        return wrapper;
     };
 
-    const editableBlock = (target) => target.closest('[data-editor-title], [data-editor-body] p, [data-editor-body] h2, [data-editor-body] h3, [data-editor-body] li');
+    const currentTextBlock = () => {
+        const selection = window.getSelection();
+        const node = selection?.anchorNode;
+        const element = node instanceof Element ? node : node?.parentElement;
+        return element?.closest('[data-editor-block]') ?? lastFocusedBlock;
+    };
 
-    const moveCaretToPoint = (element, event) => {
-        let range = null;
-        if (document.caretRangeFromPoint) {
-            range = document.caretRangeFromPoint(event.clientX, event.clientY);
-        } else if (document.caretPositionFromPoint) {
-            const position = document.caretPositionFromPoint(event.clientX, event.clientY);
-            if (position) {
-                range = document.createRange();
-                range.setStart(position.offsetNode, position.offset);
-                range.collapse(true);
+    const insertAfterFocus = (wrapper) => {
+        const selected = currentTextBlock();
+        if (selected?.parentElement === body) selected.after(wrapper);
+        else body.append(wrapper);
+    };
+
+    const focusAtEnd = (element) => {
+        element.focus();
+        const range = document.createRange();
+        range.selectNodeContents(element);
+        range.collapse(false);
+        const selection = window.getSelection();
+        selection.removeAllRanges();
+        selection.addRange(range);
+    };
+
+    const updateBlockControls = () => {
+        const blocks = Array.from(body.querySelectorAll(':scope > [data-editor-block]'));
+        body.querySelectorAll('[data-block-move]').forEach((button) => {
+            const wrapper = button.closest('[data-editor-block]');
+            const index = blocks.indexOf(wrapper);
+            const nextIndex = index + (button.dataset.blockMove === 'up' ? -1 : 1);
+            if (index < 0 || nextIndex < 0 || nextIndex >= blocks.length) {
+                button.disabled = true;
+                return;
             }
-        }
+            const candidate = [...blocks];
+            [candidate[index], candidate[nextIndex]] = [candidate[nextIndex], candidate[index]];
+            button.disabled = !headingOrderIsValid(candidate);
+        });
+        updateHeadingButton();
+    };
 
-        if (range && element.contains(range.startContainer)) {
-            const selection = window.getSelection();
-            selection.removeAllRanges();
-            selection.addRange(range);
+    const updateImagePreview = (file) => {
+        if (!file) return;
+        const url = URL.createObjectURL(file);
+        const imageBlock = body.querySelector('[data-editor-block][data-block-type="image"]');
+        if (imageBlock) {
+            imageBlock.dataset.mediaId = String(form.dataset.originalImageId || 0);
+            const placeholder = imageBlock.querySelector('[data-image-placeholder]');
+            if (placeholder) placeholder.outerHTML = `<img data-editor-image alt="" class="mx-auto h-auto max-h-[32rem] max-w-full rounded-md">`;
+            const image = imageBlock.querySelector('[data-editor-image]');
+            image.src = url;
+            image.alt = form.querySelector('[data-image-alt-text]')?.value ?? '';
+        } else {
+            let legacyPreview = form.querySelector('[data-legacy-image-preview]');
+            if (!legacyPreview) {
+                legacyPreview = document.createElement('figure');
+                legacyPreview.className = 'mt-8';
+                legacyPreview.dataset.legacyImagePreview = '';
+                body.before(legacyPreview);
+            }
+            let legacyImage = legacyPreview.querySelector('img');
+            if (!legacyImage) {
+                legacyImage = document.createElement('img');
+                legacyImage.className = 'mx-auto h-auto max-h-[32rem] max-w-full rounded-md';
+                legacyPreview.append(legacyImage);
+            }
+            legacyImage.src = url;
+            legacyImage.alt = form.querySelector('[data-image-alt-text]')?.value ?? '';
         }
     };
 
-    form.addEventListener('dblclick', (event) => {
-        const block = event.target instanceof Element ? editableBlock(event.target) : null;
-        if (!block || !form.contains(block)) {
-            return;
+    const formatSelection = (command) => {
+        const selection = window.getSelection();
+        if (!selection?.rangeCount || selection.isCollapsed || !body.contains(selection.anchorNode)) return;
+        if (command === 'createLink') {
+            const href = window.prompt('Enter a link URL (http, https, mailto or a relative path):');
+            if (!href) return;
+            if (href.startsWith('//')) {
+                window.alert('Protocol-relative links are not allowed.');
+                return;
+            }
+            let protocol = '';
+            try { protocol = new URL(href, window.location.origin).protocol; } catch {}
+            if (!['http:', 'https:', 'mailto:'].includes(protocol)) {
+                window.alert('Only http, https, mailto and relative links are allowed.');
+                return;
+            }
+            document.execCommand('createLink', false, href);
+        } else {
+            document.execCommand(command, false);
+            const oldTag = command === 'bold' ? 'B' : 'I';
+            const newTag = command === 'bold' ? 'STRONG' : 'EM';
+            body.querySelectorAll(oldTag.toLowerCase()).forEach((old) => {
+                const replacement = document.createElement(newTag.toLowerCase());
+                replacement.append(...old.childNodes);
+                old.replaceWith(replacement);
+            });
         }
-
-        block.contentEditable = 'true';
-        block.focus({ preventScroll: true });
-        moveCaretToPoint(block, event);
-    });
+        setDirty();
+        syncFields();
+    };
 
     document.addEventListener('selectionchange', () => {
         const selection = window.getSelection();
         if (selection?.rangeCount && body.contains(selection.anchorNode)) {
             savedRange = selection.getRangeAt(0).cloneRange();
+            lastFocusedBlock = currentTextBlock();
         }
     });
 
-    form.addEventListener('input', syncFields);
-    form.querySelectorAll('[data-editor-link-url], [data-editor-link-anchor]').forEach((input) => {
-        input.addEventListener('input', syncBacklinks);
+    form.addEventListener('focusin', (event) => {
+        const editable = event.target instanceof Element ? event.target.closest('[contenteditable="true"]') : null;
+        if (editable && body.contains(editable)) lastFocusedBlock = editable.closest('[data-editor-block]');
     });
-    form.addEventListener('focusout', (event) => {
-        const block = event.target instanceof Element ? event.target.closest('[contenteditable="true"]') : null;
-        if (!block || !form.contains(block)) {
-            return;
-        }
 
-        if (event.relatedTarget instanceof Element && event.relatedTarget.closest('[role="toolbar"]')) {
-            return;
-        }
-
-        window.setTimeout(() => {
-            if (!block.contains(document.activeElement)) {
-                block.contentEditable = 'false';
-                syncFields();
+    form.addEventListener('input', () => {
+        setDirty();
+        syncFields();
+    });
+    form.querySelectorAll('[data-editor-link-url], [data-editor-link-anchor], [data-image-alt-text], [data-image-decorative]').forEach((input) => {
+        const updateValue = () => {
+            setDirty();
+            syncFields();
+            if (input.matches('[data-image-alt-text], [data-image-decorative]')) {
+                const alt = form.querySelector('[data-image-decorative]')?.checked
+                    ? ''
+                    : form.querySelector('[data-image-alt-text]')?.value ?? '';
+                form.querySelectorAll('[data-editor-image], [data-legacy-image-preview] img').forEach((image) => { image.alt = alt; });
             }
-        }, 0);
+        };
+        input.addEventListener('input', updateValue);
+        input.addEventListener('change', updateValue);
+    });
+
+    form.addEventListener('paste', (event) => {
+        if (!body.contains(event.target)) return;
+        event.preventDefault();
+        document.execCommand('insertText', false, event.clipboardData?.getData('text/plain') ?? '');
     });
 
     form.addEventListener('keydown', (event) => {
-        const block = event.target instanceof Element ? event.target.closest('[contenteditable="true"]') : null;
-        if (!block || !form.contains(block) || event.key !== 'Enter' || block === title || block.matches('li')) {
+        const editable = event.target instanceof Element ? event.target.closest('[contenteditable="true"]') : null;
+        if (!editable || !body.contains(editable)) return;
+        const wrapper = editable.closest('[data-editor-block]');
+        if (event.key === 'Enter' && editable === title) {
+            event.preventDefault();
             return;
         }
 
-        event.preventDefault();
-        const selection = window.getSelection();
-        const range = selection?.rangeCount ? selection.getRangeAt(0) : null;
-        const nextParagraph = document.createElement('p');
-        nextParagraph.dataset.editableBlock = '';
-
-        if (range && block.contains(range.endContainer)) {
-            const remainder = range.cloneRange();
-            remainder.selectNodeContents(block);
-            remainder.setStart(range.endContainer, range.endOffset);
-            nextParagraph.append(remainder.extractContents());
+        if (event.key === 'Enter' && wrapper && ['introduction', 'paragraph', 'heading'].includes(wrapper.dataset.blockType) && !event.shiftKey) {
+            event.preventDefault();
+            const selection = window.getSelection();
+            const range = selection?.rangeCount ? selection.getRangeAt(0) : null;
+            const next = makeWrapper('paragraph');
+            const nextText = next.querySelector('[data-editor-text]');
+            if (range && editable.contains(range.endContainer)) {
+                const remainder = range.cloneRange();
+                remainder.selectNodeContents(editable);
+                remainder.setStart(range.endContainer, range.endOffset);
+                nextText.append(remainder.extractContents());
+            }
+            wrapper.after(next);
+            focusAtEnd(nextText);
+            setDirty();
+            syncFields();
+            return;
         }
 
-        block.after(nextParagraph);
-        nextParagraph.contentEditable = 'true';
-        nextParagraph.focus();
-        syncFields();
+        if (event.key === 'Backspace' && wrapper && editable.matches('[data-editor-text]')) {
+            const selection = window.getSelection();
+            const range = selection?.rangeCount ? selection.getRangeAt(0) : null;
+            if (range?.collapsed) {
+                const before = range.cloneRange();
+                before.selectNodeContents(editable);
+                before.setEnd(range.startContainer, range.startOffset);
+                if (before.toString() === '') {
+                    const previous = wrapper.previousElementSibling;
+                    if (previous?.matches('[data-editor-block]')) {
+                        event.preventDefault();
+                        const previousText = previous.querySelector('[data-editor-text]');
+                        if (previousText) {
+                            while (editable.firstChild) previousText.append(editable.firstChild);
+                            wrapper.remove();
+                            focusAtEnd(previousText);
+                            setDirty();
+                            syncFields();
+                        }
+                    }
+                }
+            }
+        }
     });
 
-    form.querySelectorAll('[data-article-command]').forEach((button) => {
-        button.addEventListener('mousedown', (event) => event.preventDefault());
-        button.addEventListener('click', () => {
-            const selection = window.getSelection();
-            if (!selection?.rangeCount || !body.contains(selection.anchorNode)) {
+    form.addEventListener('click', (event) => {
+        const target = event.target instanceof Element ? event.target : null;
+        const control = target?.closest('[data-block-move], [data-block-remove]');
+        if (control && body.contains(control)) {
+            event.preventDefault();
+            const wrapper = control.closest('[data-editor-block]');
+            if (control.matches('[data-block-remove]')) {
+                if (wrapper.dataset.blockType === 'introduction') {
+                    const intro = wrapper.querySelector('[data-editor-text]');
+                    intro.replaceChildren();
+                    focusAtEnd(intro);
+                } else {
+                    if (wrapper.dataset.blockType === 'image' && String(form.dataset.originalImageId || '') === String(wrapper.dataset.mediaId || '')) {
+                        removeImageField.value = '1';
+                    }
+                    wrapper.remove();
+                }
+            } else if (control.dataset.blockMove === 'up' && wrapper.previousElementSibling) {
+                wrapper.parentElement.insertBefore(wrapper, wrapper.previousElementSibling);
+            } else if (control.dataset.blockMove === 'down' && wrapper.nextElementSibling) {
+                wrapper.parentElement.insertBefore(wrapper.nextElementSibling, wrapper);
+            }
+            if (!headingOrderIsValid(Array.from(body.querySelectorAll(':scope > [data-editor-block]')))) {
+                if (control.dataset.blockMove === 'up') wrapper.nextElementSibling?.after(wrapper);
+                if (control.dataset.blockMove === 'down') wrapper.previousElementSibling?.before(wrapper);
                 return;
             }
-
-            if (button.dataset.articleCommand === 'createLink') {
-                const href = window.prompt('Enter a link URL (http, https, mailto or a relative path):');
-                if (!href) {
-                    return;
-                }
-
-                let protocol = '';
-                try {
-                    protocol = new URL(href, window.location.origin).protocol;
-                } catch {
-                    window.alert('Enter a valid link URL.');
-                    return;
-                }
-
-                if (!['http:', 'https:', 'mailto:'].includes(protocol)) {
-                    window.alert('Only http, https, mailto and relative links are allowed.');
-                    return;
-                }
-
-                document.execCommand('createLink', false, href);
-            } else {
-                document.execCommand(button.dataset.articleCommand, false);
-
-                const sourceTag = button.dataset.articleCommand === 'bold' ? 'b' : 'i';
-                const semanticTag = button.dataset.articleCommand === 'bold' ? 'strong' : 'em';
-                body.querySelectorAll(sourceTag).forEach((source) => {
-                    const replacement = document.createElement(semanticTag);
-                    replacement.append(...source.childNodes);
-                    source.replaceWith(replacement);
-                });
-            }
-
+            setDirty();
+            updateBlockControls();
             syncFields();
-        });
+            return;
+        }
+
+        if (target?.closest('[data-article-command]')) {
+            event.preventDefault();
+            formatSelection(target.closest('[data-article-command]').dataset.articleCommand);
+        }
     });
+
+    form.querySelectorAll('[data-article-command]').forEach((button) => button.addEventListener('mousedown', (event) => event.preventDefault()));
 
     sizeSelect?.addEventListener('change', () => {
         const selection = window.getSelection();
-        if (!savedRange || !selection || !body.contains(savedRange.commonAncestorContainer)) {
-            return;
-        }
-
+        if (!savedRange || !selection || !body.contains(savedRange.commonAncestorContainer) || savedRange.collapsed) return;
         selection.removeAllRanges();
         selection.addRange(savedRange);
-
-        if (!selection.isCollapsed) {
+        document.execCommand('fontSize', false, '7');
+        body.querySelectorAll('font[size="7"]').forEach((font) => {
             const span = document.createElement('span');
             span.dataset.textSize = sizeSelect.value;
-            span.append(selection.getRangeAt(0).extractContents());
-            selection.getRangeAt(0).insertNode(span);
-            selection.removeAllRanges();
-        }
-
+            span.append(...font.childNodes);
+            font.replaceWith(span);
+        });
+        selection.removeAllRanges();
+        setDirty();
         syncFields();
     });
 
     form.querySelectorAll('[data-article-add-block]').forEach((button) => {
         button.addEventListener('mousedown', (event) => event.preventDefault());
         button.addEventListener('click', () => {
-            const tag = button.dataset.articleAddBlock;
-            if (tag === 'h3' && !body.querySelector('h2')) {
-                return;
-            }
-
-            const block = document.createElement(tag);
-            block.dataset.editableBlock = '';
-
-            if (tag === 'ul' || tag === 'ol') {
-                const item = document.createElement('li');
-                item.dataset.editableBlock = '';
-                item.dataset.placeholder = 'List item';
-                block.append(item);
-            } else {
-                block.dataset.placeholder = tag === 'h2' ? 'Main section heading' : tag === 'h3' ? 'Subsection heading' : 'Paragraph';
-            }
-
-            const selection = window.getSelection();
-            const anchor = selection?.anchorNode;
-            const selectedBlock = anchor instanceof Element
-                ? anchor.closest('p, h2, h3, ul, ol')
-                : anchor?.parentElement?.closest('p, h2, h3, ul, ol');
-            if (selectedBlock?.parentElement === body) {
-                selectedBlock.after(block);
-            } else {
+            const requested = button.dataset.articleAddBlock;
+            if (requested === 'h3' && button.disabled) return;
+            if (legacyMode) {
+                const tag = requested === 'paragraph' ? 'p' : requested === 'bullet' ? 'ul' : requested === 'numbered' ? 'ol' : requested;
+                const block = document.createElement(tag);
+                if (tag === 'ul' || tag === 'ol') block.innerHTML = '<li></li>';
                 body.append(block);
+                const editable = block.matches('ul,ol') ? block.querySelector('li') : block;
+                editable.contentEditable = 'true';
+                editable.focus();
+            } else {
+                const type = ['bullet', 'numbered'].includes(requested) ? 'list' : requested === 'paragraph' ? 'paragraph' : 'heading';
+                const wrapper = makeWrapper(type, type === 'heading' ? Number(requested.slice(1)) : requested);
+                insertAfterFocus(wrapper);
+                const editable = wrapper.querySelector('[data-editor-text], li');
+                editable?.focus();
             }
-
-            const editable = block.matches('ul, ol') ? block.querySelector('li') : block;
-            editable.contentEditable = 'true';
-            editable.focus();
-            updateHeadingButton();
+            setDirty();
+            updateBlockControls();
             syncFields();
         });
     });
 
-    form.addEventListener('submit', syncFields);
-    updateHeadingButton();
+    form.querySelector('[data-article-add-image]')?.addEventListener('click', () => imageInput?.click());
+    imageInput?.addEventListener('change', () => {
+        const file = imageInput.files?.[0];
+        if (!file) return;
+        removeImageField.value = '0';
+        if (!legacyMode && !body.querySelector('[data-block-type="image"]')) {
+            const imageBlock = makeWrapper('image');
+            insertAfterFocus(imageBlock);
+        }
+        updateImagePreview(file);
+        setDirty();
+        syncFields();
+    });
+
+    form.querySelector('[data-remove-image]')?.addEventListener('click', () => {
+        const imageBlock = body.querySelector('[data-block-type="image"]');
+        const preview = form.querySelector('[data-legacy-image-preview]');
+        if (imageBlock) imageBlock.remove();
+        if (preview) preview.remove();
+        if (String(form.dataset.originalImageId || '') !== '') removeImageField.value = '1';
+        if (imageInput) imageInput.value = '';
+        setDirty();
+        updateBlockControls();
+        syncFields();
+    });
+
+    form.addEventListener('submit', () => {
+        syncFields();
+        submitting = true;
+        if (saveState) saveState.textContent = 'Saving…';
+    });
+    window.addEventListener('beforeunload', (event) => {
+        if (dirty && !submitting) {
+            event.preventDefault();
+            event.returnValue = '';
+        }
+    });
+
+    if (legacyMode) {
+        body.querySelectorAll('p, h2, h3, li').forEach((block) => { block.contentEditable = 'true'; block.spellcheck = true; });
+    }
+    body.querySelectorAll('[data-editor-block]').forEach((wrapper) => {
+        const listItems = wrapper.querySelectorAll('li');
+        listItems.forEach((item) => { if (!item.dataset.listItemId) item.dataset.listItemId = newId(); });
+    });
+    updateBlockControls();
     syncFields();
 });
 

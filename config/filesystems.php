@@ -38,6 +38,14 @@ return [
             'report' => false,
         ],
 
+        'article_media' => [
+            'driver' => 'local',
+            'root' => storage_path('app/article-media'),
+            'visibility' => 'private',
+            'throw' => true,
+            'report' => false,
+        ],
+
         'public' => [
             'driver' => 'local',
             'root' => storage_path('app/public'),

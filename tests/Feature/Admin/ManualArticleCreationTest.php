@@ -9,6 +9,7 @@ use App\Models\Template;
 use App\Models\User;
 use App\Support\ArticleContentDocument;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Str;
 use Tests\TestCase;
 
 class ManualArticleCreationTest extends TestCase
@@ -35,8 +36,9 @@ class ManualArticleCreationTest extends TestCase
             ->assertSee('data-editor-body', false)
             ->assertSee('data-article-add-block="h2"', false)
             ->assertSee('data-article-add-block="h3"', false)
-            ->assertSee('data-article-add-block="ul"', false)
+            ->assertSee('data-article-add-block="bullet"', false)
             ->assertSee('data-article-text-size', false)
+            ->assertSee('data-article-add-image', false)
             ->assertSee('Brand and product/service links')
             ->assertDontSee('<textarea id="content"', false)
             ->assertSee(route('admin.superblogs.articles.store', $superblog), false);
@@ -50,7 +52,7 @@ class ManualArticleCreationTest extends TestCase
         $response = $this->actingAs($staff)->post(route('admin.superblogs.articles.store', $superblog), [
             'title' => 'A manual story',
             'slug' => 'A Manual Story',
-            'content' => 'The article body.',
+            'document' => $this->document('The article body.'),
             // These fields are deliberately forged: the server owns publication and source state.
             'superblog_id' => $otherSuperblog->id,
             'rss_item_id' => 99,
@@ -70,7 +72,8 @@ class ManualArticleCreationTest extends TestCase
         $this->assertNull($article->rss_item_id);
         $this->assertTrue($article->is_selected_for_publication);
         $this->assertNull($article->published_at);
-        $this->assertSame(ArticleContentFormat::LegacyHtml, $article->content_format);
+        $this->assertSame(ArticleContentFormat::BlocksV1, $article->content_format);
+        $this->assertSame('The article body.', $this->articleIntroduction($article));
 
         $this->get(route('admin.superblogs.edit', [$superblog, 'flik' => 'innehall']))
             ->assertOk()
@@ -124,19 +127,20 @@ class ManualArticleCreationTest extends TestCase
         $this->assertNull((new ArticleContentDocument)->readFrom($article));
     }
 
-    public function test_manual_article_content_is_sanitized_before_storage(): void
+    public function test_structured_article_text_is_rendered_as_text_not_browser_html(): void
     {
         [$staff, $superblog] = $this->makeAssignedSuperblog();
 
         $this->actingAs($staff)->post(route('admin.superblogs.articles.store', $superblog), [
             'title' => 'Sanitized article',
             'slug' => 'sanitized-article',
-            'content' => '<p onclick="alert(1)">A <strong>bold</strong> <span data-text-size="large" style="color:red">line</span><script>alert("xss")</script><a href="javascript:alert(1)">link</a></p>',
+            'document' => $this->document('<script onclick="alert(1)">literal text only</script>'),
         ])->assertSessionHasNoErrors()->assertRedirect();
 
         $article = Article::query()->where('slug', 'sanitized-article')->firstOrFail();
-        $this->assertSame(ArticleContentFormat::LegacyHtml, $article->content_format);
-        $this->assertSame('<p>A <strong>bold</strong> <span data-text-size="large">line</span><a>link</a></p>', $article->content);
+        $this->assertSame(ArticleContentFormat::BlocksV1, $article->content_format);
+        $this->assertSame('<script onclick="alert(1)">literal text only</script>', $this->articleIntroduction($article));
+        $this->assertDatabaseMissing('articles', ['content' => '<script onclick="alert(1)">literal text only</script>']);
         $this->assertSame('draft', $article->status);
         $this->assertNull($article->published_at);
         $this->assertNull($article->content_modified_at);
@@ -151,15 +155,20 @@ class ManualArticleCreationTest extends TestCase
             ->post($route, [
                 'title' => 'Missing introduction',
                 'slug' => 'missing-introduction',
-                'content' => '<h2>Main section</h2><p>Text after heading.</p>',
+                'document' => $this->documentWithBlocks([
+                    ['type' => 'heading', 'level' => 2, 'runs' => [['text' => 'Main section']]],
+                    ['type' => 'paragraph', 'runs' => [['text' => 'Text after heading.']]],
+                ], includeIntroduction: false),
             ])
-            ->assertSessionHasErrors('content');
+            ->assertSessionHasErrors('document');
 
         $this->post($route, [
             'title' => 'Orphan subsection',
             'slug' => 'orphan-subsection',
-            'content' => '<p>Introduction.</p><h3>Subsection first</h3>',
-        ])->assertSessionHasErrors('content');
+            'document' => $this->documentWithBlocks([
+                ['type' => 'heading', 'level' => 3, 'runs' => [['text' => 'Subsection first']]],
+            ]),
+        ])->assertSessionHasErrors('document');
 
         $this->assertDatabaseCount('articles', 0);
     }
@@ -171,11 +180,23 @@ class ManualArticleCreationTest extends TestCase
         $this->actingAs($staff)->post(route('admin.superblogs.articles.store', $superblog), [
             'title' => 'The generated title',
             'slug' => 'generated-title',
-            'content' => '<h1>Forged extra heading</h1><p>Introduction paragraph.</p><h2>Main section</h2><p>Section body.</p>',
+            'document' => $this->documentWithBlocks([
+                ['type' => 'heading', 'level' => 1, 'runs' => [['text' => 'Forged extra heading']]],
+            ]),
+        ])->assertSessionHasErrors('document');
+
+        $this->actingAs($staff)->post(route('admin.superblogs.articles.store', $superblog), [
+            'title' => 'The generated title',
+            'slug' => 'generated-title',
+            'document' => $this->documentWithBlocks([
+                ['type' => 'paragraph', 'runs' => [['text' => 'Introduction paragraph.']]],
+                ['type' => 'heading', 'level' => 2, 'runs' => [['text' => 'Main section']]],
+                ['type' => 'paragraph', 'runs' => [['text' => 'Section body.']]],
+            ]),
         ])->assertSessionHasNoErrors()->assertRedirect();
 
         $article = Article::query()->where('slug', 'generated-title')->firstOrFail();
-        $this->assertStringNotContainsString('<h1', $article->content);
+        $this->assertSame(ArticleContentFormat::BlocksV1, $article->content_format);
 
         $this->post(route('admin.superblogs.articles.publish', [$superblog, $article]));
         $superblog->update(['status' => 'published']);
@@ -193,7 +214,10 @@ class ManualArticleCreationTest extends TestCase
         $this->actingAs($staff)->post(route('admin.superblogs.articles.store', $superblog), [
             'title' => 'Backlink story',
             'slug' => 'backlink-story',
-            'content' => '<p>Introduction.</p><h2>Main section</h2><p>Body.</p>',
+            'document' => $this->documentWithBlocks([
+                ['type' => 'heading', 'level' => 2, 'runs' => [['text' => 'Main section']]],
+                ['type' => 'paragraph', 'runs' => [['text' => 'Body.']]],
+            ]),
             'links' => [
                 'brand' => ['url' => 'https://brand.example.test', 'anchor_text' => 'Brand name'],
                 'product' => ['url' => 'https://brand.example.test/product', 'anchor_text' => 'Product name'],
@@ -228,7 +252,10 @@ class ManualArticleCreationTest extends TestCase
         $this->put(route('admin.superblogs.articles.update', [$superblog, $article]), [
             'title' => 'Backlink story',
             'slug' => 'backlink-story',
-            'content' => '<p>Introduction.</p><h2>Main section</h2><p>Body.</p>',
+            'document' => $this->documentWithBlocks([
+                ['type' => 'heading', 'level' => 2, 'runs' => [['text' => 'Main section']]],
+                ['type' => 'paragraph', 'runs' => [['text' => 'Body.']]],
+            ]),
             'links' => [
                 'brand' => ['url' => 'https://new-brand.example.test', 'anchor_text' => 'Updated brand'],
                 'product' => ['url' => 'https://brand.example.test/product', 'anchor_text' => 'Product name'],
@@ -261,7 +288,7 @@ class ManualArticleCreationTest extends TestCase
         $base = [
             'title' => 'Unsafe backlink',
             'slug' => 'unsafe-backlink',
-            'content' => '<p>Introduction.</p>',
+            'document' => $this->document('Introduction.'),
         ];
 
         $this->actingAs($staff)->from(route('admin.superblogs.articles.create', $superblog))
@@ -293,7 +320,8 @@ class ManualArticleCreationTest extends TestCase
         ])->assertSessionHasNoErrors()->assertRedirect();
 
         $article->refresh();
-        $this->assertSame('<p>Existing plain body.</p>', $article->content);
+        $this->assertSame(ArticleContentFormat::BlocksV1, $article->content_format);
+        $this->assertSame('Existing plain body.', $this->articleIntroduction($article));
         $this->assertSame('published', $article->status);
         $this->assertTrue($publishedAt->equalTo($article->published_at));
         $this->assertNull($article->content_modified_at);
@@ -306,7 +334,7 @@ class ManualArticleCreationTest extends TestCase
         $this->actingAs($staff)->post(route('admin.superblogs.articles.store', $superblog), [
             'title' => 'A public manual story',
             'slug' => 'a-public-manual-story',
-            'content' => '<p>The manual body text.</p>',
+            'document' => $this->document('The manual body text.'),
         ])->assertSessionHasNoErrors()->assertRedirect();
 
         $article = Article::query()->where('slug', 'a-public-manual-story')->firstOrFail();
@@ -330,7 +358,7 @@ class ManualArticleCreationTest extends TestCase
         $this->actingAs($staff)->post(route('admin.superblogs.articles.store', $superblog), [
             'title' => 'An old form post',
             'slug' => 'an-old-form-post',
-            'content' => '<p>The body text.</p>',
+            'document' => $this->document('The body text.'),
             'excerpt' => 'Old ingress text',
         ])->assertSessionHasNoErrors()->assertRedirect();
 
@@ -481,6 +509,45 @@ class ManualArticleCreationTest extends TestCase
             'status' => 'draft',
             'is_selected_for_publication' => false,
         ], $attributes));
+    }
+
+    private function document(string $introduction): string
+    {
+        return json_encode([
+            'version' => 1,
+            'blocks' => [[
+                'id' => (string) Str::uuid(),
+                'type' => 'introduction',
+                'runs' => [['text' => $introduction]],
+            ]],
+        ], JSON_THROW_ON_ERROR);
+    }
+
+    private function articleIntroduction(Article $article): string
+    {
+        $document = (new ArticleContentDocument)->readFrom($article);
+
+        return implode('', array_column($document['blocks'][0]['runs'] ?? [], 'text'));
+    }
+
+    private function documentWithBlocks(array $bodyBlocks, bool $includeIntroduction = true): string
+    {
+        $blocks = $includeIntroduction
+            ? [['type' => 'introduction', 'runs' => [['text' => 'Introduction text.']]], ...$bodyBlocks]
+            : $bodyBlocks;
+
+        foreach ($blocks as &$block) {
+            $block['id'] = (string) Str::uuid();
+            if (($block['type'] ?? null) === 'list') {
+                foreach ($block['items'] as &$item) {
+                    $item['id'] = (string) Str::uuid();
+                }
+                unset($item);
+            }
+        }
+        unset($block);
+
+        return json_encode(['version' => 1, 'blocks' => $blocks], JSON_THROW_ON_ERROR);
     }
 
     private function makeApprovedUser(bool $superAdmin = false): User

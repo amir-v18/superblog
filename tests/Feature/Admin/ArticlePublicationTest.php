@@ -110,7 +110,7 @@ class ArticlePublicationTest extends TestCase
         $this->assertSame('published', $superblog->fresh()->status);
     }
 
-    public function test_structured_document_is_not_published_or_rendered_before_public_rendering_support(): void
+    public function test_structured_document_can_be_published_and_rendered_publicly(): void
     {
         [$staff, $superblog] = $this->makeAssignedSuperblog();
         $article = $this->makeArticle($superblog, 'Structured draft', selected: true);
@@ -126,20 +126,17 @@ class ArticlePublicationTest extends TestCase
 
         $this->actingAs($staff)
             ->post(route('admin.superblogs.articles.publish', [$superblog, $article]))
-            ->assertSessionHasErrors('content');
+            ->assertSessionHas('status', 'Article published.');
 
-        $this->assertSame('draft', $article->fresh()->status);
-        $this->assertNull($article->fresh()->published_at);
+        $this->assertSame('published', $article->fresh()->status);
+        $this->assertNotNull($article->fresh()->published_at);
 
-        $article->forceFill([
-            'status' => 'published',
-            'published_at' => now(),
-            'is_selected_for_publication' => true,
-        ])->save();
         $superblog->update(['status' => 'published']);
 
         $this->get(route('public.superblogs.articles.show', [$superblog, $article]))
-            ->assertNotFound();
+            ->assertOk()
+            ->assertSee('Structured draft')
+            ->assertSee('A structured introduction.');
     }
 
     public function test_valid_placeholder_domain_allows_superblog_publication_without_dns_verification(): void

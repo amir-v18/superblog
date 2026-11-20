@@ -8,6 +8,7 @@ use App\Http\Controllers\Admin\SuperblogController;
 use App\Http\Controllers\Admin\SuperblogPreviewController;
 use App\Http\Controllers\Admin\SuperblogThemeController;
 use App\Http\Controllers\Admin\TemplateController;
+use App\Http\Controllers\ArticleMediaController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Auth\GoogleAuthenticationController;
 use App\Http\Controllers\PublicArticleController;
@@ -24,6 +25,9 @@ Route::get('/', [AuthenticatedSessionController::class, 'create'])->middleware('
 Route::get('/superblogs/{superblog:slug}/articles/{article:slug}', [PublicArticleController::class, 'show'])
     ->scopeBindings()
     ->name('public.superblogs.articles.show');
+Route::get('/superblogs/{superblog:slug}/articles/{article:slug}/image', [ArticleMediaController::class, 'public'])
+    ->scopeBindings()
+    ->name('public.superblogs.articles.image');
 Route::get('/superblogs/{superblog:slug}', PublicSuperblogController::class)
     ->name('public.superblogs.show');
 
@@ -106,6 +110,7 @@ Route::middleware('auth')->group(function () {
                 Route::post('/', [ArticleController::class, 'store'])->name('store');
                 Route::put('selection', [ArticleController::class, 'updateSelection'])->name('selection.update');
                 Route::post('publication', [ArticleController::class, 'publishSelected'])->name('publish-selected');
+                Route::get('{article}/image', [ArticleMediaController::class, 'admin'])->name('image');
                 Route::get('{article}/edit', [ArticleController::class, 'edit'])->name('edit');
                 Route::put('{article}', [ArticleController::class, 'update'])->name('update');
                 Route::delete('{article}', [ArticleController::class, 'destroy'])->name('destroy');

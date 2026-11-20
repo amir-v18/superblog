@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 #[Fillable(['superblog_id', 'rss_item_id', 'title', 'slug', 'content', 'content_format', 'source_type', 'status', 'is_locked', 'is_selected_for_publication', 'published_at'])]
 class Article extends Model
@@ -37,8 +38,13 @@ class Article extends Model
         return $this->hasMany(ArticleLink::class);
     }
 
-    public function media(): HasMany
+    public function media(): HasOne
     {
-        return $this->hasMany(Media::class);
+        return $this->hasOne(Media::class);
+    }
+
+    public function image(): HasOne
+    {
+        return $this->hasOne(Media::class);
     }
 }

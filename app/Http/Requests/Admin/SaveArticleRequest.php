@@ -41,6 +41,7 @@ class SaveArticleRequest extends FormRequest
     {
         $superblog = $this->route('superblog');
         $article = $this->route('article');
+        $requiresDocument = $article === null || $article->content_format->value === 'blocks_v1';
         $uniqueSlug = Rule::unique('articles', 'slug')->where('superblog_id', $superblog->getKey());
 
         if ($article instanceof Article) {
@@ -56,8 +57,15 @@ class SaveArticleRequest extends FormRequest
                 'regex:/^[a-z0-9]+(?:-[a-z0-9]+)*$/',
                 $uniqueSlug,
             ],
+            'document' => [
+                $requiresDocument ? 'required' : 'sometimes',
+                'string',
+                'max:2097152',
+            ],
             'content' => [
-                'required',
+                $article === null || $article->content_format->value === 'blocks_v1'
+                    ? 'prohibited'
+                    : 'sometimes',
                 'string',
                 function (string $attribute, mixed $value, \Closure $fail): void {
                     if (is_string($value) && strlen($value) > 2_097_152) {
@@ -65,6 +73,17 @@ class SaveArticleRequest extends FormRequest
                     }
                 },
             ],
+            'image' => ['sometimes', 'file', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
+            'image_alt_text' => [
+                Rule::requiredIf(fn (): bool => ($this->hasFile('image')
+                    || ($article instanceof Article && $article->image()->exists() && ! $this->boolean('remove_image')))
+                    && ! $this->boolean('image_decorative')),
+                'nullable',
+                'string',
+                'max:255',
+            ],
+            'image_decorative' => ['sometimes', 'boolean'],
+            'remove_image' => ['sometimes', 'boolean'],
             'links' => ['sometimes', 'array:brand,product'],
             'links.brand' => ['sometimes', 'array:url,anchor_text'],
             'links.brand.url' => ['nullable', 'required_with:links.brand.anchor_text', 'url:http,https', 'max:2048'],
@@ -72,6 +91,13 @@ class SaveArticleRequest extends FormRequest
             'links.product' => ['sometimes', 'array:url,anchor_text'],
             'links.product.url' => ['nullable', 'required_with:links.product.anchor_text', 'url:http,https', 'max:2048'],
             'links.product.anchor_text' => ['nullable', 'required_with:links.product.url', 'string', 'max:255'],
+        ];
+    }
+
+    public function messages(): array
+    {
+        return [
+            'image_alt_text.required' => 'Add descriptive alt text or mark the image as decorative.',
         ];
     }
 }

@@ -196,6 +196,81 @@
     outline-offset: 3px;
 }
 
+.article-editor-block {
+    position: relative;
+    margin-block: 1rem;
+}
+
+.article-editor-block-controls {
+    position: absolute;
+    z-index: 2;
+    top: -0.7rem;
+    right: 0;
+    display: flex;
+    gap: 0.2rem;
+    border: 1px solid var(--color-studio-line);
+    border-radius: 0.5rem;
+    background: var(--color-paper, #fff);
+    padding: 0.15rem;
+    opacity: 0;
+    transition: opacity 120ms ease;
+}
+
+.article-editor-block:hover .article-editor-block-controls,
+.article-editor-block:focus-within .article-editor-block-controls,
+.article-editor-block-controls:focus-within {
+    opacity: 1;
+}
+
+.article-editor-block-controls button {
+    min-width: 1.75rem;
+    min-height: 1.75rem;
+    border-radius: 0.3rem;
+    color: var(--color-ink, #17181c);
+    font-size: 0.8rem;
+}
+
+.article-editor-block-controls button:hover {
+    background: color-mix(in srgb, var(--color-ink, #17181c) 10%, transparent);
+}
+
+.article-editor-block-controls button:disabled {
+    cursor: not-allowed;
+    opacity: 0.35;
+}
+
+.article-editor-block [data-editor-text] {
+    min-height: 1.75rem;
+    outline: none;
+}
+
+.article-editor-block [data-editor-caption] {
+    min-height: 1.25rem;
+    margin-top: 0.5rem;
+    text-align: center;
+    font-size: 0.875rem;
+    color: var(--color-muted, #6b7280);
+    outline: none;
+}
+
+.article-editor-block [data-editor-list] {
+    margin-left: 1.5rem;
+}
+
+.article-editor-block [data-editor-list]:is(ul) {
+    list-style: disc;
+}
+
+.article-editor-block [data-editor-list]:is(ol) {
+    list-style: decimal;
+}
+
+@media (hover: none) {
+    .article-editor-block-controls {
+        opacity: 0.8;
+    }
+}
+
 /*
  * Theme system: a theme is a set of raw values selected by data-theme on <html>.
  * The @theme inline block below maps them to Tailwind utilities (bg-paper, text-ink, font-display, ...).

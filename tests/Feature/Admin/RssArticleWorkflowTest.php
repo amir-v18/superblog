@@ -9,8 +9,10 @@ use App\Models\RssSource;
 use App\Models\Superblog;
 use App\Models\Template;
 use App\Models\User;
+use App\Support\ArticleContentDocument;
 use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Str;
 use Tests\TestCase;
 
 class RssArticleWorkflowTest extends TestCase
@@ -265,7 +267,7 @@ class RssArticleWorkflowTest extends TestCase
         $article->refresh();
         $this->assertSame('Edited title', $article->title);
         $this->assertSame('edited-title', $article->slug);
-        $this->assertSame('<p>Edited article body</p>', $article->content);
+        $this->assertSame('Edited article body', $this->articleIntroduction($article));
         $this->assertSame('draft', $article->status);
         $this->assertSame('rss', $article->source_type);
         $this->assertSame($item->getKey(), $article->rss_item_id);
@@ -394,7 +396,7 @@ class RssArticleWorkflowTest extends TestCase
 
         $article->refresh();
         $this->assertSame('Updated published title', $article->title);
-        $this->assertSame('<p>Updated published body</p>', $article->content);
+        $this->assertSame('Updated published body', $this->articleIntroduction($article));
         $this->assertSame('published', $article->status);
         $this->assertTrue($publishedAt->equalTo($article->published_at));
         $this->assertTrue($contentEditAt->equalTo($article->content_modified_at));
@@ -410,7 +412,7 @@ class RssArticleWorkflowTest extends TestCase
         $this->put(route('admin.superblogs.articles.update', [$superblog, $article]), [
             'title' => 'Updated published title',
             'slug' => 'slug-only-change',
-            'content' => 'Updated published body',
+            'document' => $this->document('Updated published body'),
         ])->assertRedirect();
 
         $this->assertTrue($contentEditAt->equalTo($article->fresh()->content_modified_at));
@@ -537,5 +539,24 @@ class RssArticleWorkflowTest extends TestCase
             'url' => 'https://feeds.example.com/feed.xml',
             'is_active' => true,
         ]);
+    }
+
+    private function articleIntroduction(Article $article): string
+    {
+        $document = (new ArticleContentDocument)->readFrom($article);
+
+        return implode('', array_column($document['blocks'][0]['runs'] ?? [], 'text'));
+    }
+
+    private function document(string $introduction): string
+    {
+        return json_encode([
+            'version' => 1,
+            'blocks' => [[
+                'id' => (string) Str::uuid(),
+                'type' => 'introduction',
+                'runs' => [['text' => $introduction]],
+            ]],
+        ], JSON_THROW_ON_ERROR);
     }
 }

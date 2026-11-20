@@ -17,13 +17,19 @@
         <x-admin.errors class="mt-6" />
     @endif
 
+    @if ($documentError)
+        <div class="mt-6 rounded-xl border border-studio-warn-line bg-studio-warn-bg p-5 text-sm text-studio-warn-ink" role="alert">
+            {{ $documentError }} The original article is preserved. Contact an administrator before editing its body.
+        </div>
+    @endif
+
     <section class="mt-6 rounded-xl border border-studio-line bg-studio-panel p-5" aria-label="Article publishing">
         <p class="text-sm text-studio-muted">Status: <span class="font-semibold text-studio-ink">{{ ucfirst($article->status) }}</span></p>
         @if ($article->status === 'published' && $article->published_at)
             <p class="mt-1 text-sm text-studio-muted">Published {{ $article->published_at->format('M j, Y H:i') }}</p>
         @endif
         @if ($article->status === 'draft' && $article->exists)
-            <div class="mt-4 flex flex-wrap items-center gap-3">
+            <div class="mt-4">
                 <form method="POST" action="{{ route('admin.superblogs.articles.publish', [$superblog, $article]) }}">
                     @csrf
                     <button type="submit" class="rounded-lg bg-studio-brand px-4 py-2 text-sm font-medium text-studio-on-brand hover:bg-studio-brand-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-studio-brand">Publish now</button>
@@ -43,46 +49,78 @@
         </section>
     @endif
 
-    @if (in_array($article->status, ['draft', 'published'], true))
-        <form method="POST" action="{{ $isCreating ? route('admin.superblogs.articles.store', $superblog) : route('admin.superblogs.articles.update', [$superblog, $article]) }}" class="mt-6 space-y-5" data-article-editor>
+    @if (in_array($article->status, ['draft', 'published'], true) && ! $documentError)
+        <form method="POST" enctype="multipart/form-data" action="{{ $isCreating ? route('admin.superblogs.articles.store', $superblog) : route('admin.superblogs.articles.update', [$superblog, $article]) }}" class="mt-6 space-y-5" data-article-editor data-editor-mode="{{ $legacyFallback ? 'legacy' : 'structured' }}" data-original-image-id="{{ $image?->getKey() ?? '' }}">
             @csrf
             @unless ($isCreating)
                 @method('PUT')
             @endunless
 
-            <textarea name="title" hidden data-article-title-field>{{ old('title', $article->title) }}</textarea>
-            <textarea name="content" hidden data-article-content-field>{{ $editorHtml }}</textarea>
+            <input type="hidden" name="title" value="{{ old('title', $article->title) }}" data-article-title-field>
+            @if ($editorDocument)
+                <textarea name="document" hidden data-article-document-field>{{ json_encode($editorDocument, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) }}</textarea>
+            @else
+                <textarea name="content" hidden data-article-content-field>{{ $editorHtml }}</textarea>
+            @endif
+            <input type="hidden" name="remove_image" value="0" data-remove-image-field>
 
-            <div class="rounded-xl border border-studio-line bg-studio-panel p-5 sm:p-8">
-                <div class="mb-5 flex flex-wrap items-center justify-between gap-3 border-b border-studio-line pb-4">
+            <div class="rounded-xl border border-studio-line bg-studio-panel p-4 sm:p-6">
+                <div class="mb-4 flex flex-wrap items-center justify-between gap-3 border-b border-studio-line pb-4">
                     <div>
-                        <p class="text-xs font-semibold uppercase tracking-[.12em] text-studio-muted">Live article preview</p>
-                        <p class="mt-1 text-sm text-studio-muted">Double-click the title or a content block to edit it in place.</p>
+                        <p class="text-xs font-semibold uppercase tracking-[.12em] text-studio-muted">Article editor</p>
+                        <p class="mt-1 text-sm text-studio-muted">Click in the article and write. Your title is the page’s only main heading.</p>
                     </div>
                     <span class="rounded-full border border-studio-line px-3 py-1 text-xs text-studio-muted">{{ $article->source_type === 'rss' ? 'RSS article' : 'Manual article' }}</span>
                 </div>
 
-                <div class="mx-auto max-w-3xl rounded-lg bg-paper p-5 font-body text-ink sm:p-10">
+                <div class="mb-4 flex flex-wrap items-center gap-2 rounded-lg border border-studio-line bg-studio-bg p-2" role="toolbar" aria-label="Article formatting">
+                    <button type="button" data-article-command="bold" class="article-editor-tool" aria-label="Bold"><strong>B</strong></button>
+                    <button type="button" data-article-command="italic" class="article-editor-tool" aria-label="Italic"><em>I</em></button>
+                    <button type="button" data-article-command="createLink" class="article-editor-tool">Add link</button>
+                    <label class="flex items-center gap-2 rounded-lg border border-studio-line px-3 py-2 text-sm" for="article-text-size">Text size
+                        <select id="article-text-size" data-article-text-size class="rounded border border-studio-line bg-studio-panel px-2 py-1">
+                            <option value="small">Small</option>
+                            <option value="normal" selected>Normal</option>
+                            <option value="large">Large</option>
+                        </select>
+                    </label>
+                    <span class="mx-1 h-7 border-l border-studio-line" aria-hidden="true"></span>
+                    <button type="button" data-article-add-block="paragraph" class="article-editor-tool">Paragraph</button>
+                    <button type="button" data-article-add-block="h2" class="article-editor-tool">Heading</button>
+                    <button type="button" data-article-add-block="h3" class="article-editor-tool" disabled>Subheading</button>
+                    <button type="button" data-article-add-block="bullet" class="article-editor-tool">Bulleted list</button>
+                    <button type="button" data-article-add-block="numbered" class="article-editor-tool">Numbered list</button>
+                    <button type="button" data-article-add-image class="article-editor-tool">Add image</button>
+                </div>
+
+                <p class="mb-4 text-xs text-studio-muted">Use headings to organize the story. A subsection is available after a main heading.</p>
+
+                <div class="mx-auto max-w-3xl rounded-lg bg-paper p-5 font-body text-ink shadow-sm sm:p-10">
                     <article>
                         <header class="border-b border-line pb-6">
                             <p class="text-xs uppercase tracking-[.12em] text-muted">{{ $superblog->name }}</p>
-                            <h1 class="mt-3 font-display text-4xl font-semibold tracking-tight outline-none sm:text-5xl" data-editor-title data-editable-block data-placeholder="Article title">{{ old('title', $article->title) }}</h1>
+                            <h1 class="mt-3 min-h-12 font-display text-4xl font-semibold tracking-tight outline-none sm:text-5xl" data-editor-title data-placeholder="Article title" contenteditable="true" spellcheck="true">{{ old('title', $article->title) }}</h1>
                             <div class="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-muted">
                                 <span>{{ $article->source_type === 'rss' ? 'RSS source' : 'Manual article' }}</span>
                                 <span>{{ $article->status === 'published' ? 'Published' : 'Draft' }}</span>
                             </div>
                         </header>
 
+                        @if ($legacyFallback && $image)
+                            <figure class="mt-8" data-legacy-image-preview>
+                                <img src="{{ $imageUrl }}" alt="{{ $image->alt_text ?? '' }}" class="mx-auto h-auto max-h-[32rem] max-w-full rounded-md">
+                            </figure>
+                        @endif
+
                         <div class="article-body mt-8 space-y-4 leading-7" data-editor-body>
-                            @if (trim($editorHtml) === '')
-                                <p data-editable-block data-placeholder="Introduction paragraph"></p>
+                            @if ($editorDocument)
+                                {!! $editorBodyHtml !!}
                             @else
                                 {!! $editorHtml !!}
                             @endif
                         </div>
 
-                        @php($hasBacklinks = filled($brandLink?->url) || filled($productLink?->url))
-                        <p class="mt-10 border-t border-line pt-6" data-editor-backlinks-preview @if (! $hasBacklinks) hidden @endif>
+                        <p class="mt-10 border-t border-line pt-6" data-editor-backlinks-preview @if (! (filled($brandLink?->url) || filled($productLink?->url))) hidden @endif>
                             Läs mer:
                             <a data-editor-brand-preview @if (! filled($brandLink?->url)) hidden @endif href="{{ $brandLink->url ?? '' }}" rel="sponsored" class="font-medium text-primary underline underline-offset-4 hover:text-deep">{{ $brandLink->anchor_text ?? '' }}</a>
                             <span data-editor-link-separator @if (! (filled($brandLink?->url) && filled($productLink?->url))) hidden @endif> · </span>
@@ -90,12 +128,38 @@
                         </p>
                     </article>
                 </div>
+
+                <div class="mt-4 flex flex-wrap items-center justify-between gap-3 text-sm text-studio-muted">
+                    <span data-save-state role="status" aria-live="polite">All changes saved</span>
+                    @if ($legacyFallback)
+                        <span class="text-xs">This older article stays in its safe HTML format because its structure cannot be converted without losing content.</span>
+                    @endif
+                </div>
             </div>
+
+            <section class="rounded-xl border border-studio-line bg-studio-panel p-5" aria-labelledby="article-image-heading">
+                <h2 id="article-image-heading" class="text-sm font-semibold">Article image</h2>
+                <p class="mt-1 text-sm text-studio-muted">One optional image is stored privately and shown only through an authorized or published article route.</p>
+                <div class="mt-4 grid gap-4 sm:grid-cols-2 sm:items-end">
+                    <label class="block text-sm font-medium" for="article-image">Upload or replace image
+                        <input id="article-image" name="image" type="file" accept="image/jpeg,image/png,image/webp" data-article-image-input class="mt-2 block w-full rounded-lg border border-studio-line bg-studio-bg p-2 text-sm text-studio-ink file:mr-3 file:rounded-md file:border-0 file:bg-studio-pill file:px-3 file:py-2 file:text-sm file:font-medium file:text-studio-ink">
+                    </label>
+                    <label class="block text-sm font-medium" for="image-alt-text">Alt text
+                        <input id="image-alt-text" name="image_alt_text" value="{{ old('image_alt_text', $image?->alt_text ?? '') }}" maxlength="255" data-image-alt-text class="mt-2 w-full rounded-lg border border-studio-line bg-studio-bg p-2.5 text-studio-ink focus-visible:outline-2 focus-visible:outline-studio-brand">
+                    </label>
+                </div>
+                <label class="mt-3 flex items-center gap-2 text-sm text-studio-muted">
+                    <input type="checkbox" name="image_decorative" value="1" @checked(old('image_decorative', $image && $image->alt_text === '')) data-image-decorative class="rounded border-studio-line text-studio-brand focus:ring-studio-brand">
+                    Decorative image (no alt text)
+                </label>
+                @if ($image)
+                    <button type="button" data-remove-image class="mt-3 rounded-lg border border-studio-line px-3 py-2 text-sm font-medium text-studio-bad hover:bg-studio-bad-bg">Remove image</button>
+                @endif
+            </section>
 
             <section class="rounded-xl border border-studio-line bg-studio-panel p-5" aria-labelledby="editor-backlinks-heading">
                 <h2 id="editor-backlinks-heading" class="text-sm font-semibold">Brand and product/service links</h2>
-                <p class="mt-1 text-sm text-studio-muted">These links appear in the preview and the article’s dedicated “Läs mer” section.</p>
-
+                <p class="mt-1 text-sm text-studio-muted">These remain separate from article text and appear in the dedicated “Läs mer” section.</p>
                 <div class="mt-4 grid gap-4 sm:grid-cols-2">
                     <fieldset class="space-y-3 rounded-lg border border-studio-line p-4">
                         <legend class="px-1 text-sm font-semibold">Brand backlink</legend>
@@ -104,7 +168,6 @@
                         <label class="block text-sm font-medium" for="brand-anchor">Link text</label>
                         <input id="brand-anchor" name="links[brand][anchor_text]" maxlength="255" value="{{ old('links.brand.anchor_text', $brandLink->anchor_text ?? '') }}" data-editor-link-anchor="brand" class="w-full rounded-lg border border-studio-line bg-studio-bg p-2.5 text-studio-ink focus-visible:outline-2 focus-visible:outline-studio-brand">
                     </fieldset>
-
                     <fieldset class="space-y-3 rounded-lg border border-studio-line p-4">
                         <legend class="px-1 text-sm font-semibold">Product or service backlink</legend>
                         <label class="block text-sm font-medium" for="product-url">URL</label>
@@ -115,36 +178,13 @@
                 </div>
             </section>
 
-            <section class="rounded-xl border border-studio-line bg-studio-panel p-5" aria-labelledby="article-tools-heading">
-                <h2 id="article-tools-heading" class="text-sm font-semibold">Article tools</h2>
-                <div class="mt-3 flex flex-wrap items-center gap-2" role="toolbar" aria-label="Article formatting and blocks">
-                    <button type="button" data-article-command="bold" class="article-editor-tool"><strong>B</strong><span class="sr-only">Bold</span></button>
-                    <button type="button" data-article-command="italic" class="article-editor-tool"><em>I</em><span class="sr-only">Italic</span></button>
-                    <button type="button" data-article-command="createLink" class="article-editor-tool">Link</button>
-                    <label class="flex items-center gap-2 rounded-lg border border-studio-line px-3 py-2 text-sm" for="article-text-size">Text size
-                        <select id="article-text-size" data-article-text-size class="rounded border border-studio-line bg-studio-panel px-2 py-1">
-                            <option value="small">Small</option>
-                            <option value="normal" selected>Normal</option>
-                            <option value="large">Large</option>
-                        </select>
-                    </label>
-                    <span class="mx-1 h-7 border-l border-studio-line" aria-hidden="true"></span>
-                    <button type="button" data-article-add-block="p" class="article-editor-tool">Paragraph</button>
-                    <button type="button" data-article-add-block="h2" class="article-editor-tool">H2 section</button>
-                    <button type="button" data-article-add-block="h3" class="article-editor-tool">H3 subsection</button>
-                    <button type="button" data-article-add-block="ul" class="article-editor-tool">Bulleted list</button>
-                    <button type="button" data-article-add-block="ol" class="article-editor-tool">Numbered list</button>
-                </div>
-                <p class="mt-2 text-xs text-studio-muted">Select text for bold, italic, link or size. The article title is the only H1; use H2 for main sections and H3 beneath an H2.</p>
-            </section>
-
             <section class="rounded-xl border border-studio-line bg-studio-panel p-5">
                 <label for="slug" class="block text-sm font-medium">Article URL slug</label>
                 <input id="slug" name="slug" value="{{ old('slug', $article->slug) }}" required maxlength="255" aria-describedby="slug-help" class="mt-2 w-full rounded-lg border border-studio-line bg-studio-bg p-3 focus-visible:outline-2 focus-visible:outline-studio-brand studio-light:border-studio-field-line">
                 <p id="slug-help" class="mt-1 text-sm text-studio-muted">Use lowercase words separated by hyphens. Must be unique within this Superblog.</p>
             </section>
 
-            <button type="submit" class="rounded-lg bg-studio-brand px-4 py-2 text-sm font-medium text-studio-on-brand hover:bg-studio-brand-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-studio-brand">{{ $article->status === 'draft' ? 'Save draft' : 'Save changes' }}</button>
+            <button type="submit" data-save-article class="rounded-lg bg-studio-brand px-5 py-3 text-sm font-semibold text-studio-on-brand hover:bg-studio-brand-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-studio-brand">{{ $article->status === 'draft' ? 'Save draft' : 'Save changes' }}</button>
         </form>
     @else
         <section class="mt-6 space-y-4 rounded-xl border border-studio-line bg-studio-panel p-6" aria-label="Article content (read only)">

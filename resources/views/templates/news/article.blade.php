@@ -109,7 +109,7 @@
                 </div>
             </header>
 
-            @if ($hasImage)
+            @if ($hasImage && empty($article['image_in_body']))
                 <figure class="mt-8">
                     <img src="{{ $image['src'] }}"
                          alt="{{ $image['alt'] ?? '' }}"
