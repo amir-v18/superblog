@@ -54,6 +54,7 @@ class SaveArticleRequest extends FormRequest
 
         return [
             'title' => ['required', 'string', 'max:255'],
+            'author_name' => ['sometimes', 'nullable', 'string', 'max:255'],
             'slug' => [
                 'required',
                 'string',
@@ -98,7 +99,60 @@ class SaveArticleRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'image_alt_text.required' => 'Add descriptive alt text or mark the image as decorative.',
+            'title.required' => 'Ange en rubrik för artikeln.',
+            'title.string' => 'Artikeltiteln måste vara text.',
+            'title.max' => 'Artikeltiteln får innehålla högst 255 tecken.',
+            'author_name.string' => 'Författarnamnet måste vara text.',
+            'author_name.max' => 'Författarnamnet får innehålla högst 255 tecken.',
+            'slug.required' => 'Ange en URL-slug för artikeln.',
+            'slug.string' => 'URL-sluggen måste vara text.',
+            'slug.max' => 'URL-sluggen får innehålla högst 255 tecken.',
+            'slug.regex' => 'Använd små bokstäver, siffror och bindestreck i URL-sluggen.',
+            'slug.unique' => 'Den här sluggen används redan av en annan artikel i Superbloggen.',
+            'document.required' => 'Skriv artikelns innehåll innan du sparar.',
+            'document.string' => 'Artikelns innehåll har ett ogiltigt format.',
+            'document.max' => 'Artikelns innehåll får vara högst 2 MB.',
+            'content.prohibited' => 'Artikelinnehållet kunde inte sparas. Ladda om sidan och försök igen.',
+            'content.string' => 'Artikelns innehåll har ett ogiltigt format.',
+            'image.file' => 'Välj en giltig bildfil.',
+            'image.image' => 'Den valda filen måste vara en bild.',
+            'image.mimes' => 'Bilden måste vara i formatet JPEG, PNG eller WebP.',
+            'image.max' => 'Bilden får vara högst 5 MB.',
+            'image_alt_text.required' => 'Ange en beskrivande alternativtext eller markera bilden som dekorativ.',
+            'image_alt_text.string' => 'Alternativtexten måste vara text.',
+            'image_alt_text.max' => 'Alternativtexten får innehålla högst 255 tecken.',
+            'image_decorative.boolean' => 'Valet för dekorativ bild är ogiltigt.',
+            'remove_image.boolean' => 'Valet för att ta bort bilden är ogiltigt.',
+            'links.array' => 'Länkuppgifterna har ett ogiltigt format.',
+            'links.brand.array' => 'Varumärkeslänken har ett ogiltigt format.',
+            'links.brand.url.required_with' => 'Ange webbadressen till varumärket.',
+            'links.brand.url.url' => 'Ange en giltig webbadress som börjar med http eller https.',
+            'links.brand.url.max' => 'Varumärkets webbadress får innehålla högst 2 048 tecken.',
+            'links.brand.anchor_text.required_with' => 'Ange länktext för varumärket.',
+            'links.brand.anchor_text.string' => 'Varumärkets länktext måste vara text.',
+            'links.brand.anchor_text.max' => 'Varumärkets länktext får innehålla högst 255 tecken.',
+            'links.product.array' => 'Produktlänken har ett ogiltigt format.',
+            'links.product.url.required_with' => 'Ange webbadressen till produkten eller tjänsten.',
+            'links.product.url.url' => 'Ange en giltig webbadress som börjar med http eller https.',
+            'links.product.url.max' => 'Produktens webbadress får innehålla högst 2 048 tecken.',
+            'links.product.anchor_text.required_with' => 'Ange länktext för produkten eller tjänsten.',
+            'links.product.anchor_text.string' => 'Produktens länktext måste vara text.',
+            'links.product.anchor_text.max' => 'Produktens länktext får innehålla högst 255 tecken.',
+        ];
+    }
+
+    public function attributes(): array
+    {
+        return [
+            'title' => 'artikeltitel',
+            'author_name' => 'författarnamn',
+            'slug' => 'URL-slug',
+            'document' => 'artikelinnehåll',
+            'content' => 'artikelinnehåll',
+            'image' => 'artikelbild',
+            'image_alt_text' => 'alternativtext',
+            'image_decorative' => 'dekorativ bild',
+            'remove_image' => 'ta bort bild',
         ];
     }
 }

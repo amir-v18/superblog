@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 
-#[Fillable(['superblog_id', 'rss_item_id', 'title', 'slug', 'content', 'content_format', 'source_type', 'status', 'is_locked', 'is_selected_for_publication', 'published_at'])]
+#[Fillable(['superblog_id', 'rss_item_id', 'title', 'author_name', 'slug', 'content', 'content_format', 'source_type', 'status', 'is_locked', 'is_selected_for_publication', 'published_at'])]
 class Article extends Model
 {
     protected function casts(): array

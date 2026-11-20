@@ -229,7 +229,7 @@ document.querySelectorAll('[data-article-editor]').forEach((form) => {
     const setDirty = () => {
         dirty = true;
         if (saveState) {
-            saveState.textContent = 'Unsaved changes';
+            saveState.textContent = 'Osparade ändringar';
         }
     };
 
@@ -358,10 +358,10 @@ document.querySelectorAll('[data-article-editor]').forEach((form) => {
         updateHeadingButton();
     };
 
-    const blockButtons = () => `<div class="article-editor-block-controls" role="group" aria-label="Block controls">
-        <button type="button" data-block-move="up" aria-label="Move block up" title="Move up">↑</button>
-        <button type="button" data-block-move="down" aria-label="Move block down" title="Move down">↓</button>
-        <button type="button" class="article-editor-block-remove" data-block-remove aria-label="Remove block" title="Remove block">X</button>
+    const blockButtons = () => `<div class="article-editor-block-controls" role="group" aria-label="Blockkontroller">
+        <button type="button" data-block-move="up" aria-label="Flytta block upp" title="Flytta upp">↑</button>
+        <button type="button" data-block-move="down" aria-label="Flytta block ned" title="Flytta ned">↓</button>
+        <button type="button" class="article-editor-block-remove" data-block-remove aria-label="Ta bort block" title="Ta bort block">X</button>
     </div>`;
 
     const makeWrapper = (type, level = null) => {
@@ -377,7 +377,7 @@ document.querySelectorAll('[data-article-editor]').forEach((form) => {
             if (type === 'heading') wrapper.dataset.level = String(level);
             const text = document.createElement(tag);
             text.dataset.editorText = '';
-            text.dataset.placeholder = type === 'introduction' ? 'Write the introduction…' : type === 'heading' ? 'Section heading…' : 'Write a paragraph…';
+            text.dataset.placeholder = type === 'introduction' ? 'Skriv en inledning…' : type === 'heading' ? 'Skriv en rubrik…' : 'Skriv ett stycke…';
             text.contentEditable = 'true';
             text.spellcheck = true;
             wrapper.append(text);
@@ -386,14 +386,14 @@ document.querySelectorAll('[data-article-editor]').forEach((form) => {
             list.dataset.editorList = '';
             const item = document.createElement('li');
             item.dataset.listItemId = newId();
-            item.dataset.placeholder = 'List item…';
+            item.dataset.placeholder = 'Skriv en punkt…';
             item.contentEditable = 'true';
             item.spellcheck = true;
             list.append(item);
             wrapper.append(list);
         } else if (type === 'image') {
             wrapper.dataset.mediaId = String(form.dataset.originalImageId || 0);
-            wrapper.innerHTML += `<figure data-editor-image-block><div data-image-placeholder class="rounded-lg border border-dashed border-studio-line p-8 text-center text-sm text-studio-muted">Choose an image to see it here.</div><figcaption data-editor-caption data-placeholder="Add an optional caption…" contenteditable="true" spellcheck="true"></figcaption></figure>`;
+            wrapper.innerHTML += `<figure data-editor-image-block><div data-image-placeholder class="rounded-lg border border-dashed border-studio-line p-8 text-center text-sm text-studio-muted">Välj en bild för att visa den här.</div><figcaption data-editor-caption data-placeholder="Lägg till en valfri bildtext…" contenteditable="true" spellcheck="true"></figcaption></figure>`;
         }
 
         return wrapper;
@@ -509,7 +509,7 @@ document.querySelectorAll('[data-article-editor]').forEach((form) => {
     const insertLinkFromSelection = (type) => {
         const range = selectedRange();
         if (!range) {
-            showLinkNotice('Select the words you want to link in the article first.');
+            showLinkNotice('Markera först texten i artikeln som ska bli en länk.');
             return;
         }
 
@@ -518,18 +518,18 @@ document.querySelectorAll('[data-article-editor]').forEach((form) => {
         const productUrl = form.querySelector('[data-editor-link-url="product"]')?.value.trim() ?? '';
         const initialUrl = selectedAnchor?.getAttribute('href') ?? (type === 'product' ? productUrl : '');
         const promptText = type === 'product'
-            ? 'Enter the product or service URL (http or https):'
-            : 'Enter a link URL (http, https, mailto or a relative path):';
+            ? 'Ange webbadressen till produkten eller tjänsten (http eller https):'
+            : 'Ange en webbadress (http, https, mailto eller en relativ sökväg):';
         const enteredUrl = window.prompt(promptText, initialUrl);
         if (!enteredUrl) return;
 
         const href = enteredUrl.trim();
         if (href.length > 2048) {
-            showLinkNotice('The link URL may not exceed 2048 characters.');
+            showLinkNotice('Länken får innehålla högst 2 048 tecken.');
             return;
         }
         if (href.startsWith('//')) {
-            showLinkNotice('Protocol-relative URLs are not allowed.');
+            showLinkNotice('Webbadresser som börjar med // är inte tillåtna.');
             return;
         }
 
@@ -537,7 +537,7 @@ document.querySelectorAll('[data-article-editor]').forEach((form) => {
         try { protocol = new URL(href, window.location.origin).protocol; } catch {}
         const allowedProtocols = type === 'product' ? ['http:', 'https:'] : ['http:', 'https:', 'mailto:'];
         if (!allowedProtocols.includes(protocol) || (type === 'product' && !/^https?:\/\//i.test(href))) {
-            showLinkNotice(type === 'product' ? 'Product links must use an http or https URL.' : 'Use an http, https, mailto or relative URL.');
+            showLinkNotice(type === 'product' ? 'Produktlänkar måste börja med http eller https.' : 'Använd en http-, https-, mailto- eller relativ webbadress.');
             return;
         }
 
@@ -547,13 +547,13 @@ document.querySelectorAll('[data-article-editor]').forEach((form) => {
     const insertSelectedLink = (href, type) => {
         const range = savedRange?.cloneRange() ?? null;
         if (!range || !body.contains(range.commonAncestorContainer) || !range.toString().trim()) {
-            showLinkNotice('Select the words you want to link in the article first.');
+            showLinkNotice('Markera först texten i artikeln som ska bli en länk.');
             return false;
         }
 
         const selectedText = range.toString().trim();
         if (type === 'product' && selectedText.length > 255) {
-            showLinkNotice('Select no more than 255 characters for a product or service link.');
+            showLinkNotice('En produkt- eller tjänstelänk får innehålla högst 255 tecken.');
             return false;
         }
         const productUrlField = form.querySelector('[data-editor-link-url="product"]');
@@ -805,7 +805,7 @@ document.querySelectorAll('[data-article-editor]').forEach((form) => {
     form.addEventListener('submit', () => {
         syncFields();
         submitting = true;
-        if (saveState) saveState.textContent = 'Saving…';
+        if (saveState) saveState.textContent = 'Sparar…';
     });
     window.addEventListener('beforeunload', (event) => {
         if (dirty && !submitting) {

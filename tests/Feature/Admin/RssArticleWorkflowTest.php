@@ -41,7 +41,7 @@ class RssArticleWorkflowTest extends TestCase
 
         $this->post(route('admin.superblogs.rss-sources.items.article.store', [$superblog, $source, $item]))
             ->assertRedirect(route('admin.superblogs.articles.edit', [$superblog, $article]))
-            ->assertSessionHas('status', 'The draft for this RSS item is already created.');
+            ->assertSessionHas('status', 'Utkastet för det här RSS-inlägget finns redan.');
 
         $this->assertDatabaseCount('articles', 1);
     }
@@ -63,7 +63,7 @@ class RssArticleWorkflowTest extends TestCase
         $this->assertSame('Only the feed summary.', $item->fresh()->summary);
 
         $this->post(route('admin.superblogs.articles.publish', [$superblog, $article]))
-            ->assertSessionHas('status', 'Article published.');
+            ->assertSessionHas('status', 'Artikeln har publicerats.');
         $superblog->update(['status' => 'published']);
 
         $this->get(route('public.superblogs.articles.show', [$superblog, $article]))
@@ -251,7 +251,7 @@ class RssArticleWorkflowTest extends TestCase
         $this->actingAs($staff)
             ->get(route('admin.superblogs.articles.edit', [$superblog, $article]))
             ->assertOk()
-            ->assertSee('Original RSS source (read only)')
+            ->assertSee('Ursprungligt RSS-innehåll (skrivskyddat)')
             ->assertSee('Original feed content');
 
         $this->put(route('admin.superblogs.articles.update', [$superblog, $article]), [
@@ -285,7 +285,7 @@ class RssArticleWorkflowTest extends TestCase
         $this->actingAs($staff)
             ->post(route('admin.superblogs.articles.publish', [$superblog, $article]))
             ->assertRedirect(route('admin.superblogs.edit', [$superblog, 'flik' => 'innehall']))
-            ->assertSessionHas('status', 'Article published.');
+            ->assertSessionHas('status', 'Artikeln har publicerats.');
 
         $article->refresh();
         $this->assertSame('published', $article->status);
@@ -382,8 +382,8 @@ class RssArticleWorkflowTest extends TestCase
 
         $this->get(route('admin.superblogs.articles.edit', [$superblog, $article]))
             ->assertOk()
-            ->assertSee('Edit article')
-            ->assertSee('Save and publish')
+            ->assertSee('Redigera artikel')
+            ->assertSee('Spara och publicera')
             ->assertDontSee('Save changes')
             ->assertDontSee('Publish now');
 

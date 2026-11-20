@@ -36,6 +36,18 @@ class PublicArticleTest extends TestCase
             ->assertDontSee('Fetch now');
     }
 
+    public function test_article_byline_uses_the_saved_editor_name_and_escapes_it(): void
+    {
+        [$superblog, $article] = $this->makeArticle('published', Carbon::parse('2026-11-02 14:30:00'));
+        $article->update(['author_name' => '<Editor & writer>']);
+
+        $this->get(route('public.superblogs.articles.show', [$superblog, $article]))
+            ->assertOk()
+            ->assertSee('Av')
+            ->assertSee('&lt;Editor &amp; writer&gt;', false)
+            ->assertDontSee('<Editor & writer>', false);
+    }
+
     public function test_public_rendering_preserves_approved_formatting_and_sanitizes_legacy_content(): void
     {
         [$superblog, $article] = $this->makeArticle('published', Carbon::parse('2026-11-02 14:30:00'));

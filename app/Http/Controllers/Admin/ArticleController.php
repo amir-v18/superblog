@@ -62,6 +62,7 @@ class ArticleController extends Controller
             'status' => 'draft',
             'source_type' => 'manual',
             'is_selected_for_publication' => true,
+            'author_name' => request()->user()->name,
         ]);
         $editorDocument = $this->oldDocument($documents) ?? [
             'version' => ArticleContentDocument::VERSION,
@@ -96,6 +97,7 @@ class ArticleController extends Controller
         ArticleContentStructure $contentStructure,
     ): RedirectResponse {
         $validated = $request->validated();
+        $authorName = trim((string) ($validated['author_name'] ?? '')) ?: $request->user()->name;
         $publishAfterSave = $request->boolean('publish_after_save');
         $document = $this->decodeSubmittedDocument($validated['document'], $documents, $request->hasFile('image'));
         $links = $validated['links'] ?? [];
@@ -103,12 +105,13 @@ class ArticleController extends Controller
 
         $newPath = null;
         try {
-            $article = DB::transaction(function () use ($validated, $links, $superblog, $documents, $document, $htmlSanitizer, $contentStructure, $publishAfterSave, &$newPath): Article {
+            $article = DB::transaction(function () use ($validated, $authorName, $links, $superblog, $documents, $document, $htmlSanitizer, $contentStructure, $publishAfterSave, &$newPath): Article {
                 $lockedSuperblog = Superblog::query()->lockForUpdate()->findOrFail($superblog->getKey());
 
                 $article = $lockedSuperblog->articles()->create([
                     'rss_item_id' => null,
                     'title' => $validated['title'],
+                    'author_name' => $authorName,
                     'slug' => $validated['slug'],
                     'content' => '',
                     'content_format' => ArticleContentFormat::BlocksV1,
@@ -132,7 +135,7 @@ class ArticleController extends Controller
             if (! $superblog->articles()->where('slug', $validated['slug'])->exists()) {
                 throw $exception;
             }
-            throw ValidationException::withMessages(['slug' => 'This slug is already used by another article in this Superblog.']);
+            throw ValidationException::withMessages(['slug' => 'Den här sluggen används redan av en annan artikel i Superbloggen.']);
         } catch (Throwable $exception) {
             $this->deleteUnreferencedMediaFile($newPath);
             throw $exception;
@@ -140,10 +143,10 @@ class ArticleController extends Controller
 
         if ($publishAfterSave) {
             return to_route('admin.superblogs.edit', [$superblog, 'flik' => 'innehall'])
-                ->with('status', 'Article saved and published.');
+                ->with('status', 'Artikeln har sparats och publicerats.');
         }
 
-        return to_route('admin.superblogs.articles.edit', [$superblog, $article])->with('status', 'Draft article created.');
+        return to_route('admin.superblogs.articles.edit', [$superblog, $article])->with('status', 'Utkastet har skapats.');
     }
 
     public function updateSelection(
@@ -336,7 +339,7 @@ class ArticleController extends Controller
         }
 
         return to_route('admin.superblogs.articles.edit', [$superblog, $article])
-            ->with('status', $wasExisting ? 'The draft for this RSS item is already created.' : 'Draft article created from RSS item.');
+            ->with('status', $wasExisting ? 'Utkastet för det här RSS-inlägget finns redan.' : 'Utkastet har skapats från RSS-inlägget.');
     }
 
     public function edit(
@@ -348,7 +351,7 @@ class ArticleController extends Controller
         ArticleHtmlSanitizer $htmlSanitizer,
     ): View {
         Gate::authorize('manageArticles', $superblog);
-        $article = $this->articleForSuperblog($superblog, $article)->load(['articleLinks', 'image']);
+        $article = $this->articleForSuperblog($superblog, $article)->load(['articleLinks', 'image', 'rssItem']);
         $documentError = null;
         $editorDocument = $this->oldDocument($documents);
 
@@ -358,7 +361,7 @@ class ArticleController extends Controller
                     ? $documents->readFrom($article)
                     : $legacyConverter->convert($article->content);
             } catch (ValidationException) {
-                $documentError = 'This saved structured article could not be opened safely. Its stored content has not been changed.';
+                $documentError = 'Det sparade artikelinnehållet kunde inte öppnas på ett säkert sätt. Innehållet har inte ändrats.';
             }
         }
 
@@ -452,7 +455,7 @@ class ArticleController extends Controller
             $article = $this->articleForSuperblog($superblog, $article, lock: true);
 
             if ($article->status !== 'draft') {
-                throw ValidationException::withMessages(['status' => 'Only draft articles can be published.']);
+                throw ValidationException::withMessages(['status' => 'Endast utkast kan publiceras.']);
             }
 
             $this->ensureArticleCanBePublished($article, $htmlSanitizer, $contentStructure, $documents);
@@ -465,7 +468,7 @@ class ArticleController extends Controller
         });
 
         return to_route('admin.superblogs.edit', [$superblog, 'flik' => 'innehall'])
-            ->with('status', 'Article published.');
+            ->with('status', 'Artikeln har publicerats.');
     }
 
     public function update(
@@ -519,7 +522,7 @@ class ArticleController extends Controller
                     $documents->storeOn($article, $document);
                 } else {
                     if ($article->content_format !== ArticleContentFormat::LegacyHtml) {
-                        throw ValidationException::withMessages(['document' => 'This article must be saved using its structured editor content. Reload the page and try again.']);
+                        throw ValidationException::withMessages(['document' => 'Artikeln måste sparas med det strukturerade innehållet från redigeraren. Ladda om sidan och försök igen.']);
                     }
 
                     $safeContent = $htmlSanitizer->sanitize((string) $request->validated('content'));
@@ -545,6 +548,9 @@ class ArticleController extends Controller
                 }
 
                 $article->fill(['title' => $validated['title'], 'slug' => $validated['slug']]);
+                if (array_key_exists('author_name', $validated)) {
+                    $article->author_name = $validated['author_name'];
+                }
                 $linksChanged = $links !== null && $this->syncArticleLinks($article, $links);
                 $contentChanged = $article->content_format === ArticleContentFormat::BlocksV1
                     ? $previousDocumentFingerprint !== $this->documentFingerprint($documents->readFrom($article) ?? [])
@@ -564,7 +570,7 @@ class ArticleController extends Controller
             if (! $superblog->articles()->where('slug', $validated['slug'])->where('id', '<>', $article->getKey())->exists()) {
                 throw $exception;
             }
-            throw ValidationException::withMessages(['slug' => 'This slug is already used by another article in this Superblog.']);
+            throw ValidationException::withMessages(['slug' => 'Den här sluggen används redan av en annan artikel i Superbloggen.']);
         } catch (Throwable $exception) {
             $this->deleteUnreferencedMediaFile($newPath);
             throw $exception;
@@ -574,10 +580,10 @@ class ArticleController extends Controller
 
         if ($publishAfterSave) {
             return to_route('admin.superblogs.edit', [$superblog, 'flik' => 'innehall'])
-                ->with('status', 'Article saved and published.');
+                ->with('status', 'Artikeln har sparats och publicerats.');
         }
 
-        return to_route('admin.superblogs.articles.edit', [$superblog, $article])->with('status', 'Article saved.');
+        return to_route('admin.superblogs.articles.edit', [$superblog, $article])->with('status', 'Artikeln har sparats.');
     }
 
     private function publishAfterSaveIfRequested(
@@ -592,7 +598,7 @@ class ArticleController extends Controller
         }
 
         if ($article->status !== 'draft') {
-            throw ValidationException::withMessages(['status' => 'Only draft articles can be published.']);
+            throw ValidationException::withMessages(['status' => 'Endast utkast kan publiceras.']);
         }
 
         $this->ensureArticleCanBePublished($article, $htmlSanitizer, $contentStructure, $documents);
@@ -605,16 +611,16 @@ class ArticleController extends Controller
     private function ensureSanitizedContentHasText(string $content, ArticleHtmlSanitizer $htmlSanitizer): void
     {
         if (! $htmlSanitizer->hasText($content)) {
-            throw ValidationException::withMessages(['content' => 'Article content must contain readable text.']);
+            throw ValidationException::withMessages(['content' => 'Artikeltexten måste innehålla läsbar text.']);
         }
     }
 
-    private function ensureValidContentStructure(string $content, ArticleContentStructure $contentStructure): void
+    private function ensureValidContentStructure(Article $article, string $content, ArticleContentStructure $contentStructure): void
     {
         $message = $contentStructure->error($content);
 
         if ($message !== null) {
-            throw ValidationException::withMessages(['content' => $message]);
+            throw ValidationException::withMessages(['content' => 'Artikel ”'.$article->title.'”: '.$message]);
         }
     }
 
@@ -633,7 +639,7 @@ class ArticleController extends Controller
 
         $safeContent = $htmlSanitizer->sanitize($article->content);
         $this->ensureSanitizedContentHasText($safeContent, $htmlSanitizer);
-        $this->ensureValidContentStructure($safeContent, $contentStructure);
+        $this->ensureValidContentStructure($article, $safeContent, $contentStructure);
     }
 
     /** @return array{version: int, blocks: list<array<string, mixed>>} */
@@ -642,7 +648,7 @@ class ArticleController extends Controller
         try {
             $raw = json_decode($json, true, flags: JSON_THROW_ON_ERROR);
         } catch (JsonException) {
-            throw ValidationException::withMessages(['document' => 'The article editor sent an invalid document. Please reload and try again.']);
+            throw ValidationException::withMessages(['document' => 'Redigeraren skickade ett ogiltigt artikelinnehåll. Ladda om sidan och försök igen.']);
         }
 
         // A new inline image has no database ID until the upload is stored in this request.
@@ -722,7 +728,7 @@ class ArticleController extends Controller
             $oldPath = $media?->path;
             $newPath = $file->store('articles/'.$article->getKey(), 'article_media');
             if (! is_string($newPath) || $newPath === '') {
-                throw ValidationException::withMessages(['image' => 'The image could not be stored. Please try again.']);
+                throw ValidationException::withMessages(['image' => 'Bilden kunde inte sparas. Försök igen.']);
             }
 
             $decorative = (bool) ($input['image_decorative'] ?? false);
@@ -766,7 +772,7 @@ class ArticleController extends Controller
 
         if ($media) {
             if ($imageIndexes === [] || (int) $document['blocks'][$imageIndexes[0]]['media_id'] !== (int) $media->getKey()) {
-                throw ValidationException::withMessages(['document' => 'Use the image controls to remove or replace the current image.']);
+                throw ValidationException::withMessages(['document' => 'Använd bildkontrollerna för att ta bort eller byta den befintliga bilden.']);
             }
 
             if (array_key_exists('image_alt_text', $input)) {
@@ -778,7 +784,7 @@ class ArticleController extends Controller
                 }
             }
         } elseif ($imageIndexes !== []) {
-            throw ValidationException::withMessages(['document' => 'The selected image does not belong to this article.']);
+            throw ValidationException::withMessages(['document' => 'Den valda bilden tillhör inte den här artikeln.']);
         }
 
         return [$document, $changed, $newPath, $oldPath];
@@ -809,7 +815,7 @@ class ArticleController extends Controller
             $oldPath = $media?->path;
             $newPath = $file->store('articles/'.$article->getKey(), 'article_media');
             if (! is_string($newPath) || $newPath === '') {
-                throw ValidationException::withMessages(['image' => 'The image could not be stored. Please try again.']);
+                throw ValidationException::withMessages(['image' => 'Bilden kunde inte sparas. Försök igen.']);
             }
 
             $attributes = [
@@ -847,7 +853,7 @@ class ArticleController extends Controller
         foreach ($documents->validate($document)['blocks'] as $block) {
             if ($block['type'] === 'image'
                 && ! $article->image()->whereKey($block['media_id'])->exists()) {
-                throw ValidationException::withMessages(['document' => 'The image must belong to this article.']);
+                throw ValidationException::withMessages(['document' => 'Bilden måste tillhöra den här artikeln.']);
             }
         }
     }

@@ -176,7 +176,7 @@ An RSS item belongs to one source and stores its original identifiers, title, UR
 
 ### Articles
 
-An article belongs to one Superblog and has at most one RSS item (nullable for manual articles). A unique database constraint on `rss_item_id` protects the one-article-per-RSS-item rule while allowing multiple nulls for manual articles. Article data includes title, per-Superblog unique slug, content and its `content_format` (`legacy_html` or `blocks_v1`), source type (`rss` or `manual`), status (`draft` or `published`), selection flag, first publication timestamp, reader-facing content-modified timestamp, and timestamps.
+An article belongs to one Superblog and has at most one RSS item (nullable for manual articles). A unique database constraint on `rss_item_id` protects the one-article-per-RSS-item rule while allowing multiple nulls for manual articles. Article data includes title, optional `author_name` byline, per-Superblog unique slug, content and its `content_format` (`legacy_html` or `blocks_v1`), source type (`rss` or `manual`), status (`draft` or `published`), selection flag, first publication timestamp, reader-facing content-modified timestamp, and timestamps. New manual articles default the editable byline to the signed-in account name; public RSS articles without a custom byline continue to use the original feed author. The byline is metadata, not a content block, and changing it does not change `content_modified_at`.
 
 ### Article links and media
 

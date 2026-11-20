@@ -92,7 +92,7 @@ class ArticlePublicationTest extends TestCase
         $this->actingAs($staff)
             ->from(route('admin.superblogs.articles.edit', [$superblog, $article]))
             ->post(route('admin.superblogs.articles.publish', [$superblog, $article]))
-            ->assertSessionHasErrors('content');
+            ->assertSessionHasErrors(['content' => 'Artikel ”Invalid structure”: Lägg till en H2-huvudrubrik innan du använder en H3-underrubrik.']);
 
         $this->post(route('admin.superblogs.articles.publish-selected', $superblog))
             ->assertSessionHasErrors('content');
@@ -126,7 +126,7 @@ class ArticlePublicationTest extends TestCase
 
         $this->actingAs($staff)
             ->post(route('admin.superblogs.articles.publish', [$superblog, $article]))
-            ->assertSessionHas('status', 'Article published.');
+            ->assertSessionHas('status', 'Artikeln har publicerats.');
 
         $this->assertSame('published', $article->fresh()->status);
         $this->assertNotNull($article->fresh()->published_at);

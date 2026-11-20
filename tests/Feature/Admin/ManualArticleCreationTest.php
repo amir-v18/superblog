@@ -29,10 +29,17 @@ class ManualArticleCreationTest extends TestCase
 
         $this->get(route('admin.superblogs.articles.create', $superblog))
             ->assertOk()
-            ->assertSee('New manual article')
+            ->assertSee('Ny manuell artikel')
             ->assertDontSee('Excerpt')
             ->assertSee('data-article-editor', false)
             ->assertSee('data-editor-title', false)
+            ->assertSee('Artikelredigerare')
+            ->assertSee('Textstorlek')
+            ->assertSee('Infoga länk')
+            ->assertSee('Artikelbild')
+            ->assertSee('name="author_name"', false)
+            ->assertSee('value="'.$staff->name.'"', false)
+            ->assertSee('Skapad:')
             ->assertSee('data-editor-body', false)
             ->assertSee('data-required-marker="title"', false)
             ->assertSee('data-required-marker="slug"', false)
@@ -44,19 +51,21 @@ class ManualArticleCreationTest extends TestCase
             ->assertSee('data-article-text-size', false)
             ->assertDontSee('data-article-add-image', false)
             ->assertSee('data-introduction-required-proxy', false)
-            ->assertSee('type="text" required tabindex="-1" aria-label="Introduction paragraph"', false)
-            ->assertSee('data-block-move="up" aria-label="Move block up"', false)
-            ->assertSee('data-block-move="down" aria-label="Move block down"', false)
-            ->assertSee('data-block-remove aria-label="Remove block"', false)
+            ->assertSee('type="text" required tabindex="-1" aria-label="Inledande stycke"', false)
+            ->assertSee('data-block-move="up" aria-label="Flytta block upp"', false)
+            ->assertSee('data-block-move="down" aria-label="Flytta block ned"', false)
+            ->assertSee('data-block-remove aria-label="Ta bort block"', false)
             ->assertDontSee('data-block-menu-toggle', false)
             ->assertSee('data-article-insert-link="normal"', false)
             ->assertSee('data-article-insert-link="product"', false)
             ->assertDontSee('data-article-link-dialog', false)
-            ->assertSee('Save draft')
+            ->assertSee('Spara utkast')
             ->assertSee('Källor')
-            ->assertSee('Brand backlink')
+            ->assertSee('Varumärkeslänk')
             ->assertDontSee('Product or service backlink')
-            ->assertSee('Save and publish')
+            ->assertSee('Spara och publicera')
+            ->assertDontSee('Article editor')
+            ->assertDontSee('Save and publish')
             ->assertDontSee('<textarea id="content"', false)
             ->assertSee(route('admin.superblogs.articles.store', $superblog), false);
     }
@@ -81,9 +90,10 @@ class ManualArticleCreationTest extends TestCase
 
         $article = Article::query()->where('slug', 'a-manual-story')->firstOrFail();
         $response->assertRedirect(route('admin.superblogs.articles.edit', [$superblog, $article]))
-            ->assertSessionHas('status', 'Draft article created.');
+            ->assertSessionHas('status', 'Utkastet har skapats.');
 
         $this->assertSame($superblog->id, $article->superblog_id);
+        $this->assertSame($staff->name, $article->author_name);
         $this->assertSame('manual', $article->source_type);
         $this->assertSame('draft', $article->status);
         $this->assertNull($article->rss_item_id);
@@ -99,6 +109,32 @@ class ManualArticleCreationTest extends TestCase
             ->assertSee('name="selected_article_ids[]" value="'.$article->id.'" checked', false);
     }
 
+    public function test_editor_can_change_the_article_byline_without_changing_publication_dates_or_content_modified_time(): void
+    {
+        [$staff, $superblog] = $this->makeAssignedSuperblog();
+        $this->actingAs($staff)->post(route('admin.superblogs.articles.store', $superblog), [
+            'title' => 'A bylined story',
+            'slug' => 'a-bylined-story',
+            'document' => $this->document('The article body.'),
+        ])->assertRedirect();
+        $article = Article::query()->where('slug', 'a-bylined-story')->firstOrFail();
+        $this->post(route('admin.superblogs.articles.publish', [$superblog, $article]));
+        $publishedAt = $article->fresh()->published_at;
+
+        $this->put(route('admin.superblogs.articles.update', [$superblog, $article]), [
+            'title' => $article->title,
+            'slug' => $article->slug,
+            'author_name' => 'A different editor',
+            'document' => $this->document('The article body.'),
+        ])->assertRedirect();
+
+        $article->refresh();
+        $this->assertSame('A different editor', $article->author_name);
+        $this->assertSame('published', $article->status);
+        $this->assertTrue($publishedAt->equalTo($article->published_at));
+        $this->assertNull($article->content_modified_at);
+    }
+
     public function test_save_and_publish_saves_a_new_manual_article_and_publishes_it(): void
     {
         [$staff, $superblog] = $this->makeAssignedSuperblog();
@@ -112,7 +148,7 @@ class ManualArticleCreationTest extends TestCase
 
         $article = Article::query()->where('slug', 'ready-to-publish')->firstOrFail();
         $response->assertRedirect(route('admin.superblogs.edit', [$superblog, 'flik' => 'innehall']))
-            ->assertSessionHas('status', 'Article saved and published.');
+            ->assertSessionHas('status', 'Artikeln har sparats och publicerats.');
         $this->assertSame('Saved before publication.', $this->articleIntroduction($article));
         $this->assertSame('published', $article->status);
         $this->assertTrue($article->is_selected_for_publication);
@@ -139,7 +175,7 @@ class ManualArticleCreationTest extends TestCase
 
         $article->refresh();
         $response->assertRedirect(route('admin.superblogs.edit', [$superblog, 'flik' => 'innehall']))
-            ->assertSessionHas('status', 'Article saved and published.');
+            ->assertSessionHas('status', 'Artikeln har sparats och publicerats.');
         $this->assertSame('Updated before publishing', $article->title);
         $this->assertSame('The saved new body.', $this->articleIntroduction($article));
         $this->assertSame('published', $article->status);
@@ -168,7 +204,7 @@ class ManualArticleCreationTest extends TestCase
 
         $article->refresh();
         $response->assertRedirect(route('admin.superblogs.edit', [$superblog, 'flik' => 'innehall']))
-            ->assertSessionHas('status', 'Article saved and published.');
+            ->assertSessionHas('status', 'Artikeln har sparats och publicerats.');
         $this->assertSame('Already live, revised', $article->title);
         $this->assertSame('Updated version.', $this->articleIntroduction($article));
         $this->assertSame('published', $article->status);
@@ -279,7 +315,7 @@ class ManualArticleCreationTest extends TestCase
                 'document' => $this->document('   '),
             ])
             ->assertOk()
-            ->assertSee('The introduction paragraph is empty. Add text to the introduction before saving.')
+            ->assertSee('Inledningen är tom. Skriv en introduktion innan du sparar.')
             ->assertDontSee('blocks.0.runs');
     }
 
@@ -459,7 +495,7 @@ class ManualArticleCreationTest extends TestCase
 
         $article = Article::query()->where('slug', 'a-public-manual-story')->firstOrFail();
         $this->post(route('admin.superblogs.articles.publish', [$superblog, $article]))
-            ->assertSessionHas('status', 'Article published.');
+            ->assertSessionHas('status', 'Artikeln har publicerats.');
         $superblog->update(['status' => 'published']);
 
         $this->get(route('public.superblogs.articles.show', [$superblog, $article]))

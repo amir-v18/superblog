@@ -41,21 +41,21 @@ class ArticleContentDocument
         $ids = [];
 
         if (! is_array($document) || ! $this->hasExactKeys($document, ['version', 'blocks'])) {
-            $this->fail('The document must contain only version and blocks.');
+            $this->fail('Dokumentet får bara innehålla version och block.');
         }
 
         if (($document['version'] ?? null) !== self::VERSION) {
-            $errors[] = 'Only article document version 1 is supported.';
+            $errors[] = 'Endast version 1 av artikelns dokumentformat stöds.';
         }
 
         $blocks = $document['blocks'] ?? null;
         if (! is_array($blocks) || ! array_is_list($blocks) || $blocks === []) {
-            $errors[] = 'The document must contain an ordered list of article blocks.';
+            $errors[] = 'Dokumentet måste innehålla en ordnad lista med artikelblock.';
             $this->fail(...$errors);
         }
 
         if (count($blocks) > self::MAX_BLOCKS) {
-            $errors[] = 'An article may contain at most 500 blocks.';
+            $errors[] = 'En artikel får innehålla högst 500 block.';
         }
 
         $introductionCount = 0;
@@ -68,7 +68,7 @@ class ArticleContentDocument
             $path = "blocks.{$index}";
 
             if (! is_array($block) || ! isset($block['type']) || ! is_string($block['type'])) {
-                $errors[] = "{$path} must be an article block with a supported type.";
+                $errors[] = "{$path} måste vara ett artikelblock av en typ som stöds.";
 
                 continue;
             }
@@ -83,18 +83,18 @@ class ArticleContentDocument
             };
 
             if ($allowedKeys === null) {
-                $errors[] = "{$path}.type is not supported.";
+                $errors[] = "{$path}.type stöds inte.";
 
                 continue;
             }
 
             if (! $this->hasExactKeys($block, $allowedKeys)) {
-                $errors[] = "{$path} contains missing or unsupported properties.";
+                $errors[] = "{$path} saknar obligatoriska uppgifter eller innehåller uppgifter som inte stöds.";
             }
 
             $id = $block['id'] ?? null;
             if (! $this->registerUuid($id, $ids)) {
-                $errors[] = "{$path}.id must be a unique UUID.";
+                $errors[] = "{$path}.id måste vara ett unikt UUID.";
             }
 
             $canonical = ['id' => is_string($id) ? strtolower($id) : '', 'type' => $type];
@@ -102,10 +102,10 @@ class ArticleContentDocument
             if ($type === 'introduction') {
                 $introductionCount++;
                 if ($index !== 0) {
-                    $errors[] = 'The introduction must be the first body block.';
+                    $errors[] = 'Inledningen måste vara det första blocket i artikeltexten.';
                 }
             } elseif ($index === 0) {
-                $errors[] = 'The first body block must be the introduction.';
+                $errors[] = 'Det första blocket i artikeltexten måste vara inledningen.';
             }
 
             if (in_array($type, ['introduction', 'paragraph', 'heading'], true)) {
@@ -124,11 +124,11 @@ class ArticleContentDocument
             if ($type === 'heading') {
                 $level = $block['level'] ?? null;
                 if (! in_array($level, [2, 3], true)) {
-                    $errors[] = "{$path}.level must be 2 or 3.";
+                    $errors[] = "{$path}.level måste vara 2 eller 3.";
                 } elseif ($level === 2) {
                     $hasH2 = true;
                 } elseif (! $hasH2) {
-                    $errors[] = 'An H3 heading must follow an H2 heading.';
+                    $errors[] = 'Lägg till en H2-huvudrubrik innan du använder en H3-underrubrik.';
                 }
                 $canonical['level'] = $level;
             }
@@ -137,12 +137,12 @@ class ArticleContentDocument
                 $blockTypeCounts['list']++;
                 $style = $block['style'] ?? null;
                 if (! in_array($style, ['bullet', 'numbered'], true)) {
-                    $errors[] = "{$path}.style must be bullet or numbered.";
+                    $errors[] = "{$path}.style måste vara punktlista eller numrerad lista.";
                 }
 
                 $items = $block['items'] ?? null;
                 if (! is_array($items) || ! array_is_list($items) || $items === [] || count($items) > self::MAX_LIST_ITEMS) {
-                    $errors[] = "{$path}.items must be a non-empty list of at most 500 items.";
+                    $errors[] = "{$path}.items måste vara en lista med 1–500 punkter.";
                     $items = [];
                 }
 
@@ -150,19 +150,19 @@ class ArticleContentDocument
                 foreach ($items as $itemIndex => $item) {
                     $itemPath = "{$path}.items.{$itemIndex}";
                     if (! is_array($item) || ! $this->hasExactKeys($item, ['id', 'runs'])) {
-                        $errors[] = "{$itemPath} contains missing or unsupported properties.";
+                        $errors[] = "{$itemPath} saknar obligatoriska uppgifter eller innehåller uppgifter som inte stöds.";
 
                         continue;
                     }
 
                     $itemId = $item['id'] ?? null;
                     if (! $this->registerUuid($itemId, $ids)) {
-                        $errors[] = "{$itemPath}.id must be a unique UUID.";
+                        $errors[] = "{$itemPath}.id måste vara ett unikt UUID.";
                     }
 
                     $runs = $this->validateRuns($item['runs'] ?? null, "{$itemPath}.runs", $errors);
                     if (! $this->runsHaveText($runs)) {
-                        $errors[] = 'List item '.($itemIndex + 1)." in list {$blockTypeCounts['list']} is empty. Add text to that list item before saving.";
+                        $errors[] = 'Punkt '.($itemIndex + 1)." i lista {$blockTypeCounts['list']} är tom. Skriv text i punkten innan du sparar.";
                     }
 
                     $canonicalItems[] = ['id' => is_string($itemId) ? strtolower($itemId) : '', 'runs' => $runs];
@@ -176,12 +176,12 @@ class ArticleContentDocument
                 $imageCount++;
                 $mediaId = $block['media_id'] ?? null;
                 if (! is_int($mediaId) || $mediaId < 1) {
-                    $errors[] = "{$path}.media_id must be a positive integer.";
+                    $errors[] = "{$path}.media_id måste vara ett positivt heltal.";
                 }
 
                 $caption = $block['caption'] ?? '';
                 if (! is_string($caption) || mb_strlen($caption) > 500) {
-                    $errors[] = "{$path}.caption must be text of at most 500 characters.";
+                    $errors[] = "{$path}.caption måste vara text på högst 500 tecken.";
                 }
 
                 $canonical['media_id'] = $mediaId;
@@ -192,11 +192,11 @@ class ArticleContentDocument
         }
 
         if ($introductionCount !== 1) {
-            $errors[] = 'An article must have exactly one introduction paragraph.';
+            $errors[] = 'En artikel måste ha exakt ett inledande stycke.';
         }
 
         if ($imageCount > 1) {
-            $errors[] = 'An article may contain at most one image block.';
+            $errors[] = 'En artikel får innehålla högst ett bildblock.';
         }
 
         if ($errors !== []) {
@@ -213,11 +213,11 @@ class ArticleContentDocument
         try {
             $json = json_encode($canonical, JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
         } catch (JsonException) {
-            $this->fail('The article document could not be encoded.');
+            $this->fail('Artikelns dokument kunde inte formateras.');
         }
 
         if (strlen($json) > self::MAX_BYTES) {
-            $this->fail('The article document may not exceed 2 MB.');
+            $this->fail('Artikelns innehåll får vara högst 2 MB.');
         }
 
         return $json;
@@ -243,13 +243,13 @@ class ArticleContentDocument
     public function deserialize(string $json): array
     {
         if (strlen($json) > self::MAX_BYTES) {
-            $this->fail('The article document may not exceed 2 MB.');
+            $this->fail('Artikelns innehåll får vara högst 2 MB.');
         }
 
         try {
             $document = json_decode($json, true, flags: JSON_THROW_ON_ERROR);
         } catch (JsonException) {
-            $this->fail('The stored article document is not valid JSON.');
+            $this->fail('Artikelns sparade dokument har ett ogiltigt format.');
         }
 
         return $this->validate($document);
@@ -278,7 +278,7 @@ class ArticleContentDocument
     private function validateRuns(mixed $runs, string $path, array &$errors): array
     {
         if (! is_array($runs) || ! array_is_list($runs) || count($runs) > self::MAX_RUNS_PER_BLOCK) {
-            $errors[] = "{$path} must be an ordered list of inline text runs.";
+            $errors[] = "{$path} måste vara en ordnad lista med textdelar.";
 
             return [];
         }
@@ -287,14 +287,14 @@ class ArticleContentDocument
         foreach ($runs as $index => $run) {
             $runPath = "{$path}.{$index}";
             if (! is_array($run) || ! $this->hasAllowedKeys($run, ['text', 'marks', 'size', 'href']) || ! array_key_exists('text', $run)) {
-                $errors[] = "{$runPath} contains missing or unsupported properties.";
+                $errors[] = "{$runPath} saknar obligatoriska uppgifter eller innehåller uppgifter som inte stöds.";
 
                 continue;
             }
 
             $text = $run['text'];
             if (! is_string($text) || mb_strlen($text) > self::MAX_TEXT_LENGTH) {
-                $errors[] = "{$runPath}.text must be text of at most 100,000 characters.";
+                $errors[] = "{$runPath}.text måste vara text på högst 100 000 tecken.";
 
                 continue;
             }
@@ -304,13 +304,13 @@ class ArticleContentDocument
                 || count(array_filter($marks, 'is_string')) !== count($marks)
                 || array_diff($marks, self::ALLOWED_MARKS) !== []
                 || count(array_unique($marks)) !== count($marks)) {
-                $errors[] = "{$runPath}.marks may contain bold and italic once each.";
+                $errors[] = "{$runPath}.marks får innehålla fetstil och kursiv stil, högst en gång vardera.";
                 $marks = [];
             }
 
             $size = $run['size'] ?? 'normal';
             if (! in_array($size, self::ALLOWED_SIZES, true)) {
-                $errors[] = "{$runPath}.size must be small, normal, or large.";
+                $errors[] = "{$runPath}.size måste vara liten, normal eller stor.";
                 $size = 'normal';
             }
 
@@ -318,7 +318,7 @@ class ArticleContentDocument
 
             if (array_key_exists('href', $run)) {
                 if (! is_string($run['href']) || ! $this->isSafeHref($run['href'])) {
-                    $errors[] = "{$runPath}.href must use a safe HTTP, HTTPS, mailto, or relative URL.";
+                    $errors[] = "{$runPath}.href måste vara en säker HTTP-, HTTPS-, mailto- eller relativ webbadress.";
                 } else {
                     $canonical['href'] = trim($run['href']);
                 }
@@ -368,9 +368,9 @@ class ArticleContentDocument
     private function emptyTextBlockMessage(string $type, ?int $position): string
     {
         return match ($type) {
-            'introduction' => 'The introduction paragraph is empty. Add text to the introduction before saving.',
-            'heading' => "Heading {$position} is empty. Add text to heading {$position} before saving.",
-            default => "Paragraph {$position} is empty. Add text to paragraph {$position} before saving.",
+            'introduction' => 'Inledningen är tom. Skriv en introduktion innan du sparar.',
+            'heading' => "Rubrik {$position} är tom. Skriv text i rubriken innan du sparar.",
+            default => "Stycke {$position} är tomt. Skriv text i stycket innan du sparar.",
         };
     }
 

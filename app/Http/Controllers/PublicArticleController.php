@@ -115,7 +115,7 @@ class PublicArticleController extends Controller
             'title' => $article->title,
             'slug' => $article->slug,
             'description' => Str::limit($descriptionText, 160, '…', preserveWords: true),
-            'author' => $rssItem?->author,
+            'author' => $article->author_name ?: $rssItem?->author,
             'created_at' => $article->created_at,
             'published_at' => $article->published_at,
             'content_modified_at' => $article->content_modified_at,

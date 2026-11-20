@@ -63,16 +63,16 @@ class ArticleContentHtmlRenderer
 
             $html .= '>';
             if ($block['type'] !== 'image') {
-                $html .= '<div class="article-editor-block-controls" role="group" aria-label="Block controls">'
-                    .'<button type="button" data-block-move="up" aria-label="Move block up" title="Move up">↑</button>'
-                    .'<button type="button" data-block-move="down" aria-label="Move block down" title="Move down">↓</button>'
-                    .'<button type="button" class="article-editor-block-remove" data-block-remove aria-label="Remove block" title="Remove block">X</button>'
+                $html .= '<div class="article-editor-block-controls" role="group" aria-label="Blockkontroller">'
+                    .'<button type="button" data-block-move="up" aria-label="Flytta block upp" title="Flytta upp">↑</button>'
+                    .'<button type="button" data-block-move="down" aria-label="Flytta block ned" title="Flytta ned">↓</button>'
+                    .'<button type="button" class="article-editor-block-remove" data-block-remove aria-label="Ta bort block" title="Ta bort block">X</button>'
                     .'</div>';
             }
 
             if ($block['type'] === 'introduction') {
                 $hasIntroductionText = trim($this->runsText($block['runs'])) !== '';
-                $html .= '<input type="text" required tabindex="-1" aria-label="Introduction paragraph" data-introduction-required-proxy class="article-editor-required-proxy" value="'.($hasIntroductionText ? 'present' : '').'">';
+                $html .= '<input type="text" required tabindex="-1" aria-label="Inledande stycke" data-introduction-required-proxy class="article-editor-required-proxy" value="'.($hasIntroductionText ? 'present' : '').'">';
             }
 
             if (in_array($block['type'], ['introduction', 'paragraph', 'heading'], true)) {

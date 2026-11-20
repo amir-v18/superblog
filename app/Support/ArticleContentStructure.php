@@ -19,7 +19,7 @@ class ArticleContentStructure
             );
 
             if (! $loaded) {
-                return 'The article body could not be read. Please review its structure.';
+                return 'Artikeltexten kunde inte läsas. Kontrollera hur innehållet är strukturerat.';
             }
 
             $body = $document->getElementsByTagName('body')->item(0);
@@ -27,7 +27,7 @@ class ArticleContentStructure
             $blocks = [];
 
             if (! $container instanceof DOMElement) {
-                return 'Start the article with an introduction paragraph.';
+                return 'Börja artikeln med ett inledande stycke.';
             }
 
             foreach ($container->childNodes as $child) {
@@ -36,14 +36,14 @@ class ArticleContentStructure
                 }
 
                 if (! $child instanceof DOMElement) {
-                    return 'Use paragraphs, headings, and lists as separate article blocks.';
+                    return 'Använd stycken, rubriker och listor som separata innehållsblock.';
                 }
 
                 $blocks[] = $child;
             }
 
             if (! isset($blocks[0]) || strtolower($blocks[0]->tagName) !== 'p' || trim($blocks[0]->textContent) === '') {
-                return 'Start the article with a normal introduction paragraph.';
+                return 'Börja artikeln med ett vanligt inledande stycke.';
             }
 
             $hasMainHeading = false;
@@ -52,11 +52,11 @@ class ArticleContentStructure
                 $tag = strtolower($block->tagName);
 
                 if (! in_array($tag, ['p', 'h2', 'h3', 'ul', 'ol'], true)) {
-                    return 'Use only paragraphs, H2/H3 headings, and ordered or unordered lists.';
+                    return 'Använd bara stycken, H2- och H3-rubriker samt punktlistor eller numrerade listor.';
                 }
 
                 if (in_array($tag, ['h2', 'h3'], true) && trim($block->textContent) === '') {
-                    return 'Headings must contain text.';
+                    return 'Rubriker måste innehålla text.';
                 }
 
                 if ($tag === 'h2') {
@@ -64,7 +64,7 @@ class ArticleContentStructure
                 }
 
                 if ($tag === 'h3' && ! $hasMainHeading) {
-                    return 'Add an H2 main section before using an H3 heading.';
+                    return 'Lägg till en H2-huvudrubrik innan du använder en H3-underrubrik.';
                 }
             }
 
