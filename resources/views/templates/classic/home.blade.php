@@ -52,6 +52,11 @@
                         @php($story = $news->get($slot))
                         <article class="mb-3.5 border-b border-line pb-3.5 last:border-b-0">
                             @if ($story)
+                                @if ($story->image)
+                                    <div class="classic-plate mb-2.5 aspect-[16/9] overflow-hidden">
+                                        <x-article-image :article="$story" :superblog="$superblog" :is-preview="$isPreview ?? false" class="size-full object-cover" />
+                                    </div>
+                                @endif
                                 <h3 class="mb-1.5 font-display text-[21px] leading-[1.12] font-bold text-balance">
                                     <a href="{{ route('public.superblogs.articles.show', [$superblog, $story]) }}" target="_blank" rel="noopener" class="hover:text-primary">{{ $story->title }}</a>
                                 </h3>
@@ -79,7 +84,13 @@
                         <p class="mt-2 mb-3.5 border-y border-line py-[5px] text-center {{ $byline }}">Här visas din första artikel</p>
                     @endif
                     <div class="classic-plate mb-3">
-                        <div class="aspect-[16/9] {{ $stripes }}"><span class="{{ $stripeLabel }}">Huvudbild</span></div>
+                        <div class="aspect-[16/9] {{ $lead?->image ? '' : $stripes }}">
+                            @if ($lead?->image)
+                                <x-article-image :article="$lead" :superblog="$superblog" :is-preview="$isPreview ?? false" class="size-full object-cover" />
+                            @else
+                                <span class="{{ $stripeLabel }}">Huvudbild</span>
+                            @endif
+                        </div>
                     </div>
                     {{-- Stand-in body text only while there is no lead story. A real one shows no body on the front page. --}}
                     @unless ($lead)
@@ -134,7 +145,13 @@
                             @php($story = $row->get($slot))
                             <article class="min-w-0 border-l border-line px-4 first:border-l-0 first:pl-0 last:pr-0 @max-[1000px]:nth-3:border-l-0 @max-[1000px]:nth-3:pl-0 @max-[640px]:border-b @max-[640px]:border-l-0 @max-[640px]:px-0 @max-[640px]:pb-3">
                                 <div class="classic-plate mb-3">
-                                    <div class="aspect-[16/9] {{ $stripes }}"><span class="{{ $stripeLabel }}">Bild</span></div>
+                                    <div class="aspect-[16/9] {{ $story?->image ? '' : $stripes }}">
+                                        @if ($story?->image)
+                                            <x-article-image :article="$story" :superblog="$superblog" :is-preview="$isPreview ?? false" class="size-full object-cover" />
+                                        @else
+                                            <span class="{{ $stripeLabel }}">Bild</span>
+                                        @endif
+                                    </div>
                                 </div>
                                 @if ($story)
                                     <h3 class="mb-1.5 font-display text-[19px] leading-[1.12] font-bold text-balance">

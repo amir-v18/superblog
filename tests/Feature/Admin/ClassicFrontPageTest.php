@@ -64,6 +64,26 @@ class ClassicFrontPageTest extends TestCase
         $this->assertStringContainsString('href="'.route('public.superblogs.articles.show', [$superblog, $story1]).'" target="_blank" rel="noopener"', $lead);
     }
 
+    public function test_classic_homepage_uses_an_articles_attached_image_in_its_existing_image_slot(): void
+    {
+        [$admin, $superblog] = $this->classicMagazine('draft');
+        $article = $this->makeArticle($superblog, 'Story with image', null, status: 'draft');
+        $article->image()->create([
+            'path' => "articles/{$article->getKey()}/cover.jpg",
+            'filename' => 'cover.jpg',
+            'mime_type' => 'image/jpeg',
+            'alt_text' => 'A quiet lakeside',
+        ]);
+        $adminImageUrl = route('admin.superblogs.articles.image', [$superblog, $article]);
+
+        $html = $this->preview($admin, $superblog);
+        $lead = $this->part($html, '<section aria-label="Huvudartikel"');
+
+        $this->assertStringContainsString('src="'.$adminImageUrl.'"', $lead);
+        $this->assertStringContainsString('alt="A quiet lakeside"', $lead);
+        $this->assertStringNotContainsString('Huvudbild</span>', $lead);
+    }
+
     public function test_articles_after_the_seventh_get_more_rows_of_four_without_stand_ins(): void
     {
         [$admin, $superblog] = $this->classicMagazine('published');

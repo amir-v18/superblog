@@ -38,7 +38,13 @@
         <section aria-label="Förstasidan" class="pt-[26px] pb-2.5 {{ $sidePadding }}">
             <div class="grid grid-cols-[2fr_1fr_.9fr] gap-6 max-[760px]:grid-cols-1">
                 <article class="relative min-h-[470px] overflow-hidden rounded-md border-[1.5px] border-dashed border-ink/30 max-[760px]:min-h-[340px]">
-                    <div class="absolute inset-0 {{ $stripes }}"><span class="{{ $stripeLabel }}">Huvudbild</span></div>
+                    <div class="absolute inset-0 {{ $featuredArticle?->image ? '' : $stripes }}">
+                        @if ($featuredArticle?->image)
+                            <x-article-image :article="$featuredArticle" :superblog="$superblog" :is-preview="$isPreview" class="size-full object-cover" />
+                        @else
+                            <span class="{{ $stripeLabel }}">Huvudbild</span>
+                        @endif
+                    </div>
                     @if ($featuredArticle)
                         <div class="absolute right-5 bottom-5 left-5 flex flex-col gap-2 rounded-md bg-paper/92 p-4">
                             <p class="{{ $eyebrow }}">Senaste artikeln</p>
@@ -58,7 +64,7 @@
 
                 <div class="flex flex-col gap-5">
                     @foreach (range(0, 1) as $slot)
-                        <x-placeholder-card :stripes="$stripes" :stripe-label="$stripeLabel" :article="$middleArticles->get($slot)" :superblog="$superblog" />
+                        <x-placeholder-card :stripes="$stripes" :stripe-label="$stripeLabel" :article="$middleArticles->get($slot)" :superblog="$superblog" :is-preview="$isPreview" />
                     @endforeach
                 </div>
 
@@ -93,7 +99,7 @@
             <h2 id="latest-heading" class="mt-1.5 mb-[18px] font-display text-[30px] leading-[1.1] font-semibold tracking-[-.02em]">Nytt från redaktionen</h2>
             <div class="grid grid-cols-3 gap-x-6 gap-y-[26px] max-[760px]:grid-cols-1">
                 @foreach ($latestArticles as $article)
-                    <x-placeholder-card :stripes="$stripes" :stripe-label="$stripeLabel" :article="$article" :superblog="$superblog" />
+                    <x-placeholder-card :stripes="$stripes" :stripe-label="$stripeLabel" :article="$article" :superblog="$superblog" :is-preview="$isPreview" />
                 @endforeach
                 @for ($slot = 0; $slot < $latestPlaceholderCount; $slot++)
                     <x-placeholder-card :stripes="$stripes" :stripe-label="$stripeLabel" />
@@ -102,7 +108,7 @@
             @if ($remainingArticles->isNotEmpty())
                 <div class="mt-8 grid grid-cols-3 gap-x-6 gap-y-[26px] max-[760px]:grid-cols-1" aria-label="Fler artiklar">
                     @foreach ($remainingArticles as $article)
-                        <x-placeholder-card :stripes="$stripes" :stripe-label="$stripeLabel" :article="$article" :superblog="$superblog" />
+                        <x-placeholder-card :stripes="$stripes" :stripe-label="$stripeLabel" :article="$article" :superblog="$superblog" :is-preview="$isPreview" />
                     @endforeach
                 </div>
             @endif

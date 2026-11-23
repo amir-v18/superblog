@@ -52,6 +52,29 @@ class PublicSuperblogTest extends TestCase
         $this->assertStringNotContainsString($newerRss->title, $sidebar);
     }
 
+    public function test_homepage_and_article_page_use_the_same_attached_article_image(): void
+    {
+        $superblog = $this->makeSuperblog('published', 'article-image-home');
+        $article = $this->makeArticle($superblog, 'Article with a picture', 'manual', 'published', true, now());
+        $article->image()->create([
+            'path' => "articles/{$article->getKey()}/cover.jpg",
+            'filename' => 'cover.jpg',
+            'mime_type' => 'image/jpeg',
+            'alt_text' => 'A bright summer field',
+        ]);
+        $imageUrl = route('public.superblogs.articles.image', [$superblog, $article]);
+
+        $this->get(route('public.superblogs.show', $superblog))
+            ->assertOk()
+            ->assertSee('src="'.$imageUrl.'"', false)
+            ->assertSee('alt="A bright summer field"', false);
+
+        $this->get(route('public.superblogs.articles.show', [$superblog, $article]))
+            ->assertOk()
+            ->assertSee('src="'.$imageUrl.'"', false)
+            ->assertSee('alt="A bright summer field"', false);
+    }
+
     public function test_published_homepage_shows_all_selected_manual_and_rss_articles_after_existing_slots(): void
     {
         $superblog = $this->makeSuperblog('published', 'all-home-articles');

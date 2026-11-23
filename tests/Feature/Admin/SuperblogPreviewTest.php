@@ -228,6 +228,34 @@ class SuperblogPreviewTest extends TestCase
             ->assertDontSee(route('public.superblogs.articles.show', [$superblog, $unselectedArticle]), false);
     }
 
+    public function test_offline_preview_uses_the_private_admin_image_route_for_selected_drafts(): void
+    {
+        $admin = $this->makeUser(approved: true, superAdmin: true);
+        $superblog = $this->makeSuperblog($admin);
+        $article = $superblog->articles()->create([
+            'title' => 'Offline story with image',
+            'slug' => 'offline-story-with-image',
+            'content' => 'Draft content for preview.',
+            'source_type' => 'manual',
+            'status' => 'draft',
+            'is_selected_for_publication' => true,
+        ]);
+        $article->image()->create([
+            'path' => "articles/{$article->getKey()}/cover.jpg",
+            'filename' => 'cover.jpg',
+            'mime_type' => 'image/jpeg',
+            'alt_text' => 'Preview-only image',
+        ]);
+        $adminImageUrl = route('admin.superblogs.articles.image', [$superblog, $article]);
+
+        $this->actingAs($admin)
+            ->get(route('admin.superblogs.preview', $superblog))
+            ->assertOk()
+            ->assertSee('src="'.$adminImageUrl.'"', false)
+            ->assertSee('alt="Preview-only image"', false)
+            ->assertDontSee(route('public.superblogs.articles.image', [$superblog, $article]), false);
+    }
+
     public function test_preview_timeline_keeps_manual_and_rss_articles_in_chronological_order(): void
     {
         $admin = $this->makeUser(approved: true, superAdmin: true);
