@@ -21,29 +21,31 @@ class DevelopmentSeedersTest extends TestCase
         // Edited in admin before the seeder runs: name, description and is_active must survive.
         $modern = Template::create([
             'name' => 'Vårt moderna magasin',
-            'slug' => 'modern',
+            'slug' => 'modern-med-nytt-namn',
             'description' => 'Egen text.',
             'layout' => 'layouts.public',
             'is_active' => false,
         ]);
+        $modern->forceFill(['seed_key' => 'template-modern'])->save();
 
         $seeder = app(TemplateSeeder::class);
         $seeder->run();
         $seeder->run();
 
-        // One row per registry slug, and the old Editorial Default is no longer created.
+        // One row per stable registry key, and the old Editorial Default is no longer created.
         $this->assertDatabaseCount('templates', count(config('templates.list')));
         $this->assertDatabaseMissing('templates', ['slug' => 'editorial-default']);
 
         $this->assertDatabaseHas('templates', [
             'id' => $modern->id,
             'name' => 'Vårt moderna magasin',
+            'slug' => 'modern-med-nytt-namn',
             'description' => 'Egen text.',
             'is_active' => false,
         ]);
 
         $this->assertDatabaseHas('templates', [
-            'slug' => 'classic',
+            'slug' => 'template-classic',
             'name' => 'Klassisk tidning',
             'description' => 'Nyhetsblad med spalter, dubbla linjer, titelblock och retroannonser.',
             'layout' => 'layouts.public',

@@ -1,7 +1,7 @@
 <?php
 
 /*
- * The templates the code knows about, keyed on the template's slug in the database.
+ * The templates the code knows about, keyed by immutable templates.seed_key values.
  *
  * Only what the code needs lives here: which template is preselected, which theme belongs to it
  * and which views render its site. Name and description stay in the database, where
@@ -13,11 +13,11 @@
 return [
 
     // Preselected in the "Nytt magasin" modal. If it is missing or inactive, the first active template is chosen.
-    'default' => 'modern',
+    'default' => 'template-modern',
 
     'list' => [
 
-        'modern' => [
+        'template-modern' => [
             'name' => 'Modern magasin',
             'description' => 'Stor huvudartikel med bild, mest läst och ljusa kort. Lugnt och luftigt.',
             // A name from Theme::NAMES, or null for none. It draws the template's thumbnail, is saved as a new
@@ -26,13 +26,16 @@ return [
             // The folder of the site's views (home.blade.php and so on). Not the same thing as the
             // database column "layout", which is the older generic page layout and does not pick the site.
             'site' => 'templates.news',
+            // The existing article view is shared until a template-specific article design is added.
+            'article_view' => 'templates.news.article',
         ],
 
-        'classic' => [
+        'template-classic' => [
             'name' => 'Klassisk tidning',
             'description' => 'Nyhetsblad med spalter, dubbla linjer, titelblock och retroannonser.',
             'theme' => 'budbararen',
             'site' => 'templates.classic',
+            'article_view' => 'templates.news.article',
         ],
 
     ],

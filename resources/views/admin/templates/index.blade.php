@@ -26,16 +26,10 @@
                 <li class="flex flex-wrap items-center justify-between gap-4 py-4">
                     <div>
                         <h3 class="font-medium">{{ $template->name }}</h3>
-                        <p class="mt-1 break-all text-sm text-studio-muted">{{ $template->slug }} · {{ $template->layout }}</p>
                         <p class="mt-1 text-sm text-studio-muted">{{ $template->is_active ? 'Active' : 'Inactive' }} · Used by {{ $template->superblogs_count }} Superblogs</p>
                     </div>
                     <div class="flex gap-4 text-sm font-medium">
                         <a href="{{ route('admin.templates.edit', $template) }}" class="underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-studio-brand">Edit</a>
-                        @if ($template->superblogs_count === 0)
-                            <a href="{{ route('admin.templates.delete', $template) }}" class="text-studio-bad underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-studio-brand">Delete</a>
-                        @else
-                            <span class="text-studio-muted">In use</span>
-                        @endif
                     </div>
                 </li>
             @empty

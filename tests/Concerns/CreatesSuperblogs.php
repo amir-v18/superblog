@@ -16,6 +16,7 @@ trait CreatesSuperblogs
             'layout' => 'layouts.public',
             'is_active' => true,
         ]);
+        $template->forceFill(['seed_key' => 'template-modern'])->save();
 
         return $owner->superblogs()->create([
             'template_id' => $template->id,

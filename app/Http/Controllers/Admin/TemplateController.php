@@ -5,10 +5,8 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\SaveTemplateRequest;
 use App\Models\Template;
-use Illuminate\Database\ForeignKeyConstraintViolationException;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
@@ -36,55 +34,14 @@ class TemplateController extends Controller
         try {
             $template->update($request->validated());
         } catch (UniqueConstraintViolationException) {
-            $this->duplicateSlugError();
+            $this->duplicateNameError();
         }
 
         return to_route('admin.templates.index')->with('status', 'Template updated.');
     }
 
-    public function confirmDeletion(Template $template): View
+    private function duplicateNameError(): never
     {
-        Gate::authorize('delete', $template);
-
-        return view('admin.templates.delete', [
-            'template' => $template,
-            'inUse' => $template->superblogs()->exists(),
-        ]);
-    }
-
-    public function destroy(Template $template): RedirectResponse
-    {
-        Gate::authorize('delete', $template);
-
-        try {
-            $deleted = DB::transaction(function () use ($template): bool {
-                $lockedTemplate = Template::whereKey($template->getKey())->lockForUpdate()->firstOrFail();
-
-                if ($lockedTemplate->superblogs()->exists()) {
-                    return false;
-                }
-
-                $lockedTemplate->delete();
-
-                return true;
-            });
-        } catch (ForeignKeyConstraintViolationException) {
-            return to_route('admin.templates.index')->withErrors([
-                'template' => 'This template is in use and cannot be deleted.',
-            ]);
-        }
-
-        if (! $deleted) {
-            return to_route('admin.templates.index')->withErrors([
-                'template' => 'This template is in use and cannot be deleted.',
-            ]);
-        }
-
-        return to_route('admin.templates.index')->with('status', 'Template deleted.');
-    }
-
-    private function duplicateSlugError(): never
-    {
-        throw ValidationException::withMessages(['slug' => 'That template slug is already in use.']);
+        throw ValidationException::withMessages(['name' => 'That template name is already in use.']);
     }
 }
