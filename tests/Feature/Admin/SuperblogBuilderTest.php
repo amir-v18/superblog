@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Admin;
 
+use App\Models\Template;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\Concerns\CreatesSuperblogs;
 use Tests\TestCase;
@@ -15,15 +16,17 @@ class SuperblogBuilderTest extends TestCase
         $admin = $this->makeUser(approved: true, superAdmin: true);
         $superblog = $this->makeSuperblog($admin);
 
-        // The layout's create modal has name, template_id and domain fields too, so the builder's own
-        // fields are matched by id, and template_id is counted: one radio here, one in the modal.
+        // The creation modal keeps its template choice; the existing builder only displays its assigned template.
         $basics = $this->actingAs($admin)->get(route('admin.superblogs.edit', $superblog))
             ->assertOk()
             ->assertSee('id="name"', false)
             ->assertSee('id="domain" name="domain"', false)
             ->assertSee('id="slug" name="slug"', false)
+            ->assertSee('Vald mall')
+            ->assertSee('News')
+            ->assertSee('Mallen väljs när Superblocket skapas och kan inte ändras senare.')
             ->assertDontSee('name="theme"', false);
-        $this->assertSame(2, substr_count($basics->getContent(), 'name="template_id"'));
+        $this->assertSame(1, substr_count($basics->getContent(), 'name="template_id"'));
 
         // The only domain field left on this tab is the modal's.
         $appearance = $this->get(route('admin.superblogs.edit', [$superblog, 'flik' => 'utseende']))
@@ -38,11 +41,10 @@ class SuperblogBuilderTest extends TestCase
         $admin = $this->makeUser(approved: true, superAdmin: true);
         $superblog = $this->makeSuperblog($admin);
 
-        // Mirrors the Grund form: the hidden slug is sent, description is not part of the form.
+        // The Grund form no longer sends template_id; it only shows the assigned template.
         $this->actingAs($admin)->put(route('admin.superblogs.update', $superblog), [
             'name' => 'Nya Budbäraren',
             'slug' => 'dagens-budbarare',
-            'template_id' => $superblog->template_id,
             'domain' => 'nyabudbararen.se',
         ])->assertRedirect(route('admin.superblogs.edit', $superblog));
 
@@ -52,6 +54,48 @@ class SuperblogBuilderTest extends TestCase
             'slug' => 'dagens-budbarare',
             'domain' => 'nyabudbararen.se',
             'description' => 'Behålls',
+        ]);
+    }
+
+    public function test_an_existing_superblog_can_be_updated_without_template_id_even_if_its_template_is_inactive(): void
+    {
+        $admin = $this->makeUser(approved: true, superAdmin: true);
+        $superblog = $this->makeSuperblog($admin);
+        $templateId = $superblog->template_id;
+        $superblog->template->update(['is_active' => false]);
+
+        $this->actingAs($admin)->put(route('admin.superblogs.update', $superblog), [
+            'name' => 'Updated while inactive',
+            'slug' => $superblog->slug,
+        ])->assertRedirect(route('admin.superblogs.edit', $superblog));
+
+        $this->assertDatabaseHas('superblogs', [
+            'id' => $superblog->id,
+            'name' => 'Updated while inactive',
+            'template_id' => $templateId,
+        ]);
+    }
+
+    public function test_a_superblog_template_cannot_be_changed_through_a_manually_submitted_update(): void
+    {
+        $admin = $this->makeUser(approved: true, superAdmin: true);
+        $superblog = $this->makeSuperblog($admin);
+        $otherTemplate = Template::create([
+            'name' => 'Other template',
+            'slug' => 'other-template',
+            'layout' => 'layouts.public',
+            'is_active' => true,
+        ]);
+
+        $this->actingAs($admin)->put(route('admin.superblogs.update', $superblog), [
+            'name' => $superblog->name,
+            'slug' => $superblog->slug,
+            'template_id' => $otherTemplate->id,
+        ])->assertSessionHasErrors('template_id');
+
+        $this->assertDatabaseHas('superblogs', [
+            'id' => $superblog->id,
+            'template_id' => $superblog->template_id,
         ]);
     }
 
