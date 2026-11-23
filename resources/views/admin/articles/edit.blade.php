@@ -1,4 +1,5 @@
 @extends('layouts.admin')
+@use('App\Support\Theme')
 
 @section('title', ($isCreating ? 'Skapa ny artikel' : ($article->status === 'draft' ? 'Redigera utkast' : 'Redigera artikel')).($article->title ? ' · '.$article->title : ''))
 
@@ -42,6 +43,7 @@
     @endif
 
     @if (in_array($article->status, ['draft', 'published'], true) && ! $documentError)
+        @php($articleTheme = Theme::nameFor($superblog) ?? Theme::forTemplate($superblog->template) ?? Theme::NAMES[0])
         <form method="POST" enctype="multipart/form-data" action="{{ $isCreating ? route('admin.superblogs.articles.store', $superblog) : route('admin.superblogs.articles.update', [$superblog, $article]) }}" class="mt-6 space-y-5" data-article-editor data-editor-mode="{{ $legacyFallback ? 'legacy' : 'structured' }}" data-original-image-id="{{ $image?->getKey() ?? '' }}">
             @csrf
             @unless ($isCreating)
@@ -109,7 +111,7 @@
                             </figure>
                         @endif
 
-                        <div class="article-body article-editor-body mt-8 space-y-4 leading-7" data-editor-body>
+                        <div class="article-body article-editor-body mt-8 space-y-4 leading-7" data-editor-body data-theme="{{ $articleTheme }}">
                             @if ($legacyFallback)
                                 <p class="text-xs text-studio-muted">Artikeltext <span class="font-semibold text-studio-bad" aria-hidden="true">*</span></p>
                             @endif
@@ -154,8 +156,8 @@
                     <input type="checkbox" name="image_decorative" value="1" @checked(old('image_decorative', $image && $image->alt_text === '')) data-image-decorative class="rounded border-studio-line text-studio-brand focus:ring-studio-brand">
                     Dekorativ bild (utan alternativtext)
                 </label>
-                @if ($image)
-                    <button type="button" data-remove-image class="mt-3 rounded-lg border border-studio-line px-3 py-2 text-sm font-medium text-studio-bad hover:bg-studio-bad-bg">Ta bort bild</button>
+                @if ($legacyFallback)
+                    <button type="button" data-remove-image @if (! $image) hidden @endif class="mt-3 rounded-lg border border-studio-line px-3 py-2 text-sm font-medium text-studio-bad hover:bg-studio-bad-bg">Ta bort bild</button>
                 @endif
             </section>
 

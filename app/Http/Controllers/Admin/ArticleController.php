@@ -70,6 +70,15 @@ class ArticleController extends Controller
                 'id' => (string) Str::uuid(),
                 'type' => 'introduction',
                 'runs' => [],
+            ], [
+                'id' => (string) Str::uuid(),
+                'type' => 'heading',
+                'level' => 2,
+                'runs' => [],
+            ], [
+                'id' => (string) Str::uuid(),
+                'type' => 'paragraph',
+                'runs' => [],
             ]],
         ];
 

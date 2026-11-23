@@ -205,16 +205,25 @@
 .article-editor-block-controls {
     position: absolute;
     z-index: 2;
-    top: -1.5rem;
+    top: -1.75rem;
     right: 0;
-    display: none;
+    display: flex;
     align-items: center;
     gap: 0.15rem;
+    padding: 0.18rem;
+    border: 1px solid var(--color-studio-line);
+    border-radius: 0.5rem;
+    background: var(--color-studio-panel);
 }
 
-.article-editor-block:hover .article-editor-block-controls,
-.article-editor-block:focus-within .article-editor-block-controls {
-    display: flex;
+.article-editor-required-mark {
+    position: absolute;
+    top: -1.5rem;
+    right: 0;
+    color: var(--color-studio-bad, #b42318);
+    font-size: 1rem;
+    font-weight: 700;
+    line-height: 1.35rem;
 }
 
 .article-editor-block-controls button {
@@ -222,28 +231,48 @@
     width: 1.35rem;
     height: 1.35rem;
     place-items: center;
-    border: 1px solid var(--color-line, #e5e7eb);
-    border-radius: 0.35rem;
-    background: var(--color-paper, #fff);
-    color: var(--color-ink, #17181c);
+    border: 1px solid transparent;
+    border-radius: 0.3rem;
+    background: transparent;
+    color: var(--color-studio-muted);
     font-size: 0.75rem;
     line-height: 1;
-    opacity: 0.62;
+    transition: background-color 120ms ease, border-color 120ms ease, color 120ms ease;
 }
 
 .article-editor-block-controls button:hover:not(:disabled),
 .article-editor-block-controls button:focus-visible {
-    opacity: 1;
-    background: color-mix(in srgb, var(--color-ink, #17181c) 8%, var(--color-paper, #fff));
+    border-color: color-mix(in srgb, var(--color-primary, var(--color-studio-brand, #3659c9)) 18%, transparent);
+    background: color-mix(in srgb, var(--color-primary, var(--color-studio-brand, #3659c9)) 9%, var(--color-studio-panel));
+    color: var(--color-primary, var(--color-studio-brand, #3659c9));
+}
+
+.article-editor-block-controls button:focus-visible {
+    outline: 2px solid var(--color-primary, var(--color-studio-brand, #3659c9));
+    outline-offset: 2px;
 }
 
 .article-editor-block-controls .article-editor-block-remove {
+    color: color-mix(in srgb, var(--color-studio-bad) 65%, var(--color-studio-muted));
+}
+
+.article-editor-block-controls .article-editor-block-remove:hover:not(:disabled),
+.article-editor-block-controls .article-editor-block-remove:focus-visible {
+    border-color: color-mix(in srgb, var(--color-studio-bad) 28%, transparent);
+    background: var(--color-studio-bad-bg);
     color: var(--color-studio-bad, #b42318);
 }
 
 .article-editor-block-controls button:disabled {
     cursor: not-allowed;
-    opacity: 0.28;
+    color: color-mix(in srgb, var(--color-studio-muted) 45%, var(--color-studio-panel));
+}
+
+.article-editor-block:hover,
+.article-editor-block:focus-within {
+    border-radius: 0.25rem;
+    outline: 1px solid color-mix(in srgb, var(--color-primary, var(--color-studio-brand, #3659c9)) 18%, transparent);
+    outline-offset: 0.25rem;
 }
 
 .article-editor-required-proxy {

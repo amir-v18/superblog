@@ -27,6 +27,7 @@ class ManualArticleCreationTest extends TestCase
             ->assertSee('3 Publicera')
             ->assertSee(route('admin.superblogs.articles.create', $superblog), false);
 
+        $superblog->update(['settings' => ['theme' => 'techenspraket']]);
         $this->get(route('admin.superblogs.articles.create', $superblog))
             ->assertOk()
             ->assertSee('Ny manuell artikel')
@@ -41,6 +42,11 @@ class ManualArticleCreationTest extends TestCase
             ->assertSee('value="'.$staff->name.'"', false)
             ->assertSee('Skapad:')
             ->assertSee('data-editor-body', false)
+            ->assertSee('data-editor-body data-theme="techenspraket"', false)
+            ->assertSee('data-block-type="introduction"', false)
+            ->assertSee('data-block-type="heading" data-level="2"', false)
+            ->assertSee('data-block-type="paragraph"', false)
+            ->assertSee('article-editor-required-mark', false)
             ->assertSee('data-required-marker="title"', false)
             ->assertSee('data-required-marker="slug"', false)
             ->assertSee('data-image-alt-required-marker', false)
@@ -52,6 +58,7 @@ class ManualArticleCreationTest extends TestCase
             ->assertDontSee('data-article-add-image', false)
             ->assertSee('data-introduction-required-proxy', false)
             ->assertSee('type="text" required tabindex="-1" aria-label="Inledande stycke"', false)
+            ->assertSee('aria-label="Inledning (obligatorisk)"', false)
             ->assertSee('data-block-move="up" aria-label="Flytta block upp"', false)
             ->assertSee('data-block-move="down" aria-label="Flytta block ned"', false)
             ->assertSee('data-block-remove aria-label="Ta bort block"', false)
@@ -59,6 +66,7 @@ class ManualArticleCreationTest extends TestCase
             ->assertSee('data-article-insert-link="normal"', false)
             ->assertSee('data-article-insert-link="product"', false)
             ->assertDontSee('data-article-link-dialog', false)
+            ->assertDontSee('type="button" data-remove-image', false)
             ->assertSee('Spara utkast')
             ->assertSee('Källor')
             ->assertSee('Varumärkeslänk')
@@ -68,6 +76,23 @@ class ManualArticleCreationTest extends TestCase
             ->assertDontSee('Save and publish')
             ->assertDontSee('<textarea id="content"', false)
             ->assertSee(route('admin.superblogs.articles.store', $superblog), false);
+
+    }
+
+    public function test_required_introduction_has_a_star_and_no_remove_control(): void
+    {
+        [$staff, $superblog] = $this->makeAssignedSuperblog();
+        $html = $this->actingAs($staff)
+            ->get(route('admin.superblogs.articles.create', $superblog))
+            ->assertOk()
+            ->getContent();
+
+        $this->assertSame(1, preg_match('/<div class="article-editor-block group" data-editor-block data-block-id="[^"]+" data-block-type="introduction">(.*?)<\/div>/s', $html, $match));
+        $this->assertStringContainsString('article-editor-required-mark', $match[1]);
+        $this->assertStringNotContainsString('data-block-move', $match[1]);
+        $this->assertStringNotContainsString('data-block-remove', $match[1]);
+        $this->assertSame(1, substr_count($html, 'data-block-type="heading" data-level="2"'));
+        $this->assertSame(1, substr_count($html, 'data-block-type="paragraph"'));
     }
 
     public function test_authorized_user_can_create_a_manual_draft_for_the_current_superblog(): void

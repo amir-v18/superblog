@@ -181,6 +181,7 @@ document.querySelectorAll('[data-article-editor]').forEach((form) => {
     const insertLinkButtons = form.querySelectorAll('[data-article-insert-link]');
     const linkNotice = form.querySelector('[data-article-link-notice]');
     const imageInput = form.querySelector('[data-article-image-input]');
+    const removeImageButton = form.querySelector('[data-remove-image]');
     const imageAltText = form.querySelector('[data-image-alt-text]');
     const imageDecorative = form.querySelector('[data-image-decorative]');
     const removeImageField = form.querySelector('[data-remove-image-field]');
@@ -203,6 +204,11 @@ document.querySelectorAll('[data-article-editor]').forEach((form) => {
         if (marker) marker.hidden = !isRequired;
     };
 
+    const syncRemoveImageButton = () => {
+        if (!removeImageButton) return;
+        removeImageButton.hidden = !imageInput?.files?.length && (!form.dataset.originalImageId || removeImageField?.value === '1');
+    };
+
     const syncLinkRequirements = () => {
         ['brand'].forEach((type) => {
             const url = form.querySelector(`[data-editor-link-url="${type}"]`);
@@ -219,6 +225,7 @@ document.querySelectorAll('[data-article-editor]').forEach((form) => {
     };
 
     syncImageAltRequirement();
+    syncRemoveImageButton();
     syncLinkRequirements();
 
     const newId = () => globalThis.crypto?.randomUUID?.() ?? 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (character) => {
@@ -274,7 +281,10 @@ document.querySelectorAll('[data-article-editor]').forEach((form) => {
         if (h3Button) h3Button.disabled = !hasH2;
     };
 
-    const headingOrderIsValid = (blocks) => {
+    const articleStructureIsValid = (blocks) => {
+        const introductions = blocks.filter((block) => block.dataset.blockType === 'introduction');
+        if (introductions.length !== 1 || blocks[0] !== introductions[0]) return false;
+
         let hasH2 = false;
         for (const block of blocks) {
             if (block.dataset.blockType !== 'heading') continue;
@@ -370,7 +380,11 @@ document.querySelectorAll('[data-article-editor]').forEach((form) => {
         wrapper.dataset.editorBlock = '';
         wrapper.dataset.blockId = newId();
         wrapper.dataset.blockType = type;
-        if (type !== 'image') wrapper.innerHTML = blockButtons();
+        if (type === 'introduction') {
+            wrapper.innerHTML = '<span class="article-editor-required-mark" aria-hidden="true">*</span>';
+        } else {
+            wrapper.innerHTML = blockButtons();
+        }
 
         if (type === 'paragraph' || type === 'introduction' || type === 'heading') {
             const tag = type === 'heading' ? `h${level}` : 'p';
@@ -380,6 +394,7 @@ document.querySelectorAll('[data-article-editor]').forEach((form) => {
             text.dataset.placeholder = type === 'introduction' ? 'Skriv en inledning…' : type === 'heading' ? 'Skriv en rubrik…' : 'Skriv ett stycke…';
             text.contentEditable = 'true';
             text.spellcheck = true;
+            if (type === 'introduction') text.setAttribute('aria-label', 'Inledning (obligatorisk)');
             wrapper.append(text);
         } else if (type === 'list') {
             const list = document.createElement(level === 'numbered' ? 'ol' : 'ul');
@@ -434,7 +449,17 @@ document.querySelectorAll('[data-article-editor]').forEach((form) => {
             }
             const candidate = [...blocks];
             [candidate[index], candidate[nextIndex]] = [candidate[nextIndex], candidate[index]];
-            button.disabled = !headingOrderIsValid(candidate);
+            button.disabled = !articleStructureIsValid(candidate);
+        });
+        body.querySelectorAll('[data-block-remove]').forEach((button) => {
+            const wrapper = button.closest('[data-editor-block]');
+            const candidate = blocks.filter((block) => block !== wrapper);
+            const breaksArticleStructure = !articleStructureIsValid(candidate);
+            button.disabled = breaksArticleStructure;
+            button.title = breaksArticleStructure ? 'Behåll introduktionen först och ta bort underrubriker före rubriker' : 'Ta bort block';
+            button.setAttribute('aria-label', breaksArticleStructure
+                ? 'Den här ändringen skulle bryta artikelns introduktions- eller rubrikordning'
+                : 'Ta bort block');
         });
         updateHeadingButton();
     };
@@ -697,30 +722,33 @@ document.querySelectorAll('[data-article-editor]').forEach((form) => {
         if (control && body.contains(control)) {
             event.preventDefault();
             const wrapper = control.closest('[data-editor-block]');
+            const blocks = Array.from(body.querySelectorAll(':scope > [data-editor-block]'));
             if (control.matches('[data-block-remove]')) {
-                if (wrapper.dataset.blockType === 'introduction') {
-                    const intro = wrapper.querySelector('[data-editor-text]');
-                    intro.replaceChildren();
-                    focusAtEnd(intro);
-                } else {
-                    if (wrapper.dataset.blockType === 'image' && String(form.dataset.originalImageId || '') === String(wrapper.dataset.mediaId || '')) {
-                        removeImageField.value = '1';
-                    }
-                    wrapper.remove();
+                if (wrapper.dataset.blockType === 'introduction') return;
+                if (!articleStructureIsValid(blocks.filter((block) => block !== wrapper))) return;
+                if (wrapper.dataset.blockType === 'image' && String(form.dataset.originalImageId || '') === String(wrapper.dataset.mediaId || '')) {
+                    removeImageField.value = '1';
                 }
-            } else if (control.dataset.blockMove === 'up' && wrapper.previousElementSibling) {
-                wrapper.parentElement.insertBefore(wrapper, wrapper.previousElementSibling);
-            } else if (control.dataset.blockMove === 'down' && wrapper.nextElementSibling) {
-                wrapper.parentElement.insertBefore(wrapper.nextElementSibling, wrapper);
-            }
-            if (!headingOrderIsValid(Array.from(body.querySelectorAll(':scope > [data-editor-block]')))) {
-                if (control.dataset.blockMove === 'up') wrapper.nextElementSibling?.after(wrapper);
-                if (control.dataset.blockMove === 'down') wrapper.previousElementSibling?.before(wrapper);
-                return;
+                if (wrapper.dataset.blockType === 'image' && imageInput) imageInput.value = '';
+                wrapper.remove();
+            } else {
+                const index = blocks.indexOf(wrapper);
+                const nextIndex = index + (control.dataset.blockMove === 'up' ? -1 : 1);
+                if (index < 0 || nextIndex < 0 || nextIndex >= blocks.length) return;
+                const candidate = [...blocks];
+                [candidate[index], candidate[nextIndex]] = [candidate[nextIndex], candidate[index]];
+                if (!articleStructureIsValid(candidate)) return;
+                if (control.dataset.blockMove === 'up') {
+                    wrapper.parentElement.insertBefore(wrapper, wrapper.previousElementSibling);
+                } else {
+                    wrapper.parentElement.insertBefore(wrapper.nextElementSibling, wrapper);
+                }
             }
             setDirty();
             updateBlockControls();
             syncFields();
+            syncImageAltRequirement();
+            syncRemoveImageButton();
             return;
         }
 
@@ -785,11 +813,12 @@ document.querySelectorAll('[data-article-editor]').forEach((form) => {
         }
         updateImagePreview(file);
         syncImageAltRequirement();
+        syncRemoveImageButton();
         setDirty();
         syncFields();
     });
 
-    form.querySelector('[data-remove-image]')?.addEventListener('click', () => {
+    removeImageButton?.addEventListener('click', () => {
         const imageBlock = body.querySelector('[data-block-type="image"]');
         const preview = form.querySelector('[data-legacy-image-preview]');
         if (imageBlock) imageBlock.remove();
@@ -797,6 +826,7 @@ document.querySelectorAll('[data-article-editor]').forEach((form) => {
         if (String(form.dataset.originalImageId || '') !== '') removeImageField.value = '1';
         if (imageInput) imageInput.value = '';
         syncImageAltRequirement();
+        syncRemoveImageButton();
         setDirty();
         updateBlockControls();
         syncFields();

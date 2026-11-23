@@ -62,7 +62,9 @@ class ArticleContentHtmlRenderer
             }
 
             $html .= '>';
-            if ($block['type'] !== 'image') {
+            if ($block['type'] === 'introduction') {
+                $html .= '<span class="article-editor-required-mark" aria-hidden="true">*</span>';
+            } else {
                 $html .= '<div class="article-editor-block-controls" role="group" aria-label="Blockkontroller">'
                     .'<button type="button" data-block-move="up" aria-label="Flytta block upp" title="Flytta upp">↑</button>'
                     .'<button type="button" data-block-move="down" aria-label="Flytta block ned" title="Flytta ned">↓</button>'
@@ -77,8 +79,9 @@ class ArticleContentHtmlRenderer
 
             if (in_array($block['type'], ['introduction', 'paragraph', 'heading'], true)) {
                 $tag = $block['type'] === 'heading' ? 'h'.(int) $block['level'] : 'p';
-                $placeholder = $block['type'] === 'introduction' ? 'Write the introduction…' : ($block['type'] === 'heading' ? 'Section heading…' : 'Write a paragraph…');
-                $html .= '<'.$tag.' data-editor-text data-placeholder="'.$placeholder.'" contenteditable="true" spellcheck="true">'.$this->renderRuns($block['runs'], $links, editor: true).'</'.$tag.'>';
+                $placeholder = $block['type'] === 'introduction' ? 'Skriv en introduktion…' : ($block['type'] === 'heading' ? 'Skriv en rubrik…' : 'Skriv ett stycke…');
+                $editableLabel = $block['type'] === 'introduction' ? ' aria-label="Inledning (obligatorisk)"' : '';
+                $html .= '<'.$tag.' data-editor-text data-placeholder="'.$placeholder.'" contenteditable="true" spellcheck="true"'.$editableLabel.'>'.$this->renderRuns($block['runs'], $links, editor: true).'</'.$tag.'>';
             } elseif ($block['type'] === 'list') {
                 $tag = $block['style'] === 'numbered' ? 'ol' : 'ul';
                 $html .= '<'.$tag.' data-editor-list>';
@@ -92,9 +95,9 @@ class ArticleContentHtmlRenderer
                 if ($validMedia && $imageUrl) {
                     $html .= '<img data-editor-image src="'.$this->escape($imageUrl).'" alt="'.$this->escape((string) $media->alt_text).'" class="mx-auto h-auto max-h-[32rem] max-w-full rounded-md">';
                 } else {
-                    $html .= '<div data-image-placeholder class="rounded-lg border border-dashed border-studio-line p-8 text-center text-sm text-studio-muted">Choose an image to see it here.</div>';
+                    $html .= '<div data-image-placeholder class="rounded-lg border border-dashed border-studio-line p-8 text-center text-sm text-studio-muted">Välj en bild för att visa den här.</div>';
                 }
-                $html .= '<figcaption data-editor-caption data-placeholder="Add an optional caption…" contenteditable="true" spellcheck="true">'.$this->escape((string) $block['caption']).'</figcaption>';
+                $html .= '<figcaption data-editor-caption data-placeholder="Lägg till en valfri bildtext…" contenteditable="true" spellcheck="true">'.$this->escape((string) $block['caption']).'</figcaption>';
                 $html .= '</figure>';
             }
 

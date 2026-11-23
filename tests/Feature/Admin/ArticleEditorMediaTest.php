@@ -161,7 +161,16 @@ class ArticleEditorMediaTest extends TestCase
         (new ArticleContentDocument)->storeOn($article, $this->documentArray('Introduction.', [
             ['id' => (string) Str::uuid(), 'type' => 'image', 'media_id' => $media->getKey(), 'caption' => 'A caption'],
         ]));
+        $article->content_format = ArticleContentFormat::BlocksV1;
         $article->save();
+
+        $this->actingAs($admin)
+            ->get(route('admin.superblogs.articles.edit', [$superblog, $article]))
+            ->assertOk()
+            ->assertSee('data-block-type="image"', false)
+            ->assertSee('data-block-type="image" data-media-id="'.$media->getKey().'"><div class="article-editor-block-controls"', false)
+            ->assertSee('data-block-remove aria-label="Ta bort block"', false)
+            ->assertDontSee('type="button" data-remove-image', false);
 
         $replaceDocument = $this->documentArray('Introduction.', [
             ['id' => (string) Str::uuid(), 'type' => 'image', 'media_id' => $media->getKey(), 'caption' => 'Updated caption'],
