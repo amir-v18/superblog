@@ -18,6 +18,7 @@ class DemoArticle
             'title' => 'Så påverkar höstregnen skörden i år',
             'slug' => 'sa-paverkar-hostregnen-skorden-i-ar',
             'author' => 'Demo Skribent',
+            'created_at' => Carbon::parse('2026-10-13 08:30'),
             'published_at' => Carbon::parse('2026-10-14 08:30'),
             'source_type' => 'rss',
             'is_locked' => $locked,

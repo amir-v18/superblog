@@ -11,6 +11,8 @@
         $image = $article['image'] ?? null;
         $hasImage = is_array($image) && ! empty($image['src']);
         $author = $article['author'] ?? null;
+        $contentModifiedAt = $article['content_modified_at'] ?? null;
+        $hasContentModification = $contentModifiedAt && $contentModifiedAt->greaterThan($article['created_at']);
 
         // Locked articles only get the first paragraph. The rest is never sent to the browser,
         // so it cannot be read from the page source.
@@ -30,6 +32,10 @@
             'datePublished' => $article['published_at']->toIso8601String(),
             'isAccessibleForFree' => ! $isLocked,
         ];
+
+        if ($hasContentModification) {
+            $jsonLd['dateModified'] = $contentModifiedAt->toIso8601String();
+        }
 
         if (! empty($article['description'])) {
             $jsonLd['description'] = $article['description'];
@@ -61,6 +67,9 @@
             @endif
         @endif
         <meta property="article:published_time" content="{{ $article['published_at']->toIso8601String() }}">
+        @if ($hasContentModification)
+            <meta property="article:modified_time" content="{{ $contentModifiedAt->toIso8601String() }}">
+        @endif
         <meta name="twitter:card" content="{{ $hasImage ? 'summary_large_image' : 'summary' }}">
         {{-- Raw output is required for valid JSON. JSON_HEX_TAG encodes < and > as </>, so no value can close the script tag. --}}
         <script type="application/ld+json">{!! json_encode($jsonLd, JSON_HEX_TAG | JSON_HEX_AMP | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) !!}</script>
@@ -72,15 +81,28 @@
                 <h1 class="font-display text-4xl font-semibold tracking-tight">{{ $article['title'] }}</h1>
 
                 <div class="mt-6 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-muted">
-                    @if ($author)
-                        <span>Av <span class="font-medium text-ink">{{ $author }}</span></span>
-                    @endif
-                    <time datetime="{{ $article['published_at']->toIso8601String() }}">
-                        {{ $article['published_at']->locale('sv')->isoFormat('D MMMM YYYY') }}
-                    </time>
-                    @if ($isAiProcessed)
-                        <x-ai-label />
-                    @endif
+
+                    <div class="gap-x-2">
+                        @if ($author)
+                            <span>Av <span class="font-medium text-ink">{{ $author }}</span></span>
+                        @endif
+                        <span>Skapad:</span>
+                        <time datetime="{{ $article['created_at']->toIso8601String() }}">
+                            {{ $article['created_at']->locale('sv')->isoFormat('D MMM YYYY') }}
+                        </time>
+                    </div>
+
+                    <div class="gap-x-2">
+                        @if ($hasContentModification)
+                            <span>Senast ändrad:</span>
+                            <time datetime="{{ $contentModifiedAt->toIso8601String() }}">
+                                {{ $contentModifiedAt->locale('sv')->isoFormat('D MMM YYYY') }}
+                            </time>
+                        @endif
+                        @if ($isAiProcessed)
+                            <x-ai-label />
+                        @endif
+                    </div>
                 </div>
             </header>
 

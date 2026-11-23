@@ -16,17 +16,67 @@ class PublicArticleTest extends TestCase
     public function test_published_article_is_rendered_from_its_database_content(): void
     {
         [$superblog, $article] = $this->makeArticle('published', Carbon::parse('2026-11-02 14:30:00'));
+        $createdAt = Carbon::parse('2026-11-01 10:00:00');
+        $article->forceFill(['created_at' => $createdAt])->save();
 
         $this->get(route('public.superblogs.articles.show', [$superblog, $article]))
             ->assertOk()
             ->assertSee('Database article title')
             ->assertSee('Real paragraph one.')
             ->assertSee('Real paragraph two & more.')
-            ->assertSee('2 november 2026')
+            ->assertSee('Skapad')
+            ->assertSee('1 nov 2026')
+            ->assertDontSee('Senast ändrad')
             ->assertSee('Database article title', false)
             ->assertDontSee('alert("not rendered")')
             ->assertDontSee('Publish now')
             ->assertDontSee('Fetch now');
+    }
+
+    public function test_content_modified_date_is_rendered_only_when_available(): void
+    {
+        [$superblog, $article] = $this->makeArticle('published', Carbon::parse('2026-11-02 14:30:00'));
+        $createdAt = Carbon::parse('2026-11-02 08:00:00');
+        $article->forceFill(['created_at' => $createdAt])->save();
+        $modifiedAt = Carbon::parse('2026-11-04 09:15:00');
+        $article->forceFill(['content_modified_at' => $modifiedAt])->save();
+
+        $this->get(route('public.superblogs.articles.show', [$superblog, $article]))
+            ->assertOk()
+            ->assertSee('Skapad')
+            ->assertSee('2 nov 2026')
+            ->assertSee('Senast ändrad')
+            ->assertSee('4 nov 2026')
+            ->assertSee('<meta property="article:modified_time" content="'.$modifiedAt->toIso8601String().'">', false)
+            ->assertSee('"datePublished":"'.$article->published_at->toIso8601String().'"', false)
+            ->assertSee('"dateModified":"'.$modifiedAt->toIso8601String().'"', false);
+
+        $article->forceFill(['content_modified_at' => null])->save();
+
+        $this->get(route('public.superblogs.articles.show', [$superblog, $article]))
+            ->assertOk()
+            ->assertDontSee('Senast ändrad')
+            ->assertDontSee('article:modified_time');
+    }
+
+    public function test_same_day_content_edit_shows_modified_date(): void
+    {
+        [$superblog, $article] = $this->makeArticle('published', Carbon::parse('2026-11-02 14:30:00'));
+        $createdAt = Carbon::parse('2026-11-02 08:00:00');
+        $modifiedAt = Carbon::parse('2026-11-02 16:00:00');
+        $article->forceFill([
+            'created_at' => $createdAt,
+            'content_modified_at' => $modifiedAt,
+        ])->save();
+
+        $response = $this->get(route('public.superblogs.articles.show', [$superblog, $article]))
+            ->assertOk()
+            ->assertSee('Skapad')
+            ->assertSee('Senast ändrad')
+            ->assertSee('2 nov 2026')
+            ->assertSee('"dateModified":"'.$modifiedAt->toIso8601String().'"', false);
+
+        $this->assertSame(2, substr_count($response->getContent(), '2 nov 2026'));
     }
 
     public function test_article_without_excerpt_uses_its_first_paragraph_as_meta_description(): void
