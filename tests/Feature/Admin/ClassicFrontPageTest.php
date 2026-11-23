@@ -41,7 +41,10 @@ class ClassicFrontPageTest extends TestCase
         // Exactly seven articles fill the first row, so no extra row follows.
         $this->assertSame(1, substr_count($row, 'grid grid-cols-4'));
         $this->assertSame(4, substr_count($row, '<article'));
-        $this->assertStringContainsString('>9 november 2026</time>', $lead);
+        $leadArticle = Article::where('title', 'Story 1')->firstOrFail();
+        $leadCreatedDate = $leadArticle->created_at->locale('sv')->isoFormat('D MMM YYYY');
+        $this->assertStringContainsString('<span>Skapad:</span>', $lead);
+        $this->assertStringContainsString('>'.$leadCreatedDate.'</time>', $lead);
 
         // Every slot is taken, so no stand-ins are left, and the "Mest lästa" list is full as well.
         foreach (['Här visas din första artikel', 'Av redaktionen', 'rounded-[3px] bg-ink/14', 'Manuella artiklar visas här'] as $standIn) {
@@ -91,13 +94,16 @@ class ClassicFrontPageTest extends TestCase
         $this->assertStringContainsString('>Mest lästa</h2>', $mostRead);
         $this->assertTrue($this->inOrder($mostRead, ['>1<', 'Manual 1<', '>2<', 'Manual 2<', '>3<', 'Manual 3<', '>4<', 'Manual 4<', '>5<', 'Manual 5<']));
         $this->assertSame(5, substr_count($mostRead, '<li'));
-        foreach (['Manual 6', 'From a feed', 'Not selected', 'rounded-[3px] bg-ink/14', '<time'] as $missing) {
+        foreach (['Manual 6', 'From a feed', 'Not selected', 'rounded-[3px] bg-ink/14'] as $missing) {
             $this->assertStringNotContainsString($missing, $mostRead);
         }
         // The list is numbered for screen readers already, so the printed numbers are skipped by them.
         $this->assertSame(5, substr_count($mostRead, '<span aria-hidden="true"'));
 
         $manual1 = Article::where('title', 'Manual 1')->firstOrFail();
+        $manual1CreatedDate = $manual1->created_at->locale('sv')->isoFormat('D MMM YYYY');
+        $this->assertStringContainsString('<span>Skapad:</span>', $mostRead);
+        $this->assertStringContainsString('>'.$manual1CreatedDate.'</time>', $mostRead);
         $this->assertStringContainsString('href="'.route('public.superblogs.articles.show', [$superblog, $manual1]).'" target="_blank" rel="noopener"', $mostRead);
     }
 
@@ -162,7 +168,7 @@ class ClassicFrontPageTest extends TestCase
         $this->assertSame(2, substr_count($html, 'data-live-name'));
     }
 
-    public function test_selected_drafts_show_in_the_offline_preview_without_a_made_up_time(): void
+    public function test_selected_drafts_show_their_created_date_in_the_offline_preview(): void
     {
         [$admin, $superblog] = $this->classicMagazine('draft');
         // Undated drafts are sorted by id, newest first: draft 4 leads and draft 1 opens the row.
@@ -175,9 +181,10 @@ class ClassicFrontPageTest extends TestCase
 
         $this->assertStringContainsString('Draft 4<', $this->part($html, '<section aria-label="Huvudartikel"'));
         $this->assertStringContainsString('Draft 1<', $row);
-        $this->assertStringContainsString('>Utkast</span>', $row);
-        $this->assertSame(4, substr_count($html, '>Utkast</span>'));
-        $this->assertStringNotContainsString('<time datetime="', $this->part($html, '<main'));
+        $main = $this->part($html, '<main');
+        $this->assertSame(1, substr_count($row, '<span>Skapad:</span>'));
+        $this->assertSame(4, substr_count($main, '<span>Skapad:</span>'));
+        $this->assertSame(4, substr_count($main, '<time datetime="'));
         // Drafts are not published, so "Mest lästa" has none of them, as on the Modern front page.
         $this->assertStringContainsString('Manuella artiklar visas här när de publiceras.', $this->part($html, '<section aria-labelledby="most-read-heading"'));
     }
@@ -203,6 +210,7 @@ class ClassicFrontPageTest extends TestCase
             'status' => $status,
             'is_selected_for_publication' => $selected,
             'published_at' => $publishedAt,
+            'created_at' => $publishedAt ?? now(),
         ]);
     }
 

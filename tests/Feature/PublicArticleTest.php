@@ -25,7 +25,7 @@ class PublicArticleTest extends TestCase
             ->assertSee('Real paragraph one.')
             ->assertSee('Real paragraph two & more.')
             ->assertSee('Skapad')
-            ->assertSee('1 november 2026')
+            ->assertSee('1 nov 2026')
             ->assertDontSee('Senast ändrad')
             ->assertSee('Database article title', false)
             ->assertDontSee('alert("not rendered")')
@@ -44,9 +44,9 @@ class PublicArticleTest extends TestCase
         $this->get(route('public.superblogs.articles.show', [$superblog, $article]))
             ->assertOk()
             ->assertSee('Skapad')
-            ->assertSee('2 november 2026')
+            ->assertSee('2 nov 2026')
             ->assertSee('Senast ändrad')
-            ->assertSee('4 november 2026')
+            ->assertSee('4 nov 2026')
             ->assertSee('<meta property="article:modified_time" content="'.$modifiedAt->toIso8601String().'">', false)
             ->assertSee('"datePublished":"'.$article->published_at->toIso8601String().'"', false)
             ->assertSee('"dateModified":"'.$modifiedAt->toIso8601String().'"', false);
@@ -73,10 +73,10 @@ class PublicArticleTest extends TestCase
             ->assertOk()
             ->assertSee('Skapad')
             ->assertSee('Senast ändrad')
-            ->assertSee('2 november 2026')
+            ->assertSee('2 nov 2026')
             ->assertSee('"dateModified":"'.$modifiedAt->toIso8601String().'"', false);
 
-        $this->assertSame(2, substr_count($response->getContent(), '2 november 2026'));
+        $this->assertSame(2, substr_count($response->getContent(), '2 nov 2026'));
     }
 
     public function test_article_without_excerpt_uses_its_first_paragraph_as_meta_description(): void
