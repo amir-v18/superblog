@@ -24,6 +24,9 @@ class PublicArticleTest extends TestCase
             ->assertSee('Database article title')
             ->assertSee('Real paragraph one.')
             ->assertSee('Real paragraph two & more.')
+            ->assertSee('Källor')
+            ->assertDontSee('Källor och länkar')
+            ->assertSee('Original source title')
             ->assertSee('Skapad')
             ->assertSee('1 nov 2026')
             ->assertDontSee('Senast ändrad')
@@ -31,6 +34,42 @@ class PublicArticleTest extends TestCase
             ->assertDontSee('alert("not rendered")')
             ->assertDontSee('Publish now')
             ->assertDontSee('Fetch now');
+    }
+
+    public function test_article_byline_uses_the_saved_editor_name_and_escapes_it(): void
+    {
+        [$superblog, $article] = $this->makeArticle('published', Carbon::parse('2026-11-02 14:30:00'));
+        $article->update(['author_name' => '<Editor & writer>']);
+
+        $this->get(route('public.superblogs.articles.show', [$superblog, $article]))
+            ->assertOk()
+            ->assertSee('Av')
+            ->assertSee('&lt;Editor &amp; writer&gt;', false)
+            ->assertDontSee('<Editor & writer>', false);
+    }
+
+    public function test_public_rendering_preserves_approved_formatting_and_sanitizes_legacy_content(): void
+    {
+        [$superblog, $article] = $this->makeArticle('published', Carbon::parse('2026-11-02 14:30:00'));
+        $article->update([
+            'content' => '<p onclick="alert(1)">First <strong>bold</strong> <em>italic</em> <a href="https://example.test/story">safe link</a> <a href="javascript:alert(2)">unsafe link</a> <span data-text-size="large" style="color:red">large</span><span data-text-size="huge">unknown size</span></p><h2>A heading</h2><ol><li>List item</li></ol><script>alert("script must not render")</script>',
+        ]);
+
+        $this->get(route('public.superblogs.articles.show', [$superblog, $article]))
+            ->assertOk()
+            ->assertSee('<strong>bold</strong>', false)
+            ->assertSee('<em>italic</em>', false)
+            ->assertSee('<a href="https://example.test/story">safe link</a>', false)
+            ->assertSee('<span data-text-size="large">large</span>', false)
+            ->assertSee('<h2>A heading</h2>', false)
+            ->assertSee('<ol><li>List item</li></ol>', false)
+            ->assertSee('unsafe link')
+            ->assertSee('unknown size')
+            ->assertDontSee('onclick')
+            ->assertDontSee('javascript:')
+            ->assertDontSee('style=')
+            ->assertDontSee('data-text-size="huge"')
+            ->assertDontSee('script must not render');
     }
 
     public function test_content_modified_date_is_rendered_only_when_available(): void

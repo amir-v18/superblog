@@ -16,9 +16,12 @@
 
         // Locked articles only get the first paragraph. The rest is never sent to the browser,
         // so it cannot be read from the page source.
-        $blocks = $isLocked
-            ? collect($article['body'])->where('type', 'p')->take(1)->all()
-            : $article['body'];
+        $blocks = [];
+        if (! array_key_exists('body_html', $article)) {
+            $blocks = $isLocked
+                ? collect($article['body'])->where('type', 'p')->take(1)->all()
+                : $article['body'];
+        }
 
         // RSS articles always go through AI transformation (RSS → AI → Article); there is no "ai" source type.
         $isAiProcessed = $article['is_ai_processed'] ?? $article['source_type'] === 'rss';
@@ -106,7 +109,7 @@
                 </div>
             </header>
 
-            @if ($hasImage)
+            @if ($hasImage && empty($article['image_in_body']))
                 <figure class="mt-8">
                     <img src="{{ $image['src'] }}"
                          alt="{{ $image['alt'] ?? '' }}"
@@ -120,19 +123,23 @@
             @endif
 
             <div class="relative mt-8">
-                @foreach ($blocks as $block)
-                    @switch($block['type'])
-                        @case('h2')
-                            <h2 class="mt-10 font-display text-2xl font-semibold">{{ $block['text'] }}</h2>
-                            @break
-                        @case('h3')
-                            <h3 class="mt-8 font-display text-xl font-semibold">{{ $block['text'] }}</h3>
-                            @break
-                        @case('p')
-                            <p class="mt-4 leading-7 first:mt-0">{{ $block['text'] }}</p>
-                            @break
-                    @endswitch
-                @endforeach
+                @if (array_key_exists('body_html', $article))
+                    <div class="article-body space-y-4 leading-7">{!! $article['body_html'] !!}</div>
+                @else
+                    @foreach ($blocks as $block)
+                        @switch($block['type'])
+                            @case('h2')
+                                <h2 class="mt-10 font-display text-2xl font-semibold">{{ $block['text'] }}</h2>
+                                @break
+                            @case('h3')
+                                <h3 class="mt-8 font-display text-xl font-semibold">{{ $block['text'] }}</h3>
+                                @break
+                            @case('p')
+                                <p class="mt-4 leading-7 first:mt-0">{{ $block['text'] }}</p>
+                                @break
+                        @endswitch
+                    @endforeach
+                @endif
 
                 @if ($isLocked)
                     <div aria-hidden="true" class="pointer-events-none absolute inset-x-0 bottom-0 h-16 bg-linear-to-b from-transparent to-paper"></div>
@@ -148,23 +155,11 @@
                 </div>
             @endif
 
-            {{-- Brand and product links sit outside the body so they are present on locked articles too. --}}
-            @if (! empty($article['links']['brand']) || ! empty($article['links']['product']))
-                <p class="mt-10 border-t border-line pt-6">
-                    Läs mer:
-                    @if (! empty($article['links']['brand']))
-                        <x-product-link :href="$article['links']['brand']['url']">{{ $article['links']['brand']['anchor_text'] }}</x-product-link>
-                    @endif
-                    @if (! empty($article['links']['brand']) && ! empty($article['links']['product']))
-                        ·
-                    @endif
-                    @if (! empty($article['links']['product']))
-                        <x-product-link :href="$article['links']['product']['url']">{{ $article['links']['product']['anchor_text'] }}</x-product-link>
-                    @endif
-                </p>
-            @endif
-
-            <x-source-box :sources="$article['sources']" class="mt-8" />
+            <x-source-box
+                :sources="$article['sources']"
+                :brand="$article['links']['brand'] ?? null"
+                class="mt-8"
+            />
         </article>
     </div>
 @endsection

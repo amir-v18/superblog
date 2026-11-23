@@ -76,7 +76,7 @@
 /* Soft halo beneath cards and panels in the light mode. It fills the same variable as the framework's halo
    utilities, so a selected card keeps its colored frame around it. */
 @utility studio-raised {
-    --tw-shadow: 0 1px 2px var(--color-studio-soft-shadow), 0 4px 14px var(--color-studio-soft-shadow);
+    --tw-shadow: 0 1px 2px var(--color-studio-soft-shadow), 0 8px 20px var(--color-studio-soft-shadow);
     box-shadow:
         var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow),
         var(--tw-shadow);
@@ -90,14 +90,14 @@
  * always takes precedence over layered rules. The preview halo keeps its default value, which suits both modes.
  */
 :root[data-studio-mode='light'] {
-    --color-studio-bg: #f3f2ee;
+    --color-studio-bg: #eeede7;
     --color-studio-panel: #ffffff;
-    --color-studio-line: #dfddd5;
+    --color-studio-line: #d8d6cd;
     --color-studio-field-line: #80828c;
     --color-studio-ink: #1b1c20;
     --color-studio-muted: #5c5e68;
     --color-studio-brand: #d0451e;
-    --color-studio-side: #ffffff;
+    --color-studio-side: #f7f6f1;
     --color-studio-ok: #17723f;
     --color-studio-bad: #b42318;
     --color-studio-brand-hover: #c23d16;
@@ -124,12 +124,17 @@
     --color-studio-preview-bg: #e8e6df;
     --color-studio-preview-dots: #b5b3ab;
     --color-studio-card-shadow: #0000001a;
-    --color-studio-soft-shadow: #17181c14;
+    --color-studio-soft-shadow: #17181c1c;
 
     --color-studio-on-brand: #ffffff;
     --color-studio-on-bad: #ffffff;
     --color-studio-brand-text: #c3411c;
     --color-studio-on-brand-step: #ffffff;
+}
+
+/* Give large light-mode cards a quiet lift from the page canvas without shadowing buttons or dialogs. */
+:root[data-studio-mode='light'] :is(section, form, article, aside, div, a).rounded-xl.border.bg-studio-panel {
+    box-shadow: 0 1px 2px var(--color-studio-soft-shadow), 0 8px 20px var(--color-studio-soft-shadow);
 }
 
 /* Native form controls, scrollbars and dialogs follow the light colors; the body keeps its own setting otherwise. */
@@ -144,6 +149,174 @@
  * whatever their order in the file. The magazines and the builder preview never carry the attribute.
  */
 @custom-variant studio-light ([data-studio-mode='light'] &);
+
+/* Article text sizes are stored only as validated enum values by the HTML sanitizer. */
+.article-body [data-text-size='small'] {
+    font-size: 0.875em;
+}
+
+.article-body [data-text-size='normal'] {
+    font-size: 1em;
+}
+
+.article-body [data-text-size='large'] {
+    font-size: 1.25em;
+}
+
+.article-body h2 {
+    @apply mt-10 font-display text-2xl font-semibold;
+}
+
+.article-body h3 {
+    @apply mt-8 font-display text-xl font-semibold;
+}
+
+.article-body ul {
+    @apply ml-6 list-disc;
+}
+
+.article-body ol {
+    @apply ml-6 list-decimal;
+}
+
+.article-body a {
+    @apply text-primary underline underline-offset-4;
+}
+
+.article-editor-tool {
+    @apply rounded-lg border border-studio-line bg-studio-panel px-3 py-2 text-sm font-medium text-studio-ink hover:bg-studio-line-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-studio-brand disabled:cursor-not-allowed disabled:opacity-45;
+}
+
+[data-editor-body] [data-placeholder]:empty::before,
+[data-editor-title]:empty::before {
+    color: color-mix(in srgb, currentColor 45%, transparent);
+    content: attr(data-placeholder);
+    pointer-events: none;
+}
+
+[data-editor-body] [contenteditable='true'],
+[data-editor-title][contenteditable='true'] {
+    border-radius: 0.25rem;
+    outline: 2px solid color-mix(in srgb, var(--color-studio-brand) 45%, transparent);
+    outline-offset: 3px;
+}
+
+.article-editor-block {
+    position: relative;
+    margin-block: 1rem;
+    display: flow-root;
+}
+
+.article-editor-block-controls {
+    position: absolute;
+    z-index: 2;
+    top: -1.75rem;
+    right: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.15rem;
+    padding: 0.18rem;
+    border: 1px solid var(--color-studio-line);
+    border-radius: 0.5rem;
+    background: var(--color-studio-panel);
+}
+
+.article-editor-required-mark {
+    position: absolute;
+    top: -1.5rem;
+    right: 0;
+    color: var(--color-studio-bad, #b42318);
+    font-size: 1rem;
+    font-weight: 700;
+    line-height: 1.35rem;
+}
+
+.article-editor-block-controls button {
+    display: grid;
+    width: 1.35rem;
+    height: 1.35rem;
+    place-items: center;
+    border: 1px solid transparent;
+    border-radius: 0.3rem;
+    background: transparent;
+    color: var(--color-studio-muted);
+    font-size: 0.75rem;
+    line-height: 1;
+    transition: background-color 120ms ease, border-color 120ms ease, color 120ms ease;
+}
+
+.article-editor-block-controls button:hover:not(:disabled),
+.article-editor-block-controls button:focus-visible {
+    border-color: color-mix(in srgb, var(--color-primary, var(--color-studio-brand, #3659c9)) 18%, transparent);
+    background: color-mix(in srgb, var(--color-primary, var(--color-studio-brand, #3659c9)) 9%, var(--color-studio-panel));
+    color: var(--color-primary, var(--color-studio-brand, #3659c9));
+}
+
+.article-editor-block-controls button:focus-visible {
+    outline: 2px solid var(--color-primary, var(--color-studio-brand, #3659c9));
+    outline-offset: 2px;
+}
+
+.article-editor-block-controls .article-editor-block-remove {
+    color: color-mix(in srgb, var(--color-studio-bad) 65%, var(--color-studio-muted));
+}
+
+.article-editor-block-controls .article-editor-block-remove:hover:not(:disabled),
+.article-editor-block-controls .article-editor-block-remove:focus-visible {
+    border-color: color-mix(in srgb, var(--color-studio-bad) 28%, transparent);
+    background: var(--color-studio-bad-bg);
+    color: var(--color-studio-bad, #b42318);
+}
+
+.article-editor-block-controls button:disabled {
+    cursor: not-allowed;
+    color: color-mix(in srgb, var(--color-studio-muted) 45%, var(--color-studio-panel));
+}
+
+.article-editor-block:hover,
+.article-editor-block:focus-within {
+    border-radius: 0.25rem;
+    outline: 1px solid color-mix(in srgb, var(--color-primary, var(--color-studio-brand, #3659c9)) 18%, transparent);
+    outline-offset: 0.25rem;
+}
+
+.article-editor-required-proxy {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    border: 0;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.article-editor-block [data-editor-text] {
+    min-height: 1.75rem;
+    outline: none;
+}
+
+.article-editor-block [data-editor-caption] {
+    min-height: 1.25rem;
+    margin-top: 0.5rem;
+    text-align: center;
+    font-size: 0.875rem;
+    color: var(--color-muted, #6b7280);
+    outline: none;
+}
+
+.article-editor-block [data-editor-list] {
+    margin-left: 1.5rem;
+}
+
+.article-editor-block [data-editor-list]:is(ul) {
+    list-style: disc;
+}
+
+.article-editor-block [data-editor-list]:is(ol) {
+    list-style: decimal;
+}
 
 /*
  * Theme system: a theme is a set of raw values selected by data-theme on <html>.

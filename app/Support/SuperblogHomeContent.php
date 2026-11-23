@@ -20,6 +20,7 @@ class SuperblogHomeContent
         return [
             'theme' => $this->themeFor($superblog),
             'articles' => $articles
+                ->with('image')
                 ->orderByDesc('published_at')
                 ->orderByDesc('id')
                 ->get(),
@@ -31,6 +32,7 @@ class SuperblogHomeContent
                 ->orderByDesc('published_at')
                 ->orderByDesc('id')
                 ->limit(5)
+                ->with('image')
                 ->get(),
         ];
     }

@@ -1,8 +1,14 @@
-@props(['stripes', 'stripeLabel', 'article' => null, 'superblog' => null])
+@props(['stripes', 'stripeLabel', 'article' => null, 'superblog' => null, 'isPreview' => false])
 
 {{-- Real articles fill this same card; empty slots keep the existing striped placeholder. --}}
 <article class="flex flex-col gap-1.75">
-    <div class="aspect-16/10 overflow-hidden rounded-[3px] border-[1.5px] border-dashed border-ink/30 {{ $stripes }}"><span class="{{ $stripeLabel }}">Bild</span></div>
+    <div class="aspect-16/10 overflow-hidden rounded-[3px] border-[1.5px] border-dashed border-ink/30 {{ $article?->image ? '' : $stripes }}">
+        @if ($article?->image)
+            <x-article-image :article="$article" :superblog="$superblog" :is-preview="$isPreview" class="size-full object-cover" />
+        @else
+            <span class="{{ $stripeLabel }}">Bild</span>
+        @endif
+    </div>
     @if ($article && $superblog)
         <h3 class="my-1.75 line-clamp-2 min-h-11 font-display text-sm leading-[1.35] font-semibold">
             <a href="{{ route('public.superblogs.articles.show', [$superblog, $article]) }}" target="_blank" rel="noopener" class="hover:underline">{{ $article->title }}</a>

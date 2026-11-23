@@ -6,6 +6,7 @@ use App\Models\Article;
 use App\Models\Superblog;
 use App\Models\Template;
 use App\Models\User;
+use App\Support\ArticleContentDocument;
 use Illuminate\Database\Events\QueryExecuted;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
@@ -80,6 +81,62 @@ class ArticlePublicationTest extends TestCase
         $this->assertSame('draft', $superblog->fresh()->status);
         $this->assertSame('draft', $article->fresh()->status);
         $this->assertNull($article->fresh()->published_at);
+    }
+
+    public function test_invalid_article_structure_is_blocked_by_individual_batch_and_selection_publication(): void
+    {
+        [$staff, $superblog] = $this->makeAssignedSuperblog();
+        $article = $this->makeArticle($superblog, 'Invalid structure', selected: true);
+        $article->update(['content' => '<p>Introduction.</p><h3>Orphan subsection</h3>']);
+
+        $this->actingAs($staff)
+            ->from(route('admin.superblogs.articles.edit', [$superblog, $article]))
+            ->post(route('admin.superblogs.articles.publish', [$superblog, $article]))
+            ->assertSessionHasErrors(['content' => 'Artikel ”Invalid structure”: Lägg till en H2-huvudrubrik innan du använder en H3-underrubrik.']);
+
+        $this->post(route('admin.superblogs.articles.publish-selected', $superblog))
+            ->assertSessionHasErrors('content');
+
+        $superblog->update(['status' => 'published']);
+        $this->put(route('admin.superblogs.articles.selection.update', $superblog), [
+            'visible_article_ids' => [$article->id],
+            'selected_article_ids' => [$article->id],
+        ])->assertSessionHasErrors('content');
+
+        $article->refresh();
+        $this->assertSame('draft', $article->status);
+        $this->assertTrue($article->is_selected_for_publication);
+        $this->assertNull($article->published_at);
+        $this->assertSame('published', $superblog->fresh()->status);
+    }
+
+    public function test_structured_document_can_be_published_and_rendered_publicly(): void
+    {
+        [$staff, $superblog] = $this->makeAssignedSuperblog();
+        $article = $this->makeArticle($superblog, 'Structured draft', selected: true);
+        (new ArticleContentDocument)->storeOn($article, [
+            'version' => 1,
+            'blocks' => [[
+                'id' => '1a912ca0-1111-4111-8111-111111111111',
+                'type' => 'introduction',
+                'runs' => [['text' => 'A structured introduction.']],
+            ]],
+        ]);
+        $article->save();
+
+        $this->actingAs($staff)
+            ->post(route('admin.superblogs.articles.publish', [$superblog, $article]))
+            ->assertSessionHas('status', 'Artikeln har publicerats.');
+
+        $this->assertSame('published', $article->fresh()->status);
+        $this->assertNotNull($article->fresh()->published_at);
+
+        $superblog->update(['status' => 'published']);
+
+        $this->get(route('public.superblogs.articles.show', [$superblog, $article]))
+            ->assertOk()
+            ->assertSee('Structured draft')
+            ->assertSee('A structured introduction.');
     }
 
     public function test_valid_placeholder_domain_allows_superblog_publication_without_dns_verification(): void

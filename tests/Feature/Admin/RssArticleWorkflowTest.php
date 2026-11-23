@@ -2,14 +2,17 @@
 
 namespace Tests\Feature\Admin;
 
+use App\Enums\ArticleContentFormat;
 use App\Models\Article;
 use App\Models\RssItem;
 use App\Models\RssSource;
 use App\Models\Superblog;
 use App\Models\Template;
 use App\Models\User;
+use App\Support\ArticleContentDocument;
 use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Str;
 use Tests\TestCase;
 
 class RssArticleWorkflowTest extends TestCase
@@ -29,15 +32,16 @@ class RssArticleWorkflowTest extends TestCase
         $this->assertSame($superblog->getKey(), $article->superblog_id);
         $this->assertSame($item->getKey(), $article->rss_item_id);
         $this->assertSame('rss', $article->source_type);
+        $this->assertSame(ArticleContentFormat::LegacyHtml, $article->content_format);
         $this->assertSame('draft', $article->status);
         $this->assertTrue($article->is_selected_for_publication);
-        $this->assertSame('Original feed content', $article->content);
+        $this->assertSame('<p>Original feed content</p>', $article->content);
         $this->assertSame('Original feed content', $item->fresh()->content);
         $this->assertSame('A source summary', $item->fresh()->summary);
 
         $this->post(route('admin.superblogs.rss-sources.items.article.store', [$superblog, $source, $item]))
             ->assertRedirect(route('admin.superblogs.articles.edit', [$superblog, $article]))
-            ->assertSessionHas('status', 'The draft for this RSS item is already created.');
+            ->assertSessionHas('status', 'Utkastet för det här RSS-inlägget finns redan.');
 
         $this->assertDatabaseCount('articles', 1);
     }
@@ -54,12 +58,12 @@ class RssArticleWorkflowTest extends TestCase
         $article = $this->createDraft($staff, $superblog, $source, $item);
 
         // The summary becomes the article body, while the RSS item keeps its own copy unchanged.
-        $this->assertSame('Only the feed summary.', $article->content);
+        $this->assertSame('<p>Only the feed summary.</p>', $article->content);
         $this->assertNull($item->fresh()->content);
         $this->assertSame('Only the feed summary.', $item->fresh()->summary);
 
         $this->post(route('admin.superblogs.articles.publish', [$superblog, $article]))
-            ->assertSessionHas('status', 'Article published.');
+            ->assertSessionHas('status', 'Artikeln har publicerats.');
         $superblog->update(['status' => 'published']);
 
         $this->get(route('public.superblogs.articles.show', [$superblog, $article]))
@@ -247,7 +251,7 @@ class RssArticleWorkflowTest extends TestCase
         $this->actingAs($staff)
             ->get(route('admin.superblogs.articles.edit', [$superblog, $article]))
             ->assertOk()
-            ->assertSee('Original RSS source (read only)')
+            ->assertSee('Ursprungligt RSS-innehåll (skrivskyddat)')
             ->assertSee('Original feed content');
 
         $this->put(route('admin.superblogs.articles.update', [$superblog, $article]), [
@@ -263,7 +267,7 @@ class RssArticleWorkflowTest extends TestCase
         $article->refresh();
         $this->assertSame('Edited title', $article->title);
         $this->assertSame('edited-title', $article->slug);
-        $this->assertSame('Edited article body', $article->content);
+        $this->assertSame('Edited article body', $this->articleIntroduction($article));
         $this->assertSame('draft', $article->status);
         $this->assertSame('rss', $article->source_type);
         $this->assertSame($item->getKey(), $article->rss_item_id);
@@ -281,7 +285,7 @@ class RssArticleWorkflowTest extends TestCase
         $this->actingAs($staff)
             ->post(route('admin.superblogs.articles.publish', [$superblog, $article]))
             ->assertRedirect(route('admin.superblogs.edit', [$superblog, 'flik' => 'innehall']))
-            ->assertSessionHas('status', 'Article published.');
+            ->assertSessionHas('status', 'Artikeln har publicerats.');
 
         $article->refresh();
         $this->assertSame('published', $article->status);
@@ -378,8 +382,9 @@ class RssArticleWorkflowTest extends TestCase
 
         $this->get(route('admin.superblogs.articles.edit', [$superblog, $article]))
             ->assertOk()
-            ->assertSee('Edit article')
-            ->assertSee('Save changes')
+            ->assertSee('Redigera artikel')
+            ->assertSee('Spara och publicera')
+            ->assertDontSee('Save changes')
             ->assertDontSee('Publish now');
 
         $this->put(route('admin.superblogs.articles.update', [$superblog, $article]), [
@@ -392,7 +397,7 @@ class RssArticleWorkflowTest extends TestCase
 
         $article->refresh();
         $this->assertSame('Updated published title', $article->title);
-        $this->assertSame('Updated published body', $article->content);
+        $this->assertSame('Updated published body', $this->articleIntroduction($article));
         $this->assertSame('published', $article->status);
         $this->assertTrue($publishedAt->equalTo($article->published_at));
         $this->assertTrue($contentEditAt->equalTo($article->content_modified_at));
@@ -408,7 +413,7 @@ class RssArticleWorkflowTest extends TestCase
         $this->put(route('admin.superblogs.articles.update', [$superblog, $article]), [
             'title' => 'Updated published title',
             'slug' => 'slug-only-change',
-            'content' => 'Updated published body',
+            'document' => $this->document('Updated published body'),
         ])->assertRedirect();
 
         $this->assertTrue($contentEditAt->equalTo($article->fresh()->content_modified_at));
@@ -535,5 +540,24 @@ class RssArticleWorkflowTest extends TestCase
             'url' => 'https://feeds.example.com/feed.xml',
             'is_active' => true,
         ]);
+    }
+
+    private function articleIntroduction(Article $article): string
+    {
+        $document = (new ArticleContentDocument)->readFrom($article);
+
+        return implode('', array_column($document['blocks'][0]['runs'] ?? [], 'text'));
+    }
+
+    private function document(string $introduction): string
+    {
+        return json_encode([
+            'version' => 1,
+            'blocks' => [[
+                'id' => (string) Str::uuid(),
+                'type' => 'introduction',
+                'runs' => [['text' => $introduction]],
+            ]],
+        ], JSON_THROW_ON_ERROR);
     }
 }

@@ -2,13 +2,21 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Enums\ArticleContentFormat;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\SaveArticleRequest;
 use App\Http\Requests\Admin\SaveArticleSelectionRequest;
 use App\Models\Article;
+use App\Models\ArticleLink;
+use App\Models\Media;
 use App\Models\RssItem;
 use App\Models\RssSource;
 use App\Models\Superblog;
+use App\Support\ArticleContentDocument;
+use App\Support\ArticleContentHtmlRenderer;
+use App\Support\ArticleContentStructure;
+use App\Support\ArticleHtmlSanitizer;
+use App\Support\LegacyArticleDocumentConverter;
 use App\Support\SuperblogPublishingReadiness;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Http\JsonResponse;
@@ -16,9 +24,12 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
+use JsonException;
+use Throwable;
 
 class ArticleController extends Controller
 {
@@ -43,7 +54,7 @@ class ArticleController extends Controller
         return to_route('admin.superblogs.edit', [$superblog, 'flik' => 'innehall']);
     }
 
-    public function create(Superblog $superblog): View
+    public function create(Superblog $superblog, ArticleContentDocument $documents, ArticleContentHtmlRenderer $renderer): View
     {
         Gate::authorize('manageArticles', $superblog);
 
@@ -51,45 +62,127 @@ class ArticleController extends Controller
             'status' => 'draft',
             'source_type' => 'manual',
             'is_selected_for_publication' => true,
+            'author_name' => request()->user()->name,
         ]);
+        $editorDocument = $this->oldDocument($documents) ?? [
+            'version' => ArticleContentDocument::VERSION,
+            'blocks' => [[
+                'id' => (string) Str::uuid(),
+                'type' => 'introduction',
+                'runs' => [],
+            ], [
+                'id' => (string) Str::uuid(),
+                'type' => 'heading',
+                'level' => 2,
+                'runs' => [],
+            ], [
+                'id' => (string) Str::uuid(),
+                'type' => 'paragraph',
+                'runs' => [],
+            ]],
+        ];
 
         return view('admin.articles.edit', [
             'superblog' => $superblog,
             'article' => $article,
             'isCreating' => true,
+            'editorDocument' => $editorDocument,
+            'editorBodyHtml' => $renderer->renderEditor($editorDocument, null, null),
+            'legacyFallback' => false,
+            'editorHtml' => '',
+            'image' => null,
+            'imageUrl' => null,
+            'documentError' => null,
+            'brandLink' => null,
+            'productLink' => null,
         ]);
     }
 
-    public function store(SaveArticleRequest $request, Superblog $superblog): RedirectResponse
-    {
+    public function store(
+        SaveArticleRequest $request,
+        Superblog $superblog,
+        ArticleContentDocument $documents,
+        ArticleHtmlSanitizer $htmlSanitizer,
+        ArticleContentStructure $contentStructure,
+    ): RedirectResponse {
+        $validated = $request->validated();
+        $authorName = trim((string) ($validated['author_name'] ?? '')) ?: $request->user()->name;
+        $publishAfterSave = $request->boolean('publish_after_save');
+        $document = $this->decodeSubmittedDocument($validated['document'], $documents, $request->hasFile('image'));
+        $links = $validated['links'] ?? [];
+        unset($validated['links'], $validated['document'], $validated['content']);
+
+        $newPath = null;
         try {
-            $article = DB::transaction(function () use ($request, $superblog): Article {
+            $article = DB::transaction(function () use ($validated, $authorName, $links, $superblog, $documents, $document, $htmlSanitizer, $contentStructure, $publishAfterSave, &$newPath): Article {
                 $lockedSuperblog = Superblog::query()->lockForUpdate()->findOrFail($superblog->getKey());
 
-                return $lockedSuperblog->articles()->create([
-                    ...$request->validated(),
+                $article = $lockedSuperblog->articles()->create([
                     'rss_item_id' => null,
+                    'title' => $validated['title'],
+                    'author_name' => $authorName,
+                    'slug' => $validated['slug'],
+                    'content' => '',
+                    'content_format' => ArticleContentFormat::BlocksV1,
                     'source_type' => 'manual',
                     'status' => 'draft',
                     'is_selected_for_publication' => true,
                     'published_at' => null,
                 ]);
+
+                [$document, , $newPath] = $this->syncArticleImage($article, $document, $validated);
+                $this->validateImageReferences($article, $document, $documents);
+                $documents->storeOn($article, $document);
+                $article->save();
+                $this->syncArticleLinks($article, $links);
+                $this->publishAfterSaveIfRequested($article, $publishAfterSave, $htmlSanitizer, $contentStructure, $documents);
+
+                return $article;
             });
-        } catch (UniqueConstraintViolationException) {
-            throw ValidationException::withMessages(['slug' => 'This slug is already used by another article in this Superblog.']);
+        } catch (UniqueConstraintViolationException $exception) {
+            $this->deleteUnreferencedMediaFile($newPath);
+            if (! $superblog->articles()->where('slug', $validated['slug'])->exists()) {
+                throw $exception;
+            }
+            throw ValidationException::withMessages(['slug' => 'Den här sluggen används redan av en annan artikel i Superbloggen.']);
+        } catch (Throwable $exception) {
+            $this->deleteUnreferencedMediaFile($newPath);
+            throw $exception;
         }
 
-        return to_route('admin.superblogs.articles.edit', [$superblog, $article])
-            ->with('status', 'Draft article created.');
+        if ($publishAfterSave) {
+            return to_route('admin.superblogs.edit', [$superblog, 'flik' => 'innehall'])
+                ->with('status', 'Artikeln har sparats och publicerats.');
+        }
+
+        return to_route('admin.superblogs.articles.edit', [$superblog, $article])->with('status', 'Utkastet har skapats.');
     }
 
-    public function updateSelection(SaveArticleSelectionRequest $request, Superblog $superblog): RedirectResponse
-    {
+    public function updateSelection(
+        SaveArticleSelectionRequest $request,
+        Superblog $superblog,
+        ArticleHtmlSanitizer $htmlSanitizer,
+        ArticleContentStructure $contentStructure,
+        ArticleContentDocument $documents,
+    ): RedirectResponse {
         $visibleIds = array_map('intval', $request->validated('visible_article_ids'));
         $selectedIds = array_map('intval', $request->validated('selected_article_ids', []));
 
-        $isPublished = DB::transaction(function () use ($superblog, $visibleIds, $selectedIds): bool {
+        $isPublished = DB::transaction(function () use ($superblog, $visibleIds, $selectedIds, $htmlSanitizer, $contentStructure, $documents): bool {
             $lockedSuperblog = Superblog::query()->lockForUpdate()->findOrFail($superblog->getKey());
+
+            if ($lockedSuperblog->status === 'published' && $selectedIds !== []) {
+                $draftsToPublish = $lockedSuperblog->articles()
+                    ->whereIn('id', $visibleIds)
+                    ->whereIn('id', $selectedIds)
+                    ->where('status', 'draft')
+                    ->get();
+
+                foreach ($draftsToPublish as $article) {
+                    $this->ensureArticleCanBePublished($article, $htmlSanitizer, $contentStructure, $documents);
+                }
+            }
+
             $visibleArticles = $lockedSuperblog->articles()->whereIn('id', $visibleIds);
 
             $visibleArticles->whereNotIn('id', $selectedIds)
@@ -142,13 +235,18 @@ class ArticleController extends Controller
         ])->with('status', $message);
     }
 
-    public function publishSelected(Superblog $superblog, SuperblogPublishingReadiness $publishingReadiness): RedirectResponse
-    {
+    public function publishSelected(
+        Superblog $superblog,
+        SuperblogPublishingReadiness $publishingReadiness,
+        ArticleHtmlSanitizer $htmlSanitizer,
+        ArticleContentStructure $contentStructure,
+        ArticleContentDocument $documents,
+    ): RedirectResponse {
         Gate::authorize('manageArticles', $superblog);
         $canPublishSuperblog = Gate::allows('update', $superblog);
         $publishedAt = now();
 
-        [$published, $withdrawn, $wasAlreadyPublished] = DB::transaction(function () use ($superblog, $publishedAt, $publishingReadiness, $canPublishSuperblog): array {
+        [$published, $withdrawn, $wasAlreadyPublished] = DB::transaction(function () use ($superblog, $publishedAt, $publishingReadiness, $canPublishSuperblog, $htmlSanitizer, $contentStructure, $documents): array {
             $lockedSuperblog = Superblog::query()->lockForUpdate()->findOrFail($superblog->getKey());
             if ($canPublishSuperblog) {
                 $publishingReadiness->validate($lockedSuperblog);
@@ -159,6 +257,11 @@ class ArticleController extends Controller
             $articlesToPublish = $lockedSuperblog->articles()
                 ->where('is_selected_for_publication', true)
                 ->where('status', 'draft');
+
+            foreach ((clone $articlesToPublish)->get() as $article) {
+                $this->ensureArticleCanBePublished($article, $htmlSanitizer, $contentStructure, $documents);
+            }
+
             $articlesToWithdraw = $lockedSuperblog->articles()
                 ->where('is_selected_for_publication', false)
                 ->where('status', 'published');
@@ -196,12 +299,12 @@ class ArticleController extends Controller
             ->with('status', "Artikelpublicering klar: {$publishedMessage} och {$withdrawnMessage}. {$superblogMessage}");
     }
 
-    public function createFromRssItem(Superblog $superblog, RssSource $rssSource, RssItem $rssItem): RedirectResponse
+    public function createFromRssItem(Superblog $superblog, RssSource $rssSource, RssItem $rssItem, ArticleHtmlSanitizer $htmlSanitizer): RedirectResponse
     {
         Gate::authorize('manageArticles', $superblog);
 
         try {
-            [$article, $wasExisting] = DB::transaction(function () use ($superblog, $rssSource, $rssItem): array {
+            [$article, $wasExisting] = DB::transaction(function () use ($superblog, $rssSource, $rssItem, $htmlSanitizer): array {
                 // Lock the blog to serialize slug allocation; the unique RSS-item index remains the final race guard.
                 $lockedSuperblog = Superblog::query()->lockForUpdate()->findOrFail($superblog->getKey());
                 $lockedSource = $lockedSuperblog->rssSources()->whereKey($rssSource->getKey())->firstOrFail();
@@ -215,10 +318,15 @@ class ArticleController extends Controller
                     return [$existing, true];
                 }
 
-                $sourceContent = $lockedItem->content ?: $lockedItem->summary ?: '';
+                $sourceContent = $htmlSanitizer->sanitize($lockedItem->content ?: '');
+
+                if (! $htmlSanitizer->hasText($sourceContent)) {
+                    $sourceContent = $htmlSanitizer->sanitize($lockedItem->summary ?: '');
+                }
 
                 $article = $lockedSuperblog->articles()->create([
                     'rss_item_id' => $lockedItem->getKey(),
+                    'content_format' => ArticleContentFormat::LegacyHtml,
                     'title' => $lockedItem->title,
                     'slug' => $this->uniqueSlug($lockedSuperblog, $lockedItem),
                     'content' => $sourceContent,
@@ -240,18 +348,61 @@ class ArticleController extends Controller
         }
 
         return to_route('admin.superblogs.articles.edit', [$superblog, $article])
-            ->with('status', $wasExisting ? 'The draft for this RSS item is already created.' : 'Draft article created from RSS item.');
+            ->with('status', $wasExisting ? 'Utkastet för det här RSS-inlägget finns redan.' : 'Utkastet har skapats från RSS-inlägget.');
     }
 
-    public function edit(Superblog $superblog, Article $article): View
-    {
+    public function edit(
+        Superblog $superblog,
+        Article $article,
+        ArticleContentDocument $documents,
+        LegacyArticleDocumentConverter $legacyConverter,
+        ArticleContentHtmlRenderer $renderer,
+        ArticleHtmlSanitizer $htmlSanitizer,
+    ): View {
         Gate::authorize('manageArticles', $superblog);
-        $article = $this->articleForSuperblog($superblog, $article);
+        $article = $this->articleForSuperblog($superblog, $article)->load(['articleLinks', 'image', 'rssItem']);
+        $documentError = null;
+        $editorDocument = $this->oldDocument($documents);
+
+        if ($editorDocument === null) {
+            try {
+                $editorDocument = $article->content_format === ArticleContentFormat::BlocksV1
+                    ? $documents->readFrom($article)
+                    : $legacyConverter->convert($article->content);
+            } catch (ValidationException) {
+                $documentError = 'Det sparade artikelinnehållet kunde inte öppnas på ett säkert sätt. Innehållet har inte ändrats.';
+            }
+        }
+
+        if ($editorDocument !== null && $article->image) {
+            $hasImageBlock = collect($editorDocument['blocks'])->contains(fn (array $block): bool => $block['type'] === 'image');
+            if (! $hasImageBlock) {
+                $editorDocument['blocks'][] = [
+                    'id' => (string) Str::uuid(),
+                    'type' => 'image',
+                    'media_id' => (int) $article->image->getKey(),
+                    'caption' => '',
+                ];
+            }
+        }
+
+        $productLink = $article->articleLinks->first(fn (ArticleLink $link): bool => in_array($link->type, ['product', 'service'], true));
 
         return view('admin.articles.edit', [
             'superblog' => $superblog,
             'article' => $article,
             'isCreating' => false,
+            'editorDocument' => $editorDocument,
+            'editorBodyHtml' => $editorDocument !== null
+                ? $renderer->renderEditor($editorDocument, $article->image, $article->image ? route('admin.superblogs.articles.image', [$superblog, $article]) : null, $article->articleLinks)
+                : '',
+            'legacyFallback' => $editorDocument === null && $documentError === null && $article->content_format === ArticleContentFormat::LegacyHtml,
+            'editorHtml' => $htmlSanitizer->sanitize((string) old('content', $article->content)),
+            'image' => $article->image,
+            'imageUrl' => $article->image ? route('admin.superblogs.articles.image', [$superblog, $article]) : null,
+            'documentError' => $documentError,
+            'brandLink' => old('links.brand') ? (object) old('links.brand') : $article->articleLinks->firstWhere('type', 'brand'),
+            'productLink' => old('links.product') ? (object) old('links.product') : $productLink,
         ]);
     }
 
@@ -259,9 +410,9 @@ class ArticleController extends Controller
     {
         Gate::authorize('manageArticles', $superblog);
 
-        [$sectionKey, $currentPage] = DB::transaction(function () use ($request, $superblog, $article): array {
+        [$sectionKey, $currentPage, $mediaPath] = DB::transaction(function () use ($request, $superblog, $article): array {
             $lockedSuperblog = Superblog::query()->lockForUpdate()->findOrFail($superblog->getKey());
-            $lockedArticle = $this->articleForSuperblog($lockedSuperblog, $article, lock: true);
+            $lockedArticle = $this->articleForSuperblog($lockedSuperblog, $article, lock: true)->load('image');
             $sectionKey = match ($lockedArticle->source_type) {
                 'manual' => 'manual',
                 'rss' => 'rss',
@@ -269,14 +420,17 @@ class ArticleController extends Controller
             };
 
             // Foreign-key cascades remove this article's child rows, but leave its RSS source item and files alone.
+            $mediaPath = $lockedArticle->image?->path;
             $lockedArticle->delete();
 
             $pageName = $sectionKey.'_page';
             $lastPage = max(1, (int) ceil($lockedSuperblog->articles()->where('source_type', $sectionKey)->count() / 5));
             $requestedPage = max(1, (int) $request->query($pageName, 1));
 
-            return [$sectionKey, min($requestedPage, $lastPage)];
+            return [$sectionKey, min($requestedPage, $lastPage), $mediaPath];
         });
+
+        $this->deleteUnreferencedMediaFile($mediaPath);
 
         $message = 'Artikeln har tagits bort permanent.';
 
@@ -297,16 +451,23 @@ class ArticleController extends Controller
         ])->with('status', $message);
     }
 
-    public function publish(Superblog $superblog, Article $article): RedirectResponse
-    {
+    public function publish(
+        Superblog $superblog,
+        Article $article,
+        ArticleHtmlSanitizer $htmlSanitizer,
+        ArticleContentStructure $contentStructure,
+        ArticleContentDocument $documents,
+    ): RedirectResponse {
         Gate::authorize('manageArticles', $superblog);
 
-        DB::transaction(function () use ($superblog, $article): void {
+        DB::transaction(function () use ($superblog, $article, $htmlSanitizer, $contentStructure, $documents): void {
             $article = $this->articleForSuperblog($superblog, $article, lock: true);
 
             if ($article->status !== 'draft') {
-                throw ValidationException::withMessages(['status' => 'Only draft articles can be published.']);
+                throw ValidationException::withMessages(['status' => 'Endast utkast kan publiceras.']);
             }
+
+            $this->ensureArticleCanBePublished($article, $htmlSanitizer, $contentStructure, $documents);
 
             $now = now();
             $article->status = 'published';
@@ -316,32 +477,465 @@ class ArticleController extends Controller
         });
 
         return to_route('admin.superblogs.edit', [$superblog, 'flik' => 'innehall'])
-            ->with('status', 'Article published.');
+            ->with('status', 'Artikeln har publicerats.');
     }
 
-    public function update(SaveArticleRequest $request, Superblog $superblog, Article $article): RedirectResponse
-    {
-        $article = DB::transaction(function () use ($request, $superblog, $article): Article {
-            $article = $this->articleForSuperblog($superblog, $article, lock: true);
-            abort_unless(in_array($article->status, ['draft', 'published'], true), 404);
+    public function update(
+        SaveArticleRequest $request,
+        Superblog $superblog,
+        Article $article,
+        ArticleContentDocument $documents,
+        LegacyArticleDocumentConverter $legacyConverter,
+        ArticleHtmlSanitizer $htmlSanitizer,
+        ArticleContentStructure $contentStructure,
+    ): RedirectResponse {
+        $validated = $request->validated();
+        $publishAfterSave = $request->boolean('publish_after_save');
+        $links = $validated['links'] ?? null;
+        unset($validated['links'], $validated['document'], $validated['content']);
 
-            $wasPublished = $article->status === 'published';
-            $article->fill($request->validated());
+        $newPath = null;
+        $oldPath = null;
+        try {
+            $article = DB::transaction(function () use ($request, $validated, $links, $superblog, $article, $documents, $legacyConverter, $htmlSanitizer, $contentStructure, $publishAfterSave, &$newPath, &$oldPath): Article {
+                $article = $this->articleForSuperblog($superblog, $article, lock: true)->load('image');
+                abort_unless(in_array($article->status, ['draft', 'published'], true), 404);
 
-            if ($wasPublished && $article->isDirty(['title', 'content'])) {
-                $article->content_modified_at = now();
+                $wasPublished = $article->status === 'published';
+                $previousContent = $article->content;
+                $previousFormat = $article->content_format;
+                $previousTitle = $article->title;
+                $previousDocumentFingerprint = null;
+                if ($previousFormat === ArticleContentFormat::BlocksV1) {
+                    $previousDocumentFingerprint = $this->documentFingerprint($documents->readFrom($article) ?? []);
+                } else {
+                    $previousDocument = $legacyConverter->convert($article->content);
+                    if ($previousDocument !== null && $article->image) {
+                        $previousDocument['blocks'][] = [
+                            'id' => (string) Str::uuid(),
+                            'type' => 'image',
+                            'media_id' => (int) $article->image->getKey(),
+                            'caption' => '',
+                        ];
+                    }
+                    if ($previousDocument !== null) {
+                        $previousDocumentFingerprint = $this->documentFingerprint($previousDocument);
+                    }
+                }
+                $imageChanged = false;
+
+                if (isset($request->validated()['document'])) {
+                    $document = $this->decodeSubmittedDocument($request->validated('document'), $documents, $request->hasFile('image'));
+                    [$document, $imageChanged, $newPath, $oldPath] = $this->syncArticleImage($article, $document, $request->validated());
+                    $this->validateImageReferences($article, $document, $documents);
+                    $documents->storeOn($article, $document);
+                } else {
+                    if ($article->content_format !== ArticleContentFormat::LegacyHtml) {
+                        throw ValidationException::withMessages(['document' => 'Artikeln måste sparas med det strukturerade innehållet från redigeraren. Ladda om sidan och försök igen.']);
+                    }
+
+                    $safeContent = $htmlSanitizer->sanitize((string) $request->validated('content'));
+                    $this->ensureSanitizedContentHasText($safeContent, $htmlSanitizer);
+                    $document = $legacyConverter->convert($safeContent);
+
+                    if ($document !== null) {
+                        if ($article->image && ! collect($document['blocks'])->contains(fn (array $block): bool => $block['type'] === 'image')) {
+                            $document['blocks'][] = [
+                                'id' => (string) Str::uuid(),
+                                'type' => 'image',
+                                'media_id' => (int) $article->image->getKey(),
+                                'caption' => '',
+                            ];
+                        }
+                        [$document, $imageChanged, $newPath, $oldPath] = $this->syncArticleImage($article, $document, $request->validated());
+                        $this->validateImageReferences($article, $document, $documents);
+                        $documents->storeOn($article, $document);
+                    } else {
+                        $article->content = $safeContent;
+                        [$imageChanged, $newPath, $oldPath] = $this->syncLegacyArticleImage($article, $request->validated());
+                    }
+                }
+
+                $article->fill(['title' => $validated['title'], 'slug' => $validated['slug']]);
+                if (array_key_exists('author_name', $validated)) {
+                    $article->author_name = $validated['author_name'];
+                }
+                $linksChanged = $links !== null && $this->syncArticleLinks($article, $links);
+                $contentChanged = $article->content_format === ArticleContentFormat::BlocksV1
+                    ? $previousDocumentFingerprint !== $this->documentFingerprint($documents->readFrom($article) ?? [])
+                    : $previousContent !== $article->content;
+
+                if ($wasPublished && ($previousTitle !== $article->title || $contentChanged || $linksChanged || $imageChanged)) {
+                    $article->content_modified_at = now();
+                }
+
+                $article->save();
+                $this->publishAfterSaveIfRequested($article, $publishAfterSave, $htmlSanitizer, $contentStructure, $documents);
+
+                return $article;
+            });
+        } catch (UniqueConstraintViolationException $exception) {
+            $this->deleteUnreferencedMediaFile($newPath);
+            if (! $superblog->articles()->where('slug', $validated['slug'])->where('id', '<>', $article->getKey())->exists()) {
+                throw $exception;
             }
+            throw ValidationException::withMessages(['slug' => 'Den här sluggen används redan av en annan artikel i Superbloggen.']);
+        } catch (Throwable $exception) {
+            $this->deleteUnreferencedMediaFile($newPath);
+            throw $exception;
+        }
+
+        $this->deleteUnreferencedMediaFile($oldPath);
+
+        if ($publishAfterSave) {
+            return to_route('admin.superblogs.edit', [$superblog, 'flik' => 'innehall'])
+                ->with('status', 'Artikeln har sparats och publicerats.');
+        }
+
+        return to_route('admin.superblogs.articles.edit', [$superblog, $article])->with('status', 'Artikeln har sparats.');
+    }
+
+    private function publishAfterSaveIfRequested(
+        Article $article,
+        bool $publishAfterSave,
+        ArticleHtmlSanitizer $htmlSanitizer,
+        ArticleContentStructure $contentStructure,
+        ArticleContentDocument $documents,
+    ): void {
+        if (! $publishAfterSave || $article->status === 'published') {
+            return;
+        }
+
+        if ($article->status !== 'draft') {
+            throw ValidationException::withMessages(['status' => 'Endast utkast kan publiceras.']);
+        }
+
+        $this->ensureArticleCanBePublished($article, $htmlSanitizer, $contentStructure, $documents);
+        $article->status = 'published';
+        $article->published_at ??= now();
+        $article->is_selected_for_publication = true;
+        $article->save();
+    }
+
+    private function ensureSanitizedContentHasText(string $content, ArticleHtmlSanitizer $htmlSanitizer): void
+    {
+        if (! $htmlSanitizer->hasText($content)) {
+            throw ValidationException::withMessages(['content' => 'Artikeltexten måste innehålla läsbar text.']);
+        }
+    }
+
+    private function ensureValidContentStructure(Article $article, string $content, ArticleContentStructure $contentStructure): void
+    {
+        $message = $contentStructure->error($content);
+
+        if ($message !== null) {
+            throw ValidationException::withMessages(['content' => 'Artikel ”'.$article->title.'”: '.$message]);
+        }
+    }
+
+    private function ensureArticleCanBePublished(
+        Article $article,
+        ArticleHtmlSanitizer $htmlSanitizer,
+        ArticleContentStructure $contentStructure,
+        ArticleContentDocument $documents,
+    ): void {
+        if ($article->content_format === ArticleContentFormat::BlocksV1) {
+            $document = $documents->readFrom($article);
+            $this->validateImageReferences($article, $document ?? [], $documents);
+
+            return;
+        }
+
+        $safeContent = $htmlSanitizer->sanitize($article->content);
+        $this->ensureSanitizedContentHasText($safeContent, $htmlSanitizer);
+        $this->ensureValidContentStructure($article, $safeContent, $contentStructure);
+    }
+
+    /** @return array{version: int, blocks: list<array<string, mixed>>} */
+    private function decodeSubmittedDocument(string $json, ArticleContentDocument $documents, bool $hasUpload = false): array
+    {
+        try {
+            $raw = json_decode($json, true, flags: JSON_THROW_ON_ERROR);
+        } catch (JsonException) {
+            throw ValidationException::withMessages(['document' => 'Redigeraren skickade ett ogiltigt artikelinnehåll. Ladda om sidan och försök igen.']);
+        }
+
+        // A new inline image has no database ID until the upload is stored in this request.
+        if ($hasUpload && is_array($raw['blocks'] ?? null)) {
+            foreach ($raw['blocks'] as &$block) {
+                if (($block['type'] ?? null) === 'image' && ($block['media_id'] ?? null) === 0) {
+                    $block['media_id'] = PHP_INT_MAX;
+                }
+            }
+            unset($block);
+        }
+
+        return $documents->validate($raw);
+    }
+
+    /** @return array{version: int, blocks: list<array<string, mixed>>}|null */
+    private function oldDocument(ArticleContentDocument $documents): ?array
+    {
+        $old = old('document');
+        if (! is_string($old) || $old === '') {
+            return null;
+        }
+
+        try {
+            $raw = json_decode($old, true, flags: JSON_THROW_ON_ERROR);
+            if (is_array($raw) && is_array($raw['blocks'] ?? null)) {
+                // Browsers cannot restore an uploaded file after validation redirects; keep the text and
+                // remove only its unsaved image placeholder so the editor can be submitted again.
+                $raw['blocks'] = array_values(array_filter(
+                    $raw['blocks'],
+                    fn (mixed $block): bool => ! (is_array($block)
+                        && ($block['type'] ?? null) === 'image'
+                        && ($block['media_id'] ?? null) === 0),
+                ));
+            }
+
+            return $documents->validate($raw);
+        } catch (JsonException|ValidationException) {
+            return null;
+        }
+    }
+
+    /**
+     * Upload or remove the article's single image and synchronize its block reference.
+     *
+     * @param  array{version: int, blocks: list<array<string, mixed>>}  $document
+     * @param  array<string, mixed>  $input
+     * @return array{0: array{version: int, blocks: list<array<string, mixed>>}, 1: bool, 2: ?string, 3: ?string}
+     */
+    private function syncArticleImage(Article $article, array $document, array $input): array
+    {
+        $media = $article->image()->lockForUpdate()->first();
+        $oldPath = null;
+        $newPath = null;
+        $changed = false;
+        $file = $input['image'] ?? null;
+        $remove = (bool) ($input['remove_image'] ?? false);
+        $imageIndexes = [];
+        foreach ($document['blocks'] as $index => $block) {
+            if ($block['type'] === 'image') {
+                $imageIndexes[] = $index;
+            }
+        }
+
+        if ($remove && ! $file) {
+            if ($media) {
+                $oldPath = $media->path;
+                $media->delete();
+                $changed = true;
+            }
+            $document['blocks'] = array_values(array_filter($document['blocks'], fn (array $block): bool => $block['type'] !== 'image'));
+
+            return [$document, $changed, null, $oldPath];
+        }
+
+        if ($file) {
+            $oldPath = $media?->path;
+            $newPath = $file->store('articles/'.$article->getKey(), 'article_media');
+            if (! is_string($newPath) || $newPath === '') {
+                throw ValidationException::withMessages(['image' => 'Bilden kunde inte sparas. Försök igen.']);
+            }
+
+            $decorative = (bool) ($input['image_decorative'] ?? false);
+            $altText = $decorative ? '' : trim((string) ($input['image_alt_text'] ?? ''));
+            $attributes = [
+                'path' => $newPath,
+                'filename' => mb_substr(basename((string) $file->getClientOriginalName()), 0, 255),
+                'mime_type' => (string) $file->getMimeType(),
+                'alt_text' => $altText,
+            ];
 
             try {
-                $article->save();
-            } catch (UniqueConstraintViolationException) {
-                throw ValidationException::withMessages(['slug' => 'This slug is already used by another article in this Superblog.']);
+                if ($media) {
+                    $media->update($attributes);
+                } else {
+                    $media = $article->image()->create($attributes);
+                }
+
+                if ($imageIndexes === []) {
+                    $document['blocks'][] = [
+                        'id' => (string) Str::uuid(),
+                        'type' => 'image',
+                        'media_id' => (int) $media->getKey(),
+                        'caption' => '',
+                    ];
+                } else {
+                    $document['blocks'][$imageIndexes[0]]['media_id'] = (int) $media->getKey();
+                }
+            } catch (Throwable $exception) {
+                try {
+                    Storage::disk('article_media')->delete($newPath);
+                } catch (Throwable $cleanupException) {
+                    report($cleanupException);
+                }
+                throw $exception;
+            }
+            $changed = true;
+
+            return [$document, $changed, $newPath, $oldPath];
+        }
+
+        if ($media) {
+            if ($imageIndexes === [] || (int) $document['blocks'][$imageIndexes[0]]['media_id'] !== (int) $media->getKey()) {
+                throw ValidationException::withMessages(['document' => 'Använd bildkontrollerna för att ta bort eller byta den befintliga bilden.']);
             }
 
-            return $article;
-        });
+            if (array_key_exists('image_alt_text', $input)) {
+                $altText = (bool) ($input['image_decorative'] ?? false) ? '' : trim((string) $input['image_alt_text']);
+                if ($media->alt_text !== $altText) {
+                    $media->alt_text = $altText;
+                    $media->save();
+                    $changed = true;
+                }
+            }
+        } elseif ($imageIndexes !== []) {
+            throw ValidationException::withMessages(['document' => 'Den valda bilden tillhör inte den här artikeln.']);
+        }
 
-        return to_route('admin.superblogs.articles.edit', [$superblog, $article])->with('status', 'Article saved.');
+        return [$document, $changed, $newPath, $oldPath];
+    }
+
+    /** @param array<string, mixed> $input
+     * @return array{0: bool, 1: ?string, 2: ?string}
+     */
+    private function syncLegacyArticleImage(Article $article, array $input): array
+    {
+        $media = $article->image()->lockForUpdate()->first();
+        $oldPath = null;
+        $newPath = null;
+        $changed = false;
+
+        if ((bool) ($input['remove_image'] ?? false) && ! isset($input['image'])) {
+            if ($media) {
+                $oldPath = $media->path;
+                $media->delete();
+                $changed = true;
+            }
+
+            return [$changed, null, $oldPath];
+        }
+
+        if (isset($input['image'])) {
+            $file = $input['image'];
+            $oldPath = $media?->path;
+            $newPath = $file->store('articles/'.$article->getKey(), 'article_media');
+            if (! is_string($newPath) || $newPath === '') {
+                throw ValidationException::withMessages(['image' => 'Bilden kunde inte sparas. Försök igen.']);
+            }
+
+            $attributes = [
+                'path' => $newPath,
+                'filename' => mb_substr(basename((string) $file->getClientOriginalName()), 0, 255),
+                'mime_type' => (string) $file->getMimeType(),
+                'alt_text' => (bool) ($input['image_decorative'] ?? false) ? '' : trim((string) ($input['image_alt_text'] ?? '')),
+            ];
+            try {
+                $media ? $media->update($attributes) : $article->image()->create($attributes);
+            } catch (Throwable $exception) {
+                try {
+                    Storage::disk('article_media')->delete($newPath);
+                } catch (Throwable $cleanupException) {
+                    report($cleanupException);
+                }
+                throw $exception;
+            }
+            $changed = true;
+        } elseif ($media && array_key_exists('image_alt_text', $input)) {
+            $altText = (bool) ($input['image_decorative'] ?? false) ? '' : trim((string) $input['image_alt_text']);
+            if ($media->alt_text !== $altText) {
+                $media->alt_text = $altText;
+                $media->save();
+                $changed = true;
+            }
+        }
+
+        return [$changed, $newPath, $oldPath];
+    }
+
+    /** @param array{version: int, blocks: list<array<string, mixed>>} $document */
+    private function validateImageReferences(Article $article, array $document, ArticleContentDocument $documents): void
+    {
+        foreach ($documents->validate($document)['blocks'] as $block) {
+            if ($block['type'] === 'image'
+                && ! $article->image()->whereKey($block['media_id'])->exists()) {
+                throw ValidationException::withMessages(['document' => 'Bilden måste tillhöra den här artikeln.']);
+            }
+        }
+    }
+
+    private function deleteUnreferencedMediaFile(?string $path): void
+    {
+        if ($path !== null && ! Media::query()->where('path', $path)->exists()) {
+            Storage::disk('article_media')->delete($path);
+        }
+    }
+
+    /**
+     * Compare reader-visible document content while ignoring generated block and list-item IDs.
+     * Legacy conversion creates fresh IDs on each edit, so including IDs would falsely mark an
+     * unchanged article as modified the first time it is saved in the structured editor.
+     *
+     * @param  array{version: int, blocks: list<array<string, mixed>>}  $document
+     */
+    private function documentFingerprint(array $document): string
+    {
+        foreach ($document['blocks'] as &$block) {
+            unset($block['id']);
+            if (isset($block['items']) && is_array($block['items'])) {
+                foreach ($block['items'] as &$item) {
+                    unset($item['id']);
+                }
+                unset($item);
+            }
+        }
+        unset($block);
+
+        return json_encode($document, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
+    }
+
+    /** @param array<string, array{url?: ?string, anchor_text?: ?string}> $links */
+    private function syncArticleLinks(Article $article, array $links): bool
+    {
+        $changed = false;
+
+        foreach (['brand' => ['brand'], 'product' => ['product', 'service']] as $key => $types) {
+            if (! array_key_exists($key, $links)) {
+                continue;
+            }
+
+            $values = $links[$key] ?? [];
+            $url = trim((string) ($values['url'] ?? ''));
+            $anchorText = trim((string) ($values['anchor_text'] ?? ''));
+            $existing = $article->articleLinks()->whereIn('type', $types)->first();
+
+            if ($url === '' && $anchorText === '') {
+                if ($existing) {
+                    $existing->delete();
+                    $changed = true;
+                }
+
+                continue;
+            }
+
+            $type = $key === 'brand' ? 'brand' : ($existing?->type === 'service' ? 'service' : 'product');
+            if (! $existing) {
+                $article->articleLinks()->create(['type' => $type, 'url' => $url, 'anchor_text' => $anchorText]);
+                $changed = true;
+
+                continue;
+            }
+
+            if ($existing->type !== $type || $existing->url !== $url || $existing->anchor_text !== $anchorText) {
+                $existing->update(['type' => $type, 'url' => $url, 'anchor_text' => $anchorText]);
+                $changed = true;
+            }
+        }
+
+        return $changed;
     }
 
     private function articleForSuperblog(Superblog $superblog, Article $article, bool $lock = false): Article

@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Admin;
 
+use App\Enums\ArticleContentFormat;
 use App\Models\Article;
 use App\Models\RssSource;
 use App\Models\Superblog;
@@ -39,8 +40,10 @@ class RssFetchingAndItemsTest extends TestCase
         $article = Article::query()->where('rss_item_id', $item->getKey())->firstOrFail();
         $this->assertSame($superblog->getKey(), $article->superblog_id);
         $this->assertSame('rss', $article->source_type);
+        $this->assertSame(ArticleContentFormat::LegacyHtml, $article->content_format);
         $this->assertSame('draft', $article->status);
         $this->assertTrue($article->is_selected_for_publication);
+        $this->assertSame('<p>The original feed body</p>', $article->content);
         $this->assertSame('The original feed body', $item->fresh()->content);
 
         // A user's Innehåll choice belongs to the Article and must survive a later refetch.
@@ -52,6 +55,27 @@ class RssFetchingAndItemsTest extends TestCase
         $this->assertDatabaseCount('rss_items', 1);
         $this->assertDatabaseCount('articles', 1);
         $this->assertFalse($article->fresh()->is_selected_for_publication);
+    }
+
+    public function test_automatic_rss_article_creation_sanitizes_a_copy_and_keeps_the_source_snapshot(): void
+    {
+        $staff = $this->makeUser(isAdmin: true);
+        $superblog = $this->makeSuperblog($staff, 'rss-sanitizer-blog');
+        $superblog->staff()->attach($staff->getKey());
+        $source = $this->makeSource($superblog);
+        $originalContent = '<p>Feed <strong>bold</strong><script>alert("xss")</script><a href="javascript:alert(1)">link</a></p>';
+        $this->allowPublicFeedHost();
+        Http::fake(['*' => Http::response($this->feed($originalContent), 200)]);
+
+        $this->actingAs($staff)
+            ->post(route('admin.superblogs.rss-sources.fetch', [$superblog, $source]))
+            ->assertSessionHasNoErrors();
+
+        $item = $source->rssItems()->firstOrFail();
+        $article = Article::query()->where('rss_item_id', $item->getKey())->firstOrFail();
+
+        $this->assertSame($originalContent, $item->content);
+        $this->assertSame('<p>Feed <strong>bold</strong><a>link</a></p>', $article->content);
     }
 
     public function test_invalid_or_private_feed_targets_are_rejected_without_a_request(): void
@@ -257,14 +281,14 @@ class RssFetchingAndItemsTest extends TestCase
         $resolver->shouldReceive('resolve')->andReturn(['93.184.216.34']);
     }
 
-    private function feed(): string
+    private function feed(string $content = 'The original feed body'): string
     {
-        return <<<'XML'
+        return <<<XML
             <?xml version="1.0"?>
             <rss version="2.0"><channel><title>Feed</title><item>
                 <guid>story-1</guid><title>A story</title><link>https://news.example/story</link>
                 <pubDate>Tue, 20 Oct 2026 12:00:00 GMT</pubDate>
-                <description>A short summary</description><content:encoded xmlns:content="http://purl.org/rss/1.0/modules/content/">The original feed body</content:encoded>
+                <description>A short summary</description><content:encoded xmlns:content="http://purl.org/rss/1.0/modules/content/"><![CDATA[{$content}]]></content:encoded>
             </item></channel></rss>
             XML;
     }
