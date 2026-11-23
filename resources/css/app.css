@@ -76,7 +76,7 @@
 /* Soft halo beneath cards and panels in the light mode. It fills the same variable as the framework's halo
    utilities, so a selected card keeps its colored frame around it. */
 @utility studio-raised {
-    --tw-shadow: 0 1px 2px var(--color-studio-soft-shadow), 0 4px 14px var(--color-studio-soft-shadow);
+    --tw-shadow: 0 1px 2px var(--color-studio-soft-shadow), 0 8px 20px var(--color-studio-soft-shadow);
     box-shadow:
         var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow),
         var(--tw-shadow);
@@ -90,14 +90,14 @@
  * always takes precedence over layered rules. The preview halo keeps its default value, which suits both modes.
  */
 :root[data-studio-mode='light'] {
-    --color-studio-bg: #f3f2ee;
+    --color-studio-bg: #eeede7;
     --color-studio-panel: #ffffff;
-    --color-studio-line: #dfddd5;
+    --color-studio-line: #d8d6cd;
     --color-studio-field-line: #80828c;
     --color-studio-ink: #1b1c20;
     --color-studio-muted: #5c5e68;
     --color-studio-brand: #d0451e;
-    --color-studio-side: #ffffff;
+    --color-studio-side: #f7f6f1;
     --color-studio-ok: #17723f;
     --color-studio-bad: #b42318;
     --color-studio-brand-hover: #c23d16;
@@ -124,12 +124,17 @@
     --color-studio-preview-bg: #e8e6df;
     --color-studio-preview-dots: #b5b3ab;
     --color-studio-card-shadow: #0000001a;
-    --color-studio-soft-shadow: #17181c14;
+    --color-studio-soft-shadow: #17181c1c;
 
     --color-studio-on-brand: #ffffff;
     --color-studio-on-bad: #ffffff;
     --color-studio-brand-text: #c3411c;
     --color-studio-on-brand-step: #ffffff;
+}
+
+/* Give large light-mode cards a quiet lift from the page canvas without shadowing buttons or dialogs. */
+:root[data-studio-mode='light'] :is(section, form, article, aside, div, a).rounded-xl.border.bg-studio-panel {
+    box-shadow: 0 1px 2px var(--color-studio-soft-shadow), 0 8px 20px var(--color-studio-soft-shadow);
 }
 
 /* Native form controls, scrollbars and dialogs follow the light colors; the body keeps its own setting otherwise. */
